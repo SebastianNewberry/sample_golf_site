@@ -23,7 +23,7 @@ export default function AcademyLocations() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Title */}
         <div className="text-center mb-12">
-          <h2 className="text-white text-2xl md:text-3xl font-semibold tracking-wide">
+          <h2 className="text-black text-2xl md:text-3xl font-semibold tracking-wide">
             - Academy Locations -
           </h2>
         </div>
