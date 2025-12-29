@@ -35,6 +35,13 @@ export default function AcademyLocations() {
               key={index}
               className="bg-white rounded-lg overflow-hidden shadow-lg"
             >
+              {/* Season Badge */}
+              <div className="bg-orange-500 p-3">
+                <span className="text-white text-sm font-semibold uppercase tracking-wide">
+                  {location.season}
+                </span>
+              </div>
+
               {/* Map */}
               <div className="h-64 md:h-80">
                 <iframe
@@ -51,11 +58,6 @@ export default function AcademyLocations() {
 
               {/* Location Info */}
               <div className="p-6">
-                <div className="mb-2">
-                  <span className="inline-block bg-orange-500 text-white text-sm font-semibold px-3 py-1 rounded">
-                    {location.season}
-                  </span>
-                </div>
                 <h3 className="text-lg md:text-xl font-semibold text-gray-800 mb-2">
                   {location.name}
                 </h3>

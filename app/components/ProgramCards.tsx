@@ -1,4 +1,9 @@
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
+import pgaOfAmerica from "@/public/adult_private_instruction.webp";
+import usKidsGolf from "@/public/us_kids_golf.webp";
+import titleist from "@/public/titleist.webp";
+import trackman from "@/public/trackman.webp";
 
 export default function ProgramCards() {
   const programs = [
@@ -49,42 +54,34 @@ export default function ProgramCards() {
 
         {/* Professional Associations */}
         <div className="mt-16 pt-12 border-t border-gray-200">
-          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
+          <div className="grid grid-cols-2 md:grid-cols-4 items-center justify-items-center gap-6 md:gap-8">
             {/* PGA of America */}
-            <div className="flex items-center gap-2 text-gray-600">
-              <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                <span className="text-xs font-bold text-gray-500 text-center px-2">
-                  PGA OF AMERICA
-                </span>
-              </div>
-            </div>
+            <Image
+              src={pgaOfAmerica}
+              alt="PGA of America"
+              className="w-auto h-32 md:h-64 object-contain"
+            />
 
             {/* U.S. Kids Golf */}
-            <div className="flex items-center gap-2 text-gray-600">
-              <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                <span className="text-xs font-bold text-gray-500 text-center px-2">
-                  U.S. KIDS GOLF
-                </span>
-              </div>
-            </div>
+            <Image
+              src={usKidsGolf}
+              alt="U.S. Kids Golf"
+              className="w-auto h-32 md:h-64 object-contain"
+            />
 
             {/* Titleist */}
-            <div className="flex items-center gap-2 text-gray-600">
-              <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                <span className="text-xs font-bold text-gray-500 text-center px-2">
-                  TITLEIST
-                </span>
-              </div>
-            </div>
+            <Image
+              src={titleist}
+              alt="Titleist"
+              className="w-auto h-32 md:h-64 object-contain"
+            />
 
             {/* TrackMan */}
-            <div className="flex items-center gap-2 text-gray-600">
-              <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center">
-                <span className="text-xs font-bold text-gray-500 text-center px-2">
-                  TRACKMAN
-                </span>
-              </div>
-            </div>
+            <Image
+              src={trackman}
+              alt="TrackMan"
+              className="w-auto h-32 md:h-64 object-contain"
+            />
           </div>
         </div>
       </div>
