@@ -1,23 +1,25 @@
 export default function AcademyLocations() {
   const locations = [
     {
-      season: 'SUMMER',
-      name: 'Sanctuary Lake Golf Course',
-      address: '1450 E. South Blvd.',
-      city: 'Troy, MI 48085',
-      mapUrl: 'https://maps.google.com/maps?q=Sanctuary+Lake+Golf+Course,+1450+E.+South+Blvd,+Troy,+MI+48085&t=&z=15&ie=UTF8&iwloc=&output=embed',
+      season: "SUMMER",
+      name: "Sanctuary Lake Golf Course",
+      address: "1450 E. South Blvd.",
+      city: "Troy, MI 48085",
+      mapUrl:
+        "https://maps.google.com/maps?q=Sanctuary+Lake+Golf+Course,+1450+E.+South+Blvd,+Troy,+MI+48085&t=&z=15&ie=UTF8&iwloc=&output=embed",
     },
     {
-      season: 'WINTER',
-      name: 'Evolution SportsPlex',
-      address: '141 South Opdyke Rd',
-      city: 'Auburn Hills, MI 48326',
-      mapUrl: 'https://maps.google.com/maps?q=Evolution+SportsPlex,+141+South+Opdyke+Rd,+Auburn+Hills,+MI+48326&t=&z=15&ie=UTF8&iwloc=&output=embed',
+      season: "WINTER",
+      name: "Evolution SportsPlex",
+      address: "141 South Opdyke Rd",
+      city: "Auburn Hills, MI 48326",
+      mapUrl:
+        "https://maps.google.com/maps?q=Evolution+SportsPlex,+141+South+Opdyke+Rd,+Auburn+Hills,+MI+48326&t=&z=15&ie=UTF8&iwloc=&output=embed",
     },
-  ]
+  ];
 
   return (
-    <section className="bg-gray-700 py-16 md:py-20">
+    <section className="bg-gray-200 py-16 md:py-20">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Title */}
         <div className="text-center mb-12">
@@ -29,7 +31,10 @@ export default function AcademyLocations() {
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {locations.map((location, index) => (
-            <div key={index} className="bg-white rounded-lg overflow-hidden shadow-lg">
+            <div
+              key={index}
+              className="bg-white rounded-lg overflow-hidden shadow-lg"
+            >
               {/* Map */}
               <div className="h-64 md:h-80">
                 <iframe
@@ -65,5 +70,5 @@ export default function AcademyLocations() {
         </div>
       </div>
     </section>
-  )
+  );
 }
