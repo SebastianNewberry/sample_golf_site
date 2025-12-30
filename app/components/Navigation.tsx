@@ -265,9 +265,9 @@ export default function Navigation() {
                               program.type !== "section"
                           )
                           .map((program) => (
-                            <a
+                            <Link
                               key={program.title}
-                              href={program.href}
+                              href={program.href || ""}
                               className={`hover:bg-gray-300 block rounded-md p-2 ${
                                 pathname === program.href ? "bg-gray-300" : ""
                               }`}
@@ -284,7 +284,7 @@ export default function Navigation() {
                               <p className="text-xs text-gray-600">
                                 {program.desc}
                               </p>
-                            </a>
+                            </Link>
                           ))}
                       </div>
                     </div>
@@ -323,8 +323,8 @@ export default function Navigation() {
                     <ul className="grid grid-cols-2 gap-2">
                       {adultPrograms.map((program) => (
                         <li key={program.title}>
-                          <a
-                            href={program.href}
+                          <Link
+                            href={program.href || "/"}
                             className={`hover:bg-gray-300 block rounded-md p-2 ${
                               pathname === program.href ? "bg-gray-300" : ""
                             }`}
@@ -341,7 +341,7 @@ export default function Navigation() {
                             <p className="text-xs text-gray-600">
                               {program.desc}
                             </p>
-                          </a>
+                          </Link>
                         </li>
                       ))}
                     </ul>
@@ -450,8 +450,8 @@ export default function Navigation() {
                         )
                         .map((program) => (
                           <li key={program.title}>
-                            <a
-                              href={program.href}
+                            <Link
+                              href={program.href || "/"}
                               className={`hover:bg-gray-300 flex flex-col rounded-md px-2 py-2 text-sm ${
                                 pathname === program.href ? "bg-gray-300" : ""
                               }`}
@@ -470,7 +470,7 @@ export default function Navigation() {
                                   {program.desc}
                                 </p>
                               </div>
-                            </a>
+                            </Link>
                           </li>
                         ))}
                     </ul>
@@ -491,8 +491,8 @@ export default function Navigation() {
                   <ul className="grid grid-cols-2 gap-1">
                     {adultPrograms.map((program) => (
                       <li key={program.title}>
-                        <a
-                          href={program.href}
+                        <Link
+                          href={program.href || "/"}
                           className={`hover:bg-gray-300 flex flex-col rounded-md px-2 py-2 text-sm ${
                             pathname === program.href ? "bg-gray-300" : ""
                           }`}
@@ -511,14 +511,14 @@ export default function Navigation() {
                               {program.desc}
                             </p>
                           </div>
-                        </a>
+                        </Link>
                       </li>
                     ))}
                   </ul>
                 </div>
               </details>
 
-              <a
+              <Link
                 href="/"
                 className={`hover:bg-gray-300 flex items-center justify-between rounded-md px-3 py-2 text-sm font-bold ${
                   isHomeActive ? "text-orange-600" : "text-gray-800"
@@ -529,9 +529,9 @@ export default function Navigation() {
                   size={16}
                   className="text-gray-600 ml-3 shrink-0"
                 />
-              </a>
+              </Link>
 
-              <a
+              <Link
                 href="/contact"
                 className={`hover:bg-gray-300 flex items-center justify-between rounded-md px-3 py-2 text-sm font-bold ${
                   isContactActive ? "text-orange-600" : "text-gray-800"
@@ -542,7 +542,7 @@ export default function Navigation() {
                   size={16}
                   className="text-gray-600 ml-3 shrink-0"
                 />
-              </a>
+              </Link>
 
               <div className="flex items-center gap-2 px-3 pt-2">
                 <a href="tel:+12488790909">

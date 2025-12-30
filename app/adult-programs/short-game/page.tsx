@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import shortGame from "@/public/adult_short_game.webp";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function AdultShortGameSeries() {
   return (
@@ -29,42 +30,42 @@ export default function AdultShortGameSeries() {
           <div className="grid lg:grid-cols-12 gap-6">
             {/* Left Sidebar Navigation */}
             <div className="lg:col-span-3 space-y-2">
-              <a
+              <Link
                 href="/adult-programs/get-golf-ready-level-1"
                 className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 GET GOLF READY PROGRAM (LEVEL I)
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/adult-programs/get-golf-ready-level-2"
                 className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 GET GOLF READY PROGRAM (LEVEL II)
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/adult-programs/short-game"
                 className="block bg-white border-l-4 border-orange-500 px-4 py-3 text-sm font-bold text-gray-800"
               >
                 ADULT SHORT GAME SERIES
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/adult-programs/women"
                 className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 GOLF FOR WOMEN PROGRAM
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/adult-programs/private"
                 className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 ADULT PRIVATE GOLF INSTRUCTION
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/adult-programs/open-practice"
                 className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 ADULT OPEN PRACTICE
-              </a>
+              </Link>
             </div>
 
             {/* Left Content: Image, Description, Price */}

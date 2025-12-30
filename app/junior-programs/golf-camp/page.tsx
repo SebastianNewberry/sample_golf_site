@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import golfCamp from "@/public/junior_golf_camp.webp";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function JuniorGolfCamp() {
   return (
@@ -29,36 +30,36 @@ export default function JuniorGolfCamp() {
           <div className="grid lg:grid-cols-12 gap-6">
             {/* Left Sidebar Navigation */}
             <div className="lg:col-span-3 space-y-2">
-              <a
+              <Link
                 href="/junior-programs/beginner-series"
                 className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 JUNIOR BEGINNER SERIES
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/junior-programs/developmental-series"
                 className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 JUNIOR DEVELOPMENTAL SERIES
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/junior-programs/golf-camp"
                 className="block bg-white border-l-4 border-orange-500 px-4 py-3 text-sm font-bold text-gray-800"
               >
                 JUNIOR GOLF CAMP
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/junior-programs/developmental-camp"
                 className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 JUNIOR DEVELOPMENTAL GOLF CAMP
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/junior-programs/private-instruction"
                 className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 JUNIOR PRIVATE GOLF INSTRUCTION
-              </a>
+              </Link>
             </div>
 
             {/* Left Content: Image, Description, Price */}
