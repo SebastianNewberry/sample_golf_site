@@ -9,16 +9,21 @@ import {
   Award,
   Video,
   Zap,
-  Plus,
-  Minus,
 } from "lucide-react";
 import developmentalSeries from "@/public/junior_development_series.gif";
 import Link from "next/link";
 import Image from "next/image";
+import { JuniorSeriesRegistrationForm } from "@/app/components/forms/JuniorSeriesRegistrationForm";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export default function JuniorDevelopmentalSeries() {
-  const [quantity, setQuantity] = React.useState(1);
-
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="container mx-auto px-4 py-8">
@@ -111,7 +116,7 @@ export default function JuniorDevelopmentalSeries() {
 
               {/* Price & Purchase */}
               <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-                <div className="text-center mb-4">
+                <div className="text-center">
                   <h3 className="text-xl font-bold text-gray-800">
                     JUNIOR DEVELOPMENTAL SERIES
                   </h3>
@@ -123,45 +128,28 @@ export default function JuniorDevelopmentalSeries() {
                   </p>
                 </div>
 
-                <div className="space-y-4 mb-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Time/Sessions:
-                    </label>
-                    <select className="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-700 focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                      <option>Select Time/Sessions</option>
-                      <option>5 Sessions - $125.00</option>
-                      <option>15 Sessions - $325.00</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Quantity
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        className="w-10 h-10 rounded-lg border border-gray-300 bg-gray-50 hover:bg-gray-100 flex items-center justify-center transition-colors"
-                      >
-                        <Minus size={16} />
-                      </button>
-                      <span className="w-12 text-center font-semibold text-lg">
-                        {quantity}
-                      </span>
-                      <button
-                        onClick={() => setQuantity(quantity + 1)}
-                        className="w-10 h-10 rounded-lg border border-gray-300 bg-gray-50 hover:bg-gray-100 flex items-center justify-center transition-colors"
-                      >
-                        <Plus size={16} />
-                      </button>
-                    </div>
-                  </div>
+                <div className="mt-6">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="w-full" size="lg">
+                        PURCHASE
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle className="text-2xl">Registration Form</DialogTitle>
+                        <DialogDescription>
+                          Junior Developmental Series - from $125.00
+                        </DialogDescription>
+                      </DialogHeader>
+                      <JuniorSeriesRegistrationForm
+                        programId="junior-developmental-series"
+                        programName="Junior Developmental Series"
+                        programPrice="from $125.00"
+                      />
+                    </DialogContent>
+                  </Dialog>
                 </div>
-
-                <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 font-semibold">
-                  ADD TO CART
-                </Button>
               </div>
             </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -11,6 +11,7 @@ import logo from "@/public/logo.webp";
 import aboutOurJuniorPrograms from "@/public/junior_programs.webp";
 import pgaMember from "@/public/adult_private_instruction.webp";
 import usKidsGolfCertified from "@/public/us_kids_golf.webp";
+import { CartIcon } from "./cart/CartIcon";
 
 const adultPrograms = [
   {
@@ -108,6 +109,22 @@ export default function Navigation() {
   const [open, setOpen] = useState(false);
   const [adultProgramsOpen, setAdultProgramsOpen] = useState(false);
   const [juniorProgramsOpen, setJuniorProgramsOpen] = useState(false);
+
+  // Refs for details elements
+  const juniorDetailsRef = useRef<HTMLDetailsElement>(null);
+  const adultDetailsRef = useRef<HTMLDetailsElement>(null);
+
+  // Function to close all dropdowns
+  const closeAllDropdowns = () => {
+    if (juniorDetailsRef.current) juniorDetailsRef.current.open = false;
+    if (adultDetailsRef.current) adultDetailsRef.current.open = false;
+  };
+
+  // Function to close menu and dropdowns when clicking a link
+  const handleLinkClick = () => {
+    closeAllDropdowns();
+    setOpen(false);
+  };
 
   // Determine active state
   const isAdultProgramsActive = pathname?.startsWith("/adult-programs");
@@ -360,8 +377,9 @@ export default function Navigation() {
             </Link>
           </div>
 
-          {/* Contact Button */}
-          <div className="hidden items-center gap-2 md:flex">
+          {/* Contact Button & Cart */}
+          <div className="hidden items-center gap-3 md:flex">
+            <CartIcon />
             <a href="tel:+12488790909" className="hidden sm:block">
               <Button variant="outline">{`(248) 879-0909`}</Button>
             </a>
@@ -377,7 +395,7 @@ export default function Navigation() {
               exit={{ opacity: 0, y: -6 }}
               className="border-t border-gray-300 py-2 md:hidden"
             >
-              <details className="px-3">
+              <details ref={juniorDetailsRef} className="px-3">
                 <summary
                   className={`hover:bg-gray-300 flex cursor-pointer list-none items-center justify-between rounded-md px-0 py-2 text-sm font-bold ${
                     isJuniorProgramsActive ? "text-orange-600" : "text-gray-800"
@@ -386,7 +404,7 @@ export default function Navigation() {
                   <span>JUNIOR PROGRAMS</span>
                   <ChevronDown size={16} />
                 </summary>
-                <div className="mt-2 rounded-lg border border-gray-300 p-2 bg-gray-200">
+                <div className="mt-2 rounded-lg p-2 bg-gray-200">
                   <div className="space-y-4">
                     {/* About Our Junior Programs */}
                     <div className="space-y-2">
@@ -452,6 +470,7 @@ export default function Navigation() {
                           <li key={program.title}>
                             <Link
                               href={program.href || "/"}
+                              onClick={handleLinkClick}
                               className={`hover:bg-gray-300 flex flex-col rounded-md px-2 py-2 text-sm ${
                                 pathname === program.href ? "bg-gray-300" : ""
                               }`}
@@ -478,7 +497,7 @@ export default function Navigation() {
                 </div>
               </details>
 
-              <details className="px-3">
+              <details ref={adultDetailsRef} className="px-3">
                 <summary
                   className={`hover:bg-gray-300 flex cursor-pointer list-none items-center justify-between rounded-md px-0 py-2 text-sm font-bold ${
                     isAdultProgramsActive ? "text-orange-600" : "text-gray-800"
@@ -487,12 +506,13 @@ export default function Navigation() {
                   <span>ADULT PROGRAMS</span>
                   <ChevronDown size={16} />
                 </summary>
-                <div className="mt-2 rounded-lg border border-gray-300 p-2 bg-gray-200">
+                <div className="mt-2 rounded-lg p-2 bg-gray-200">
                   <ul className="grid grid-cols-2 gap-1">
                     {adultPrograms.map((program) => (
                       <li key={program.title}>
                         <Link
                           href={program.href || "/"}
+                          onClick={handleLinkClick}
                           className={`hover:bg-gray-300 flex flex-col rounded-md px-2 py-2 text-sm ${
                             pathname === program.href ? "bg-gray-300" : ""
                           }`}
@@ -520,6 +540,7 @@ export default function Navigation() {
 
               <Link
                 href="/"
+                onClick={handleLinkClick}
                 className={`hover:bg-gray-300 flex items-center justify-between rounded-md px-3 py-2 text-sm font-bold ${
                   isHomeActive ? "text-orange-600" : "text-gray-800"
                 }`}
@@ -533,6 +554,7 @@ export default function Navigation() {
 
               <Link
                 href="/contact"
+                onClick={handleLinkClick}
                 className={`hover:bg-gray-300 flex items-center justify-between rounded-md px-3 py-2 text-sm font-bold ${
                   isContactActive ? "text-orange-600" : "text-gray-800"
                 }`}
@@ -545,6 +567,11 @@ export default function Navigation() {
               </Link>
 
               <div className="flex items-center gap-2 px-3 pt-2">
+                <Link href="/cart">
+                  <Button variant="outline" className="w-full">
+                    View Cart
+                  </Button>
+                </Link>
                 <a href="tel:+12488790909">
                   <Button variant="outline" className="w-full">
                     {"(248) 879-0909"}

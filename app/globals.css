@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
   --background: 0 0% 100%;
@@ -97,6 +100,11 @@ body {
   color: hsl(var(--foreground));
 }
 
-* {
-  @apply border-border;
+@layer base {
+  * {
+    @apply border-border outline-ring;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }

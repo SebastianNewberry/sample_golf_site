@@ -38,7 +38,8 @@ When implementing pages and components, follow these guidelines:
 - **Language**: TypeScript
 - **Styling**: CSS (with globals.css) + shadcn/ui components
 - **Database ORM**: Drizzle ORM
-- **Authentication**: better-auth
+- **Form Handling**: react-hook-form + Zod validation
+- **Authentication**: Guest account system (no auth library)
 
 ## Design System & Theming
 
@@ -69,6 +70,176 @@ These custom colors are integrated with shadcn's theming system and can be used 
 3. **Balance**: Use shadcn components as the base, but customize styling when necessary to achieve high fidelity with mockups
 
 **Example**: Use shadcn's `<Button>` component, but apply custom variants and colors to match the mockup's orange button style.
+
+## Form Handling & Validation
+
+This project uses **react-hook-form** with **Zod** validation for all form handling. This combination provides type-safe forms with automatic validation.
+
+### Required Packages
+
+```bash
+npm install react-hook-form @hookform/resolvers zod
+```
+
+### Form Implementation Pattern
+
+All forms should follow this pattern:
+
+1. **Define Zod Schema** - Create validation schema for the form
+2. **Create React Hook Form** - Initialize form with Zod resolver
+3. **Build Form UI** - Use shadcn/ui Form components
+4. **Submit to Server Action** - Pass validated data to server action
+
+### Example: Junior Registration Form
+
+```typescript
+import { z } from 'zod';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { registerJunior } from '@/app/actions/junior-registration';
+
+// 1. Define Zod Schema
+const juniorRegistrationSchema = z.object({
+  // Parent/Guardian Information
+  primaryContactFirstName: z.string().min(1, 'First name is required'),
+  primaryContactLastName: z.string().min(1, 'Last name is required'),
+  primaryContactEmail: z.string().email('Invalid email address'),
+  primaryContactPhone: z.string().min(10, 'Phone number must be at least 10 digits'),
+  phoneType: z.enum(['mobile', 'home', 'work']),
+  preferredContactMethod: z.enum(['text', 'email']),
+
+  // Child Information
+  childFirstName: z.string().min(1, 'Child first name is required'),
+  childLastName: z.string().min(1, 'Child last name is required'),
+  childAge: z.number().min(5).max(18),
+  childExperienceLevel: z.string().min(1, 'Experience level is required'),
+  hasOwnClubs: z.boolean(),
+  friendsToGroupWith: z.string().optional(),
+
+  // Program Information
+  programId: z.string().uuid(),
+  programSessionId: z.string().uuid().optional(),
+});
+
+type JuniorRegistrationFormValues = z.infer<typeof juniorRegistrationSchema>;
+
+// 2. Create React Hook Form component
+export function JuniorRegistrationForm({ programId }: { programId: string }) {
+  const form = useForm<JuniorRegistrationFormValues>({
+    resolver: zodResolver(juniorRegistrationSchema),
+    defaultValues: {
+      primaryContactFirstName: '',
+      primaryContactLastName: '',
+      primaryContactEmail: '',
+      primaryContactPhone: '',
+      phoneType: 'mobile',
+      preferredContactMethod: 'email',
+      childFirstName: '',
+      childLastName: '',
+      childAge: 0,
+      childExperienceLevel: '',
+      hasOwnClubs: false,
+      friendsToGroupWith: '',
+      programId: programId,
+    },
+  });
+
+  const onSubmit = async (data: JuniorRegistrationFormValues) => {
+    // 4. Submit to Server Action
+    const result = await registerJunior(data);
+
+    if (result.success) {
+      // Handle success
+    } else {
+      // Handle error
+    }
+  };
+
+  // 3. Build Form UI using shadcn/ui components
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Parent Contact Fields */}
+        <FormField
+          control={form.control}
+          name="primaryContactFirstName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Primary Contact First Name *</FormLabel>
+              <FormControl>
+                <Input placeholder="John" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {/* More form fields... */}
+
+        <Button type="submit">Register</Button>
+      </form>
+    </Form>
+  );
+}
+```
+
+### Form Best Practices
+
+1. **Always use Zod schemas** for type safety and validation
+2. **Use shadcn/ui Form components** for consistent styling
+3. **Mark required fields clearly** in the UI (with `*` indicator)
+4. **Provide helpful error messages** in the Zod schema
+5. **Handle loading states** during form submission
+6. **Display success/error feedback** to users after submission
+7. **Validate on submit** rather than on blur for better UX
+
+### Form State Management
+
+When handling form submissions with server actions:
+
+```typescript
+const [isSubmitting, setIsSubmitting] = useState(false);
+const [submitError, setSubmitError] = useState<string | null>(null);
+const [submitSuccess, setSubmitSuccess] = useState(false);
+
+const onSubmit = async (data: FormData) => {
+  setIsSubmitting(true);
+  setSubmitError(null);
+  setSubmitSuccess(false);
+
+  try {
+    const result = await registerJunior(data);
+
+    if (result.success) {
+      setSubmitSuccess(true);
+      form.reset();
+    } else {
+      setSubmitError(result.error || 'Registration failed');
+    }
+  } catch (error) {
+    setSubmitError('An unexpected error occurred');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+// In the form JSX
+{submitSuccess && (
+  <div className="text-green-600">
+    Registration successful!
+  </div>
+)}
+
+{submitError && (
+  <div className="text-red-600">
+    {submitError}
+  </div>
+)}
+
+<Button type="submit" disabled={isSubmitting}>
+  {isSubmitting ? 'Registering...' : 'Register'}
+</Button>
+```
 
 ## Backend Architecture
 
@@ -190,9 +361,47 @@ export async function createUser(formData: FormData) {
 }
 ```
 
-## Authentication
+## Authentication & User Management
 
-This project uses **better-auth** for authentication. Integration details will be documented as the authentication system is implemented.
+This project uses a **guest account system** based on email addresses, without requiring traditional authentication. Users are automatically created when they register for programs.
+
+### User Management Workflow
+
+1. **New User Registration**: When a user submits a form with an email that doesn't exist, a new user account is created automatically
+2. **Returning Users**: When a user with an existing email submits a form, their existing account is used
+3. **No Login Required**: Users can register multiple times without needing to log in
+4. **Email-Based Identification**: Email addresses uniquely identify users
+
+### User Account Structure
+
+The `user` table serves as a master table for:
+- **Adult Program Registrations**: Direct link for adult participants
+- **Junior Program Registrations**: Parent/guardian contact information for junior participants
+
+### Example Workflow
+
+```typescript
+// Server action automatically handles user creation
+export async function registerUser(formData: UserFormData) {
+  // Step 1: Get or create user by email
+  const user = await getOrCreateUser({
+    firstName: formData.firstName,
+    lastName: formData.lastName,
+    email: formData.email,
+    phoneNumber: formData.phoneNumber,
+  });
+
+  // Step 2: Create registration linked to user
+  const registration = await createRegistration({
+    userId: user.id,
+    // ... other fields
+  });
+
+  return { success: true, userId: user.id };
+}
+```
+
+This approach provides a frictionless user experience while maintaining data integrity through proper foreign key relationships.
 
 ## Development Guidelines
 
@@ -202,19 +411,28 @@ This project uses **better-auth** for authentication. Integration details will b
 4. **Write TypeScript** with proper typing throughout the codebase
 5. **Avoid using "as any" type assertions** - Instead, properly type your variables, create proper interfaces, or use type guards. Using "as any" defeats the purpose of TypeScript's type safety and should only be used as a last resort when dealing with unavoidable external libraries.
 6. **Ensure responsive design** works across all device sizes
+7. **Use Next.js Link component** - All navigation links within the site should use Next.js `<Link>` component from `next/link` instead of standard `<a>` tags. The only exception is external links or `tel:`/`mailto:` links. This provides better performance with client-side navigation and proper SEO.
 
 ## Project Structure (Recommended)
 
 ```
 toskigolfacademy/
 ├── app/
-│   ├── api/              # API Routes (GET requests)
 │   ├── actions/          # Server Actions (POST requests)
+│   ├── api/              # API Routes (GET requests)
 │   ├── components/       # Reusable components
+│   │   └── forms/       # Form components using react-hook-form
+│   ├── junior-programs/  # Junior program pages
+│   ├── adult-programs/   # Adult program pages
 │   ├── lib/             # Utility functions
-│   │   └── db/          # Data Access Layer (Drizzle queries)
-│   ├── mock/            # Design mockups
-│   └── ...
+│   └── mock/            # Design mockups
+├── db/
+│   ├── queries/          # Data Access Layer (Drizzle queries)
+│   │   ├── users.ts     # User-related queries
+│   │   └── junior-registrations.ts  # Junior registration queries
+│   ├── schema.ts         # Drizzle schema definitions
+│   └── index.ts         # Database connection
+├── drizzle/             # Migration files
 ├── public/              # Static assets
 └── AGENTS.md           # This file
 ```
@@ -225,4 +443,7 @@ toskigolfacademy/
 - The backend architecture ensures clean separation between read (API routes) and write (server actions) operations
 - All data access should go through the dedicated data access layer
 - No mixing of API route and server action implementations
+- All forms must use react-hook-form with Zod validation for type safety and consistent user experience
+- User accounts are automatically created based on email - no manual account creation needed
+- Forms should follow the established pattern: Zod schema → React Hook Form → shadcn/ui components → Server action
 

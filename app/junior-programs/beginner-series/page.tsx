@@ -6,6 +6,15 @@ import { CheckCircle2, Users, Target, Award, Calendar } from "lucide-react";
 import beginnerSeries from "@/public/junior_beginner_series.webp";
 import Image from "next/image";
 import Link from "next/link";
+import { JuniorSeriesRegistrationForm } from "@/app/components/forms/JuniorSeriesRegistrationForm";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 export default function JuniorBeginnerSeries() {
   return (
@@ -88,7 +97,7 @@ export default function JuniorBeginnerSeries() {
 
               {/* Price & Purchase */}
               <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-200">
-                <div className="text-center mb-4">
+                <div className="text-center">
                   <h3 className="text-xl font-bold text-gray-800">
                     JUNIOR BEGINNER SERIES
                   </h3>
@@ -100,21 +109,28 @@ export default function JuniorBeginnerSeries() {
                   </p>
                 </div>
 
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Dates/Sessions:
-                  </label>
-                  <select className="w-full border border-gray-300 rounded-lg px-4 py-3 text-gray-700 focus:ring-2 focus:ring-green-500 focus:border-green-500">
-                    <option>Select Dates/Sessions</option>
-                    <option>Session 1: April 2025</option>
-                    <option>Session 2: May 2025</option>
-                    <option>Session 3: June 2025</option>
-                  </select>
+                <div className="mt-6">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button className="w-full" size="lg">
+                        PURCHASE
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle className="text-2xl">Registration Form</DialogTitle>
+                        <DialogDescription>
+                          Junior Beginner Series - $150.00
+                        </DialogDescription>
+                      </DialogHeader>
+                      <JuniorSeriesRegistrationForm
+                        programId="junior-beginner-series"
+                        programName="Junior Beginner Series"
+                        programPrice="$150.00"
+                      />
+                    </DialogContent>
+                  </Dialog>
                 </div>
-
-                <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 font-semibold">
-                  PURCHASE
-                </Button>
               </div>
             </div>
 
