@@ -10,7 +10,7 @@
 import { db } from "./index";
 import { program, programSession } from "./schema";
 import type { ProgramDetail } from "@/lib/program-details";
-import type { SessionSchedule } from "@/lib/session-schedule";
+import type { ProgramSessionSchedule } from "@/lib/session-schedule";
 
 // Helper to stringify details
 function detailsToJson(details: ProgramDetail[]): string {
@@ -18,8 +18,57 @@ function detailsToJson(details: ProgramDetail[]): string {
 }
 
 // Helper to stringify schedule
-function scheduleToJson(schedule: SessionSchedule): string {
+function scheduleToJson(schedule: ProgramSessionSchedule): string {
   return JSON.stringify(schedule);
+}
+
+/**
+ * Generate weekly schedule for Saturdays
+ */
+function generateSaturdaySchedule(
+  startDate: Date,
+  endDate: Date
+): ProgramSessionSchedule {
+  const schedule: ProgramSessionSchedule = [];
+  const current = new Date(startDate);
+  
+  while (current <= endDate) {
+    if (current.getDay() === 6) { // Saturday
+      schedule.push({
+        date: current.toISOString().split('T')[0], // YYYY-MM-DD
+        startTime: "09:00",
+        endTime: "10:00"
+      });
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  
+  return schedule;
+}
+
+/**
+ * Generate weekday schedule for camps (Mon-Fri 9am-3pm)
+ */
+function generateCampSchedule(
+  startDate: Date,
+  endDate: Date
+): ProgramSessionSchedule {
+  const schedule: ProgramSessionSchedule = [];
+  const current = new Date(startDate);
+  
+  while (current <= endDate) {
+    const dayOfWeek = current.getDay();
+    if (dayOfWeek >= 1 && dayOfWeek <= 5) { // Monday-Friday
+      schedule.push({
+        date: current.toISOString().split('T')[0], // YYYY-MM-DD
+        startTime: "09:00",
+        endTime: "15:00"
+      });
+    }
+    current.setDate(current.getDate() + 1);
+  }
+  
+  return schedule;
 }
 
 const programs = [
@@ -29,8 +78,6 @@ const programs = [
     description:
       "A PGA National program that we host each year is designed for beginners to teach you everything you'll need to know to step onto a golf course and get out to play with confidence. Each class lasts for five (5) weeks and provides basic skills instruction as well as information regarding the background of the game's rules, etiquette and values.",
     type: "adult" as const,
-    category: "get-golf-ready",
-    level: "Level I",
     price: "150.00",
     duration: "Five 1-hour range sessions",
     capacity: 6,
@@ -67,8 +114,6 @@ const programs = [
     description:
       "Continue your golf journey with Level II. Building on the fundamentals from Level I, this program focuses on course play, strategy, and advanced techniques to take your game to the next level.",
     type: "adult" as const,
-    category: "get-golf-ready",
-    level: "Level II",
     price: "120.00",
     duration: "Four 1-hour sessions",
     capacity: 6,
@@ -108,8 +153,6 @@ const programs = [
     description:
       "Master the short game - the key to lower scores. This specialized program focuses on putting, chipping, pitching, and bunker play.",
     type: "adult" as const,
-    category: "short-game",
-    level: null,
     price: "100.00",
     duration: "Three 1-hour sessions",
     capacity: 4,
@@ -150,8 +193,6 @@ const programs = [
     description:
       "A welcoming program designed specifically for women who want to learn golf in a comfortable, supportive environment. Each class lasts for five (5) weeks and provides personalized instruction as well as information regarding the background of the game's rules, etiquette and values.",
     type: "adult" as const,
-    category: "women",
-    level: null,
     price: "150.00",
     duration: "Five 1-hour range sessions",
     capacity: 6,
@@ -188,8 +229,6 @@ const programs = [
     description:
       "One-on-one instruction tailored to your specific goals and needs. Work directly with a PGA professional to improve your game. High-speed video will be taken of your swing and after a review of the video, you will be introduced to specific drills and training aids to improve your golf skills.",
     type: "adult" as const,
-    category: "private",
-    level: null,
     price: "70.00",
     duration: "1-hour session",
     capacity: 1,
@@ -223,8 +262,6 @@ const programs = [
     description:
       "Access our premium practice facilities with supervised open practice sessions. Designed for the intermediate to advanced player who wants to continue training with our coaching staff.",
     type: "adult" as const,
-    category: "open-practice",
-    level: null,
     price: "30.00",
     duration: "1-hour session",
     capacity: 4,
@@ -259,8 +296,6 @@ const programs = [
     description:
       "Introduction to golf for young players. Learn the fundamentals in a fun, engaging environment.",
     type: "junior" as const,
-    category: "beginner-series",
-    level: null,
     price: "120.00",
     duration: "Four 1-hour sessions",
     capacity: 6,
@@ -302,8 +337,6 @@ const programs = [
     description:
       "For young golfers ready to take their game to the next level. Focus on skill development and course play.",
     type: "junior" as const,
-    category: "developmental-series",
-    level: null,
     price: "125.00",
     duration: "Four 1.5-hour sessions",
     capacity: 6,
@@ -345,8 +378,6 @@ const programs = [
     description:
       "Intensive golf camp experience. Full days of instruction, games, and fun.",
     type: "junior" as const,
-    category: "golf-camp",
-    level: null,
     price: "299.00",
     duration: "5-day camp (9am-3pm)",
     capacity: 12,
@@ -378,8 +409,6 @@ const programs = [
     description:
       "Individual instruction for young golfers who want personalized coaching.",
     type: "junior" as const,
-    category: "private-instruction",
-    level: null,
     price: "65.00",
     duration: "45-minute session",
     capacity: 1,
@@ -426,21 +455,18 @@ async function seed() {
       ) {
         // Define schedule based on program type
         const isCamp = programData.category === "golf-camp";
-        const schedule: SessionSchedule = isCamp
-          ? {
-              daysOfWeek: [1, 2, 3, 4, 5],
-              startTime: "09:00",
-              endTime: "15:00",
-            } // Weekdays 9am-3pm
-          : { daysOfWeek: [6], startTime: "09:00", endTime: "10:00" }; // Saturdays 9-10am
-
+        
         const sessions = [
           {
             programId: createdProgram.id,
             name: "Session 1: April 2025",
             startDate: new Date("2025-04-01"),
             endDate: new Date("2025-04-30"),
-            schedule: scheduleToJson(schedule),
+            schedule: scheduleToJson(
+              isCamp
+                ? generateCampSchedule(new Date("2025-04-01"), new Date("2025-04-30"))
+                : generateSaturdaySchedule(new Date("2025-04-01"), new Date("2025-04-30"))
+            ),
             capacity: programData.capacity,
             isActive: true,
           },
@@ -449,7 +475,11 @@ async function seed() {
             name: "Session 2: May 2025",
             startDate: new Date("2025-05-01"),
             endDate: new Date("2025-05-31"),
-            schedule: scheduleToJson(schedule),
+            schedule: scheduleToJson(
+              isCamp
+                ? generateCampSchedule(new Date("2025-05-01"), new Date("2025-05-31"))
+                : generateSaturdaySchedule(new Date("2025-05-01"), new Date("2025-05-31"))
+            ),
             capacity: programData.capacity,
             isActive: true,
           },
@@ -458,7 +488,11 @@ async function seed() {
             name: "Session 3: June 2025",
             startDate: new Date("2025-06-01"),
             endDate: new Date("2025-06-30"),
-            schedule: scheduleToJson(schedule),
+            schedule: scheduleToJson(
+              isCamp
+                ? generateCampSchedule(new Date("2025-06-01"), new Date("2025-06-30"))
+                : generateSaturdaySchedule(new Date("2025-06-01"), new Date("2025-06-30"))
+            ),
             capacity: programData.capacity,
             isActive: true,
           },

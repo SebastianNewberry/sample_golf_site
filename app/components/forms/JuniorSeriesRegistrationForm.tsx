@@ -25,7 +25,7 @@ const juniorSeriesRegistrationSchema = z.object({
   // Parent/Guardian Information
   primaryContactFirstName: z.string().min(1, 'First name is required'),
   primaryContactLastName: z.string().min(1, 'Last name is required'),
-  primaryContactEmail: z.string().email('Invalid email address'),
+  primaryContactEmail: z.email('Invalid email address'),
   primaryContactPhone: z.string().min(10, 'Phone number must be at least 10 digits'),
   phoneType: z.enum(['mobile', 'home', 'work']),
   preferredContactMethod: z.enum(['text', 'email']),
@@ -108,16 +108,9 @@ export function JuniorSeriesRegistrationForm({
         programPrice: programPrice,
       });
 
-      if (result.success) {
-        // Redirect to checkout page with payment intent details
-        const checkoutParams = new URLSearchParams({
-          clientSecret: result.clientSecret!,
-          programName: programName,
-          price: programPrice.toString(),
-          type: 'junior',
-        });
-
-        router.push(`/checkout?${checkoutParams.toString()}`);
+      if (result.success && result.url) {
+        // Redirect to Stripe Hosted Checkout
+        window.location.href = result.url;
       } else {
         setSubmitError(result.error || 'Registration failed. Please try again.');
       }

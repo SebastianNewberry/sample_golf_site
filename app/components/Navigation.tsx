@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -109,10 +109,22 @@ export default function Navigation() {
   const [open, setOpen] = useState(false);
   const [adultProgramsOpen, setAdultProgramsOpen] = useState(false);
   const [juniorProgramsOpen, setJuniorProgramsOpen] = useState(false);
+  const [juniorCooldown, setJuniorCooldown] = useState(false);
+  const [adultCooldown, setAdultCooldown] = useState(false);
 
-  // Refs for details elements
+  // Refs for details elements and cooldown timers
   const juniorDetailsRef = useRef<HTMLDetailsElement>(null);
   const adultDetailsRef = useRef<HTMLDetailsElement>(null);
+  const juniorCooldownRef = useRef<NodeJS.Timeout | null>(null);
+  const adultCooldownRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup cooldown timers on unmount
+  useEffect(() => {
+    return () => {
+      if (juniorCooldownRef.current) clearTimeout(juniorCooldownRef.current);
+      if (adultCooldownRef.current) clearTimeout(adultCooldownRef.current);
+    };
+  }, []);
 
   // Function to close all dropdowns
   const closeAllDropdowns = () => {
@@ -131,6 +143,7 @@ export default function Navigation() {
   const isJuniorProgramsActive = pathname?.startsWith("/junior-programs");
   const isContactActive = pathname === "/contact";
   const isHomeActive = pathname === "/";
+  const isCalendarActive = pathname === "/calendar";
 
   return (
     <nav className="w-full bg-gray-200 border-b border-gray-300 py-4">
@@ -187,7 +200,13 @@ export default function Navigation() {
                 {juniorProgramsOpen && (
                   <motion.div
                     onMouseEnter={() => setJuniorProgramsOpen(true)}
-                    onMouseLeave={() => setJuniorProgramsOpen(false)}
+                    onMouseLeave={() => {
+                      setJuniorProgramsOpen(false);
+                      setJuniorCooldown(true);
+                      juniorCooldownRef.current = setTimeout(() => {
+                        setJuniorCooldown(false);
+                      }, 500);
+                    }}
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -6 }}
@@ -331,7 +350,13 @@ export default function Navigation() {
                 {adultProgramsOpen && (
                   <motion.div
                     onMouseEnter={() => setAdultProgramsOpen(true)}
-                    onMouseLeave={() => setAdultProgramsOpen(false)}
+                    onMouseLeave={() => {
+                      setAdultProgramsOpen(false);
+                      setAdultCooldown(true);
+                      adultCooldownRef.current = setTimeout(() => {
+                        setAdultCooldown(false);
+                      }, 500);
+                    }}
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -6 }}
@@ -374,6 +399,15 @@ export default function Navigation() {
               }`}
             >
               CONNECT WITH US
+            </Link>
+
+            <Link
+              href="/calendar"
+              className={`hover:bg-gray-300 rounded-md px-4 py-2 text-sm font-bold ${
+                pathname === "/calendar" ? "text-orange-600" : "text-gray-800"
+              }`}
+            >
+              CALENDAR
             </Link>
           </div>
 
@@ -560,6 +594,20 @@ export default function Navigation() {
                 }`}
               >
                 <span>CONNECT WITH US</span>
+                <ChevronRight
+                  size={16}
+                  className="text-gray-600 ml-3 shrink-0"
+                />
+              </Link>
+
+              <Link
+                href="/calendar"
+                onClick={handleLinkClick}
+                className={`hover:bg-gray-300 flex items-center justify-between rounded-md px-3 py-2 text-sm font-bold ${
+                  isCalendarActive ? "text-orange-600" : "text-gray-800"
+                }`}
+              >
+                <span>CALENDAR</span>
                 <ChevronRight
                   size={16}
                   className="text-gray-600 ml-3 shrink-0"

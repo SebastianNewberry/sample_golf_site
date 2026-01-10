@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { loadStripe } from "@stripe/stripe-js";
 import {
@@ -30,6 +31,23 @@ import { processCheckout } from "@/app/actions/checkout";
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 );
+
+// Mapping of program IDs to their corresponding images
+const PROGRAM_IMAGE_MAP: Record<string, string> = {
+  // Adult Programs
+  "583078c5-6e1f-40fc-a1a0-8c1cc88a6d7b": "/golf_ready_level1.webp", // Get Golf Ready Level I
+  "eb15499e-b573-4027-a2dc-1335bc7613b1": "/golf_ready_level2.webp", // Get Golf Ready Level II
+  "9bc2b2b7-2774-4971-b469-4ce2a8d3a707": "/adult_short_game.webp", // Adult Short Game Series
+  "9160a3a8-a652-4ddf-a13f-298336168e04": "/golf_for_women.webp", // Golf for Women
+  "f89b62ee-ffda-421d-a525-8bd2a580f24e": "/adult_private_instruction.webp", // Adult Private Golf Instruction
+  "0dc3ac70-8346-44c4-9ef6-b638ccbb9082": "/adult_open_practice.webp", // Adult Open Practice
+
+  // Junior Programs
+  "0284e4eb-fd96-4626-9009-272b7d985d88": "/junior_beginner_series.webp", // Junior Beginner Series
+  "cc6a73ca-95fb-4acb-be01-6cee4ce44475": "/junior_development_series.gif", // Junior Developmental Series
+  "8102629d-9ec3-4034-beca-16683db482f2": "/junior_golf_camp.webp", // Junior Golf Camp / Junior Developmental Golf Camp
+  "754bf4be-0ef6-4123-b5ff-b107e03c2f10": "/junior_private_instruction.webp", // Junior Private Golf Instruction
+};
 
 interface CartItemFormData {
   cartItemId: string;
@@ -77,13 +95,12 @@ function StepIndicator({
         <React.Fragment key={step.id}>
           <div className="flex flex-col items-center">
             <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                index < currentStep
+              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${index < currentStep
+                ? "bg-green-600 text-white"
+                : index === currentStep
                   ? "bg-green-600 text-white"
-                  : index === currentStep
-                  ? "bg-orange-500 text-white"
                   : "bg-gray-200 text-gray-500"
-              }`}
+                }`}
             >
               {index < currentStep ? (
                 <CheckCircle2 size={20} />
@@ -92,18 +109,16 @@ function StepIndicator({
               )}
             </div>
             <span
-              className={`text-xs mt-2 ${
-                index <= currentStep ? "text-gray-800 font-medium" : "text-gray-400"
-              }`}
+              className={`text-xs mt-2 ${index <= currentStep ? "text-gray-800 font-medium" : "text-gray-400"
+                }`}
             >
               {step.label}
             </span>
           </div>
           {index < steps.length - 1 && (
             <div
-              className={`w-16 h-0.5 mx-2 ${
-                index < currentStep ? "bg-green-600" : "bg-gray-200"
-              }`}
+              className={`w-16 h-0.5 mx-2 ${index < currentStep ? "bg-green-600" : "bg-gray-200"
+                }`}
             />
           )}
         </React.Fragment>
@@ -180,7 +195,7 @@ function PaymentForm({
         <Button
           type="submit"
           disabled={!stripe || !elements || isProcessing}
-          className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+          className="flex-1 bg-green-600 hover:bg-green-700 text-white"
         >
           {isProcessing ? (
             <>
@@ -228,7 +243,7 @@ function CheckoutSuccess() {
           information is needed.
         </p>
       </div>
-      <Button onClick={() => router.push("/")} className="bg-orange-500 hover:bg-orange-600">
+      <Button onClick={() => router.push("/")} className="bg-green-600 hover:bg-green-700">
         Return to Home
       </Button>
     </div>
@@ -260,15 +275,22 @@ function CheckoutContent() {
   // Initialize form data list when items load
   useEffect(() => {
     if (items.length > 0 && formDataList.length === 0) {
-      setFormDataList(
-        items.map((item) => ({
-          cartItemId: item.id,
-          programId: item.programId,
-          programSessionId: item.programSessionId || undefined,
-          registrationType: item.registrationType as "adult" | "junior",
-          formData: null,
-        }))
-      );
+      const newFormDataList: CartItemFormData[] = [];
+
+      items.forEach((item) => {
+        // Create a form for each quantity of the item
+        for (let i = 0; i < item.quantity; i++) {
+          newFormDataList.push({
+            cartItemId: item.id,
+            programId: item.programId,
+            programSessionId: item.programSessionId || undefined,
+            registrationType: item.registrationType as "adult" | "junior",
+            formData: null,
+          });
+        }
+      });
+
+      setFormDataList(newFormDataList);
     }
   }, [items, formDataList.length]);
 
@@ -276,7 +298,7 @@ function CheckoutContent() {
   const steps = [
     { id: "cart", label: "Review Cart", icon: <ShoppingCart size={18} /> },
     { id: "forms", label: "Registration", icon: <User size={18} /> },
-    { id: "payment", label: "Payment", icon: <CreditCard size={18} /> },
+    { id: "payment", label: "Payment (Secure)", icon: <CreditCard size={18} /> },
   ];
 
   // Handle form submission for each item
@@ -289,7 +311,7 @@ function CheckoutContent() {
     setFormDataList(newFormDataList);
 
     // Move to next form or next step
-    if (index < items.length - 1) {
+    if (index < formDataList.length - 1) {
       setCurrentFormIndex(index + 1);
     } else {
       // All forms complete, process checkout
@@ -314,16 +336,16 @@ function CheckoutContent() {
         totalAmount: total,
       });
 
-      if (result.success && result.clientSecret) {
-        setClientSecret(result.clientSecret);
-        setCurrentStep(2);
+      if (result.success && result.url) {
+        // Redirect to Stripe Checkout
+        window.location.href = result.url;
       } else {
         setCheckoutError(result.error || "Failed to process checkout");
+        setIsProcessingCheckout(false);
       }
     } catch (error) {
       console.error("Checkout error:", error);
       setCheckoutError("An unexpected error occurred. Please try again.");
-    } finally {
       setIsProcessingCheckout(false);
     }
   };
@@ -362,7 +384,7 @@ function CheckoutContent() {
           <p className="text-gray-600 mb-6">
             Add some programs to your cart to checkout.
           </p>
-          <Button onClick={() => router.push("/")} className="bg-orange-500 hover:bg-orange-600">
+          <Button onClick={() => router.push("/")} className="bg-green-600 hover:bg-green-700">
             Browse Programs
           </Button>
         </div>
@@ -406,32 +428,51 @@ function CheckoutContent() {
                     </h2>
 
                     <div className="space-y-4 mb-6">
-                      {items.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg"
-                        >
-                          <div className="w-12 h-12 bg-gradient-to-br from-green-600 to-green-800 rounded-lg flex items-center justify-center shrink-0">
-                            <span className="text-white font-bold">
-                              {item.registrationType === "junior" ? "J" : "A"}
-                            </span>
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-semibold text-gray-800">
-                              {item.program?.name}
+                      {items.map((item) => {
+                        // Get the program image
+                        const programImage = item.program?.imageUrl || PROGRAM_IMAGE_MAP[item.programId];
+
+                        return (
+                          <div
+                            key={item.id}
+                            className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg"
+                          >
+                            <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden shrink-0 relative">
+                              {programImage ? (
+                                <Image
+                                  src={programImage}
+                                  alt={item.program?.name || "Program"}
+                                  fill
+                                  className="object-cover"
+                                  sizes="48px"
+                                  priority
+                                />
+                              ) : (
+                                // Fallback to gradient with letter if no image found
+                                <div className="absolute inset-0 bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center">
+                                  <span className="text-white font-bold text-sm">
+                                    {item.registrationType === "junior" ? "J" : "A"}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-semibold text-gray-800">
+                                {item.program?.name}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {item.registrationType === "junior"
+                                  ? "Junior Program"
+                                  : "Adult Program"}
+                                {item.quantity > 1 && ` × ${item.quantity}`}
+                              </p>
+                            </div>
+                            <p className="font-bold text-green-700">
+                              ${(parseFloat(item.priceAtAdd) * item.quantity).toFixed(2)}
                             </p>
-                            <p className="text-sm text-gray-600">
-                              {item.registrationType === "junior"
-                                ? "Junior Program"
-                                : "Adult Program"}
-                              {item.quantity > 1 && ` × ${item.quantity}`}
-                            </p>
                           </div>
-                          <p className="font-bold text-green-700">
-                            ${(parseFloat(item.priceAtAdd) * item.quantity).toFixed(2)}
-                          </p>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
 
                     <div className="flex gap-4">
@@ -464,22 +505,22 @@ function CheckoutContent() {
                   >
                     <div className="mb-6">
                       <p className="text-sm text-gray-500 mb-2">
-                        Registration {currentFormIndex + 1} of {items.length}
+                        Registration {currentFormIndex + 1} of {formDataList.length}
                       </p>
                       <h2 className="text-xl font-bold text-gray-900">
-                        {items[currentFormIndex]?.program?.name}
+                        {items.find(i => i.id === formDataList[currentFormIndex]?.cartItemId)?.program?.name}
                       </h2>
                       <p className="text-gray-600">
-                        {items[currentFormIndex]?.registrationType === "junior"
+                        {formDataList[currentFormIndex]?.registrationType === "junior"
                           ? "Complete the junior registration form below"
                           : "Complete the registration form below"}
                       </p>
                     </div>
 
-                    {items[currentFormIndex]?.registrationType === "junior" ? (
+                    {formDataList[currentFormIndex]?.registrationType === "junior" ? (
                       <CheckoutJuniorForm
-                        programId={items[currentFormIndex].programId}
-                        programName={items[currentFormIndex].program?.name || ""}
+                        programId={formDataList[currentFormIndex].programId}
+                        programName={items.find(i => i.id === formDataList[currentFormIndex].cartItemId)?.program?.name || ""}
                         initialData={formDataList[currentFormIndex]?.formData as JuniorFormData | null}
                         onSubmit={(data) => handleFormSubmit(currentFormIndex, data)}
                         onBack={() => {
@@ -489,13 +530,13 @@ function CheckoutContent() {
                             setCurrentStep(0);
                           }
                         }}
-                        isLast={currentFormIndex === items.length - 1}
+                        isLast={currentFormIndex === formDataList.length - 1}
                         isProcessing={isProcessingCheckout}
                       />
                     ) : (
                       <CheckoutAdultForm
-                        programId={items[currentFormIndex].programId}
-                        programName={items[currentFormIndex].program?.name || ""}
+                        programId={formDataList[currentFormIndex].programId}
+                        programName={items.find(i => i.id === formDataList[currentFormIndex].cartItemId)?.program?.name || ""}
                         initialData={formDataList[currentFormIndex]?.formData as AdultFormData | null}
                         onSubmit={(data) => handleFormSubmit(currentFormIndex, data)}
                         onBack={() => {
@@ -505,42 +546,25 @@ function CheckoutContent() {
                             setCurrentStep(0);
                           }
                         }}
-                        isLast={currentFormIndex === items.length - 1}
+                        isLast={currentFormIndex === formDataList.length - 1}
                         isProcessing={isProcessingCheckout}
                       />
                     )}
                   </motion.div>
                 )}
 
-                {/* Step 2: Payment */}
-                {currentStep === 2 && clientSecret && (
+                {/* Step 2: Redirecting to Payment */}
+                {/* Note: This step is now handled by redirecting to Stripe, but we keep a placeholder state if needed */}
+                {currentStep === 2 && (
                   <motion.div
-                    key="payment"
+                    key="payment-redirect"
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
+                    className="flex flex-col items-center justify-center py-12"
                   >
-                    <Elements
-                      stripe={stripePromise}
-                      options={{
-                        clientSecret,
-                        appearance: {
-                          theme: "stripe",
-                          variables: {
-                            colorPrimary: "#f97316",
-                          },
-                        },
-                      }}
-                    >
-                      <PaymentForm
-                        total={total}
-                        onSuccess={() => setIsSuccess(true)}
-                        onBack={() => {
-                          setCurrentStep(1);
-                          setCurrentFormIndex(items.length - 1);
-                        }}
-                      />
-                    </Elements>
+                    <Loader2 className="h-12 w-12 animate-spin text-green-600 mb-4" />
+                    <p className="text-lg text-gray-600">Redirecting to Stripe...</p>
                   </motion.div>
                 )}
               </AnimatePresence>

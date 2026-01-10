@@ -6,6 +6,7 @@ import {
   integer,
   uuid,
   index,
+  json,
 } from "drizzle-orm/pg-core";
 import { decimal } from "drizzle-orm/pg-core";
 
@@ -98,11 +99,6 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)]
 );
 
-export const userRelations = relations(user, ({ many }) => ({
-  sessions: many(session),
-  accounts: many(account),
-}));
-
 export const regularUserRelations = relations(regularUser, ({ many }) => ({
   adultRegistrations: many(adultRegistration),
   juniorRegistrations: many(juniorRegistration),
@@ -122,22 +118,62 @@ export const accountRelations = relations(account, ({ one }) => ({
   }),
 }));
 
+export const userRelations = relations(user, ({ many }) => ({
+  sessions: many(session),
+  accounts: many(account),
+  googleCalendarIntegration: many(googleCalendarIntegration),
+}));
+
+// Google Calendar Integration
+export const googleCalendarIntegration = pgTable(
+  "google_calendar_integration",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    accessToken: text("access_token").notNull(),
+    refreshToken: text("refresh_token"),
+    calendarId: text("calendar_id").notNull(), // Primary calendar ID to sync with
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [index("google_calendar_integration_user_id_idx").on(table.userId)]
+);
+
+export const googleCalendarIntegrationRelations = relations(
+  googleCalendarIntegration,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [googleCalendarIntegration.userId],
+      references: [user.id],
+    }),
+  })
+);
+
 // Golf Programs
 export const program = pgTable("program", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
   description: text("description").notNull(),
   type: text("type").notNull(), // 'adult' or 'junior'
-  category: text("category").notNull(), // e.g., 'get-golf-ready', 'short-game', etc.
-  level: text("level"), // e.g., 'Level I', 'Level II', optional
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   duration: text("duration").notNull(), // e.g., 'Five 1-hour range sessions'
-  capacity: integer("capacity").notNull().default(6), // max number of students per session
   imageUrl: text("image_url"),
   features: text("features").array(), // array of feature strings
+  // Boolean fields for equipment and fees
+  equipmentIncluded: boolean("equipment_included").default(false).notNull(),
+  practiceBallsIncluded: boolean("practice_balls_included")
+    .default(false)
+    .notNull(),
+  greenFeesIncluded: boolean("green_fees_included").default(false).notNull(),
   /**
    * JSON string containing structured program details.
-   * Format: Array of { type: ProgramDetailType, descriptions: string[] }
+   * Format: Array of { type: string, descriptions: string[] }
    * Example: [{"type":"all-inclusive","descriptions":["Practice balls included","Equipment provided"]}]
    * See lib/program-details.ts for available detail types and their icons.
    */
@@ -157,20 +193,22 @@ export const programSession = pgTable(
       .notNull()
       .references(() => program.id, { onDelete: "cascade" }),
     name: text("name").notNull(), // e.g., "Session 1: April 2025"
-    startDate: timestamp("start_date").notNull(), // When the session series starts
-    endDate: timestamp("end_date").notNull(), // When the session series ends
-    /**
-     * JSON string defining the recurring schedule.
-     * Format: { daysOfWeek: number[], startTime: string, endTime: string }
-     * - daysOfWeek: Array of day numbers (0=Sunday, 1=Monday, ..., 6=Saturday)
-     * - startTime: Time in 24h format "HH:MM" (e.g., "09:00")
-     * - endTime: Time in 24h format "HH:MM" (e.g., "10:00")
-     * Example: {"daysOfWeek":[2,4],"startTime":"18:00","endTime":"19:00"} = Tue/Thu 6-7pm
-     */
-    schedule: text("schedule"), // JSON string for recurring schedule
+    startDate: timestamp("start_date").notNull(),
+    endDate: timestamp("end_date").notNull(),
     capacity: integer("capacity").notNull(),
     enrolledCount: integer("enrolled_count").default(0).notNull(),
     isActive: boolean("is_active").default(true).notNull(),
+
+    // Google Calendar integration
+    googleCalendarEventId: text("google_calendar_event_id"), // Google Calendar event ID
+    googleCalendarId: text("google_calendar_id"), // Google Calendar ID
+    syncWithGoogleCalendar: boolean("sync_with_google_calendar")
+      .default(false)
+      .notNull(),
+
+    // Detailed Schedule (JSON)
+    schedule: json("schedule"), // Stores Array<{ date: string, startTime: string, endTime: string }>
+
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
@@ -195,11 +233,16 @@ export const adultRegistration = pgTable(
       () => programSession.id,
       { onDelete: "set null" }
     ),
+
+    // Form Data Snapshot
+    firstName: text("first_name").notNull(),
+    lastName: text("last_name").notNull(),
+    email: text("email").notNull(),
+    phoneNumber: text("phone_number").notNull(),
     additionalComments: text("additional_comments"), // Optional additional comments from user
 
     // Payment fields
-    // Unique constraint prevents duplicate webhook processing
-    stripePaymentIntentId: text("stripe_payment_intent_id").unique(), // Stripe payment intent ID
+    stripePaymentIntentId: text("stripe_payment_intent_id"), // Stripe payment intent ID
     stripeCustomerId: text("stripe_customer_id"), // Stripe customer ID
     paymentStatus: text("payment_status").notNull().default("pending"), // 'pending', 'paid', 'failed', 'cancelled'
     paymentAmount: decimal("payment_amount", { precision: 10, scale: 2 }), // Amount paid
@@ -227,6 +270,12 @@ export const juniorRegistration = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => regularUser.id, { onDelete: "cascade" }),
+
+    // Parent/Guardian Contact Information (Snapshot)
+    primaryContactFirstName: text("primary_contact_first_name").notNull(),
+    primaryContactLastName: text("primary_contact_last_name").notNull(),
+    primaryContactEmail: text("primary_contact_email").notNull(),
+    primaryContactPhone: text("primary_contact_phone").notNull(),
 
     // Contact preferences
     phoneType: text("phone_type").notNull(), // 'mobile', 'home', 'work'
@@ -268,7 +317,7 @@ export const juniorProgramRegistration = pgTable(
 
     // Payment fields
     // Unique constraint prevents duplicate webhook processing
-    stripePaymentIntentId: text("stripe_payment_intent_id").unique(), // Stripe payment intent ID
+    stripePaymentIntentId: text("stripe_payment_intent_id"), // Stripe payment intent ID
     stripeCustomerId: text("stripe_customer_id"), // Stripe customer ID
     paymentStatus: text("payment_status").notNull().default("pending"), // 'pending', 'paid', 'failed', 'cancelled'
     paymentAmount: decimal("payment_amount", { precision: 10, scale: 2 }), // Amount paid
@@ -486,6 +535,26 @@ export const cartItemRelations = relations(cartItem, ({ one }) => ({
   }),
 }));
 
+// Contact Form Submissions
+export const contactSubmission = pgTable(
+  "contact_submission",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    firstName: text("first_name").notNull(),
+    lastName: text("last_name").notNull(),
+    phoneNumber: text("phone_number").notNull(),
+    email: text("email").notNull(),
+    subject: text("subject").notNull(),
+    message: text("message").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [index("contact_submission_email_idx").on(table.email)]
+);
+
 // Type exports
 export type User = typeof user.$inferSelect;
 export type NewUser = typeof user.$inferInsert;
@@ -509,3 +578,9 @@ export type CartItem = typeof cartItem.$inferSelect;
 export type NewCartItem = typeof cartItem.$inferInsert;
 export type CheckoutSession = typeof checkoutSession.$inferSelect;
 export type NewCheckoutSession = typeof checkoutSession.$inferInsert;
+export type GoogleCalendarIntegration =
+  typeof googleCalendarIntegration.$inferSelect;
+export type NewGoogleCalendarIntegration =
+  typeof googleCalendarIntegration.$inferInsert;
+export type ContactSubmission = typeof contactSubmission.$inferSelect;
+export type NewContactSubmission = typeof contactSubmission.$inferInsert;

@@ -9,6 +9,7 @@ import {
   Phone,
   GraduationCap,
   Zap,
+  User,
   type LucideIcon,
 } from "lucide-react";
 
@@ -30,7 +31,7 @@ export const PROGRAM_DETAIL_TYPES = {
     title: "Duration",
   },
   "age-group": {
-    icon: Target,
+    icon: User,
     title: "Age Group",
   },
   schedule: {

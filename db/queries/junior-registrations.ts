@@ -7,6 +7,10 @@ import { eq, and, isNull } from 'drizzle-orm';
  */
 export async function createJuniorRegistration(data: {
   userId: string;
+  primaryContactFirstName: string;
+  primaryContactLastName: string;
+  primaryContactEmail: string;
+  primaryContactPhone: string;
   phoneType: string;
   preferredContactMethod: string;
   childFirstName: string;
@@ -164,7 +168,7 @@ export async function getOrCreateJuniorProgramRegistration(data: {
 }) {
   // First, try to find existing registration by payment intent ID
   const existing = await getJuniorProgramRegistrationByPaymentIntentId(data.stripePaymentIntentId);
-  
+
   if (existing) {
     // Update existing registration with payment info
     return await updateJuniorProgramRegistrationPaymentStatus(existing.id, {

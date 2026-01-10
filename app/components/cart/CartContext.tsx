@@ -1,7 +1,19 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { getCart, addToCart, removeFromCart, updateCartItem, emptyCart } from "@/app/actions/cart";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
+import {
+  getCart,
+  addToCart,
+  removeFromCart,
+  updateCartItem,
+  emptyCart,
+} from "@/app/actions/cart";
 
 interface CartItem {
   id: string;
@@ -26,6 +38,7 @@ interface CartItem {
     name: string;
     startDate: Date;
     endDate: Date;
+    schedule: unknown;
   } | null;
 }
 
@@ -35,6 +48,7 @@ interface CartContextType {
   total: number;
   isLoading: boolean;
   isAddingToCart: boolean;
+  cartAnimationTrigger: number;
   addItem: (data: {
     programId: string;
     programSessionId?: string;
@@ -55,12 +69,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [cartAnimationTrigger, setCartAnimationTrigger] = useState(0);
 
   const refreshCart = useCallback(async () => {
     try {
       const result = await getCart();
       if (result.success) {
-        setItems(result.items as CartItem[]);
+        // Sort items by createdAt to ensure consistent order (first added = first displayed)
+        const sortedItems = (result.items as CartItem[]).sort((a, b) => {
+          return (
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+        });
+        setItems(sortedItems);
         setItemCount(result.itemCount);
         setTotal(result.total);
       }
@@ -86,6 +107,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const result = await addToCart(data);
       if (result.success) {
         await refreshCart();
+        // Trigger animation when item is successfully added
+        setCartAnimationTrigger((prev) => prev + 1);
         return { success: true, message: result.message };
       }
       return { success: false, error: result.error };
@@ -98,31 +121,69 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const removeItem = async (itemId: string) => {
-    try {
-      await removeFromCart(itemId);
-      await refreshCart();
-    } catch (error) {
+    // Optimistic update: remove item from local state immediately
+    setItems((prevItems) => {
+      const newItems = prevItems.filter((item) => item.id !== itemId);
+      // Recalculate totals
+      const newItemCount = newItems.reduce((sum, i) => sum + i.quantity, 0);
+      const newTotal = newItems.reduce(
+        (sum, i) => sum + parseFloat(i.priceAtAdd) * i.quantity,
+        0
+      );
+      // Batch state updates using React 18 automatic batching
+      setItemCount(newItemCount);
+      setTotal(newTotal);
+      return newItems;
+    });
+
+    // Sync with database in the background (fire and forget)
+    removeFromCart(itemId).catch((error) => {
       console.error("Error removing item:", error);
-    }
+      // If database update fails, refresh cart to get correct state
+      refreshCart();
+    });
   };
 
   const updateQuantity = async (itemId: string, quantity: number) => {
-    try {
-      await updateCartItem(itemId, quantity);
-      await refreshCart();
-    } catch (error) {
-      console.error("Error updating quantity:", error);
+    if (quantity <= 0) {
+      // If quantity is 0 or negative, remove the item
+      await removeItem(itemId);
+      return;
     }
+
+    // Optimistic update: update local state immediately
+    setItems((prevItems) => {
+      const newItems = prevItems.map((item) =>
+        item.id === itemId ? { ...item, quantity } : item
+      );
+      // Recalculate totals
+      const newItemCount = newItems.reduce((sum, i) => sum + i.quantity, 0);
+      const newTotal = newItems.reduce(
+        (sum, i) => sum + parseFloat(i.priceAtAdd) * i.quantity,
+        0
+      );
+      // Batch state updates using React 18 automatic batching
+      setItemCount(newItemCount);
+      setTotal(newTotal);
+      return newItems;
+    });
+
+    // Sync with database in the background (fire and forget)
+    updateCartItem(itemId, quantity).catch((error) => {
+      console.error("Error updating quantity:", error);
+      // If database update fails, refresh cart to get correct state
+      refreshCart();
+    });
   };
 
-  const clearCartItems = async () => {
+  const clearCartItems = useCallback(async () => {
     try {
       await emptyCart();
       await refreshCart();
     } catch (error) {
       console.error("Error clearing cart:", error);
     }
-  };
+  }, [refreshCart]);
 
   return (
     <CartContext.Provider
@@ -132,6 +193,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         total,
         isLoading,
         isAddingToCart,
+        cartAnimationTrigger,
         addItem,
         removeItem,
         updateQuantity,
@@ -151,4 +213,3 @@ export function useCart() {
   }
   return context;
 }
-

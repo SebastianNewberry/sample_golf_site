@@ -15,6 +15,7 @@ interface AddToCartButtonProps {
   variant?: "default" | "outline";
   size?: "default" | "sm" | "lg";
   children?: React.ReactNode;
+  disabled?: boolean;
 }
 
 export function AddToCartButton({
@@ -26,11 +27,14 @@ export function AddToCartButton({
   variant = "default",
   size = "default",
   children,
+  disabled = false,
 }: AddToCartButtonProps) {
   const { addItem, isAddingToCart } = useCart();
   const [showSuccess, setShowSuccess] = useState(false);
 
   const handleAddToCart = async () => {
+    if (disabled) return;
+
     const result = await addItem({
       programId,
       programSessionId,
@@ -40,19 +44,16 @@ export function AddToCartButton({
 
     if (result.success) {
       setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 2000);
+      setTimeout(() => setShowSuccess(false), 1000);
     }
   };
 
   return (
     <Button
       onClick={handleAddToCart}
-      disabled={isAddingToCart}
-      className={`${
-        variant === "default"
-          ? "bg-orange-500 hover:bg-orange-600 text-white"
-          : ""
-      } ${className}`}
+      disabled={isAddingToCart || disabled}
+      className={`${variant === "default" ? "bg-orange-500 hover:bg-orange-600" : ""
+        } ${className}`}
       variant={variant}
       size={size}
     >
@@ -74,7 +75,7 @@ export function AddToCartButton({
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            className="flex items-center text-white"
+            className="flex items-center"
           >
             <Check className="mr-2 h-4 w-4" />
             Added!
@@ -95,4 +96,3 @@ export function AddToCartButton({
     </Button>
   );
 }
-

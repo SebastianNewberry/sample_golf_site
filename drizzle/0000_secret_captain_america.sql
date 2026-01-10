@@ -63,6 +63,17 @@ CREATE TABLE "checkout_session" (
 	CONSTRAINT "checkout_session_checkout_id_unique" UNIQUE("checkout_id")
 );
 --> statement-breakpoint
+CREATE TABLE "google_calendar_integration" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"user_id" text NOT NULL,
+	"access_token" text NOT NULL,
+	"refresh_token" text,
+	"calendar_id" text NOT NULL,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "junior_program_registration" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"junior_registration_id" uuid NOT NULL,
@@ -103,12 +114,9 @@ CREATE TABLE "program" (
 	"price" numeric(10, 2) NOT NULL,
 	"duration" text NOT NULL,
 	"capacity" integer DEFAULT 6 NOT NULL,
-	"equipment_included" boolean DEFAULT true,
-	"practice_balls_included" boolean DEFAULT true,
-	"green_fees_included" boolean DEFAULT true,
 	"image_url" text,
 	"features" text[],
-	"details" text[],
+	"details" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
@@ -122,6 +130,13 @@ CREATE TABLE "program_session" (
 	"capacity" integer NOT NULL,
 	"enrolled_count" integer DEFAULT 0 NOT NULL,
 	"is_active" boolean DEFAULT true NOT NULL,
+	"is_recurring" boolean DEFAULT false NOT NULL,
+	"recurring_pattern" text,
+	"recurring_days" integer[],
+	"recurring_end_date" timestamp,
+	"google_calendar_event_id" text,
+	"google_calendar_id" text,
+	"sync_with_google_calendar" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
@@ -178,6 +193,7 @@ ALTER TABLE "cart_item" ADD CONSTRAINT "cart_item_cart_id_cart_id_fk" FOREIGN KE
 ALTER TABLE "cart_item" ADD CONSTRAINT "cart_item_program_id_program_id_fk" FOREIGN KEY ("program_id") REFERENCES "public"."program"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "cart_item" ADD CONSTRAINT "cart_item_program_session_id_program_session_id_fk" FOREIGN KEY ("program_session_id") REFERENCES "public"."program_session"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "checkout_session" ADD CONSTRAINT "checkout_session_cart_id_cart_id_fk" FOREIGN KEY ("cart_id") REFERENCES "public"."cart"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "google_calendar_integration" ADD CONSTRAINT "google_calendar_integration_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "junior_program_registration" ADD CONSTRAINT "junior_program_registration_junior_registration_id_junior_registration_id_fk" FOREIGN KEY ("junior_registration_id") REFERENCES "public"."junior_registration"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "junior_program_registration" ADD CONSTRAINT "junior_program_registration_program_id_program_id_fk" FOREIGN KEY ("program_id") REFERENCES "public"."program"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "junior_program_registration" ADD CONSTRAINT "junior_program_registration_program_session_id_program_session_id_fk" FOREIGN KEY ("program_session_id") REFERENCES "public"."program_session"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
@@ -194,6 +210,7 @@ CREATE INDEX "cart_item_cart_id_idx" ON "cart_item" USING btree ("cart_id");--> 
 CREATE INDEX "cart_item_program_id_idx" ON "cart_item" USING btree ("program_id");--> statement-breakpoint
 CREATE INDEX "checkout_session_checkout_id_idx" ON "checkout_session" USING btree ("checkout_id");--> statement-breakpoint
 CREATE INDEX "checkout_session_payment_intent_idx" ON "checkout_session" USING btree ("stripe_payment_intent_id");--> statement-breakpoint
+CREATE INDEX "google_calendar_integration_user_id_idx" ON "google_calendar_integration" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "junior_program_registration_junior_reg_id_idx" ON "junior_program_registration" USING btree ("junior_registration_id");--> statement-breakpoint
 CREATE INDEX "junior_program_registration_program_id_idx" ON "junior_program_registration" USING btree ("program_id");--> statement-breakpoint
 CREATE INDEX "junior_program_registration_payment_intent_idx" ON "junior_program_registration" USING btree ("stripe_payment_intent_id");--> statement-breakpoint

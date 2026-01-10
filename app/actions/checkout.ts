@@ -1,11 +1,10 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { createPaymentIntent } from "@/lib/stripe";
+import stripe from "@/lib/stripe";
 import { getCartWithItems, deleteCart } from "@/db/queries/cart";
 import {
   createCheckoutSession,
-  updateCheckoutSessionPaymentIntent,
 } from "@/db/queries/checkout-sessions";
 
 const CART_SESSION_COOKIE = "cart_session_id";
@@ -73,11 +72,12 @@ export async function processCheckout(data: CheckoutData) {
       };
     }
 
-    // Validate items match cart
-    if (data.items.length !== cart.items.length) {
+    // Validate items match cart (check total quantity)
+    const totalCartItems = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+    if (data.items.length !== totalCartItems) {
       return {
         success: false,
-        error: "Cart has changed. Please refresh and try again.",
+        error: "Cart has changed or is incomplete. Please refresh and try again.",
       };
     }
 
@@ -89,20 +89,24 @@ export async function processCheckout(data: CheckoutData) {
 
     // Store checkout data in database FIRST (before payment intent)
     // This ensures we have the form data available when webhook fires
-    await createCheckoutSession({
+    const savedSession = await createCheckoutSession({
       checkoutId,
       cartId: cart.id,
       formData: {
-        items: data.items.map((item) => ({
-          cartItemId: item.cartItemId,
-          programId: item.programId,
-          programSessionId: item.programSessionId,
-          registrationType: item.registrationType,
-          formData: item.formData as Record<string, unknown>,
-        })),
+        items: data.items.map((item) => {
+          return {
+            cartItemId: item.cartItemId,
+            programId: item.programId,
+            programSessionId: item.programSessionId,
+            registrationType: item.registrationType,
+            formData: item.formData as unknown as Record<string, unknown>,
+          };
+        }),
       },
       totalAmount: data.totalAmount.toFixed(2),
     });
+
+    console.log(`[Checkout] Created session ${checkoutId} with ${data.items.length} items. DB ID: ${savedSession.id}`);
 
     // Create Stripe metadata (keep minimal - full data is in checkout_session table)
     const metadata: Record<string, string> = {
@@ -112,32 +116,51 @@ export async function processCheckout(data: CheckoutData) {
       itemCount: data.items.length.toString(),
     };
 
-    // Create payment intent
-    const paymentResult = await createPaymentIntent({
-      amount: Math.round(data.totalAmount * 100), // Convert to cents
-      currency: "usd",
-      customerEmail: primaryEmail,
-      metadata,
-      idempotencyKey: `checkout-${checkoutId}`,
+    // Create Stripe Checkout Session
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      customer_email: primaryEmail,
+      client_reference_id: checkoutId,
+      metadata: {
+        checkoutId,
+        cartId: cart.id,
+        type: "cart_checkout",
+      },
+      line_items: data.items.map((item) => {
+        // Find the program details (safely)
+        const cartItem = cart.items.find((ci) => ci.id === item.cartItemId);
+        const programName = cartItem?.program?.name || "Golf Program";
+
+        return {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: programName,
+              description: item.registrationType === "junior" ? "Junior Registration" : "Adult Registration",
+              metadata: {
+                programId: item.programId,
+                programSessionId: item.programSessionId || "",
+              }
+            },
+            unit_amount: Math.round(parseFloat(cartItem?.priceAtAdd || "0") * 100),
+          },
+          quantity: 1,
+        };
+      }),
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/checkout?success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/checkout?canceled=true`,
     });
 
-    if (!paymentResult.success) {
+    if (!session.url) {
       return {
         success: false,
-        error: "Failed to create payment intent. Please try again.",
+        error: "Failed to create checkout session URL",
       };
     }
 
-    // Update checkout session with payment intent ID
-    await updateCheckoutSessionPaymentIntent(
-      checkoutId,
-      paymentResult.paymentIntentId!
-    );
-
     return {
       success: true,
-      clientSecret: paymentResult.clientSecret,
-      paymentIntentId: paymentResult.paymentIntentId,
+      url: session.url,
       checkoutId,
     };
   } catch (error) {

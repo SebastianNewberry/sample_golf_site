@@ -1,6 +1,6 @@
 import { db } from "@/db/index";
 import { cart, cartItem, program, programSession } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, asc } from "drizzle-orm";
 
 const CART_EXPIRY_DAYS = 30;
 
@@ -51,12 +51,14 @@ export async function getCartWithItems(sessionId: string) {
         name: programSession.name,
         startDate: programSession.startDate,
         endDate: programSession.endDate,
+        schedule: programSession.schedule,
       },
     })
     .from(cartItem)
     .leftJoin(program, eq(cartItem.programId, program.id))
     .leftJoin(programSession, eq(cartItem.programSessionId, programSession.id))
-    .where(eq(cartItem.cartId, cartData.id));
+    .where(eq(cartItem.cartId, cartData.id))
+    .orderBy(asc(cartItem.createdAt));
 
   return {
     ...cartData,

@@ -1,43 +1,27 @@
 /**
  * Session Schedule Types and Helpers
  *
- * Defines the structure for recurring session schedules.
+ * Defines the structure for the new individual date/time schedule format.
  */
 
 /**
- * Days of the week (0 = Sunday, 6 = Saturday)
+ * Parse an ISO date string (YYYY-MM-DD) as a local date.
+ * This prevents the off-by-one day issue when parsing dates.
+ * @param isoDate Date string in YYYY-MM-DD format
+ * @returns Date object interpreted in local time
  */
-export const DAYS_OF_WEEK = {
-  0: "Sunday",
-  1: "Monday",
-  2: "Tuesday",
-  3: "Wednesday",
-  4: "Thursday",
-  5: "Friday",
-  6: "Saturday",
-} as const;
-
-export type DayOfWeek = keyof typeof DAYS_OF_WEEK;
+export function parseLocalDate(isoDate: string): Date {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  // Month is 0-indexed in JavaScript Date
+  return new Date(year, month - 1, day);
+}
 
 /**
- * Short day names for compact display
+ * Individual session date and time
  */
-export const DAYS_SHORT = {
-  0: "Sun",
-  1: "Mon",
-  2: "Tue",
-  3: "Wed",
-  4: "Thu",
-  5: "Fri",
-  6: "Sat",
-} as const;
-
-/**
- * The schedule configuration for a program session.
- */
-export interface SessionSchedule {
-  /** Array of day numbers (0=Sunday, 1=Monday, ..., 6=Saturday) */
-  daysOfWeek: DayOfWeek[];
+export interface SessionDate {
+  /** Date in ISO format (YYYY-MM-DD) */
+  date: string;
   /** Start time in 24h format "HH:MM" (e.g., "09:00") */
   startTime: string;
   /** End time in 24h format "HH:MM" (e.g., "10:00") */
@@ -45,67 +29,10 @@ export interface SessionSchedule {
 }
 
 /**
- * Common schedule presets for quick selection
+ * The schedule configuration for a program session.
+ * Array of individual session dates with times.
  */
-export const SCHEDULE_PRESETS: { label: string; schedule: SessionSchedule }[] = [
-  {
-    label: "Saturdays 9:00 AM - 10:00 AM",
-    schedule: { daysOfWeek: [6], startTime: "09:00", endTime: "10:00" },
-  },
-  {
-    label: "Saturdays 10:00 AM - 11:00 AM",
-    schedule: { daysOfWeek: [6], startTime: "10:00", endTime: "11:00" },
-  },
-  {
-    label: "Saturdays 11:00 AM - 12:00 PM",
-    schedule: { daysOfWeek: [6], startTime: "11:00", endTime: "12:00" },
-  },
-  {
-    label: "Thursdays 6:00 PM - 7:00 PM",
-    schedule: { daysOfWeek: [4], startTime: "18:00", endTime: "19:00" },
-  },
-  {
-    label: "Tuesday/Thursday 6:00 PM - 7:00 PM",
-    schedule: { daysOfWeek: [2, 4], startTime: "18:00", endTime: "19:00" },
-  },
-  {
-    label: "Monday/Wednesday/Friday 9:00 AM - 10:00 AM",
-    schedule: { daysOfWeek: [1, 3, 5], startTime: "09:00", endTime: "10:00" },
-  },
-  {
-    label: "Weekdays 9:00 AM - 3:00 PM (Camp)",
-    schedule: { daysOfWeek: [1, 2, 3, 4, 5], startTime: "09:00", endTime: "15:00" },
-  },
-];
-
-/**
- * Parse JSON string to SessionSchedule, with fallback.
- */
-export function parseSchedule(scheduleJson: string | null): SessionSchedule | null {
-  if (!scheduleJson) return null;
-  try {
-    const parsed = JSON.parse(scheduleJson);
-    if (
-      typeof parsed === "object" &&
-      parsed !== null &&
-      Array.isArray(parsed.daysOfWeek) &&
-      typeof parsed.startTime === "string" &&
-      typeof parsed.endTime === "string"
-    ) {
-      return parsed as SessionSchedule;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Stringify SessionSchedule to JSON.
- */
-export function stringifySchedule(schedule: SessionSchedule): string {
-  return JSON.stringify(schedule);
-}
+export type ProgramSessionSchedule = SessionDate[];
 
 /**
  * Convert 24h time to 12h format with AM/PM.
@@ -121,91 +48,157 @@ export function formatTime12h(time24: string): string {
 }
 
 /**
- * Format a schedule for display.
- * @param schedule The session schedule
- * @returns Human-readable string like "Tue/Thu 6:00 PM - 7:00 PM"
+ * Format a session date for display.
+ * @param sessionDate The session date and time
+ * @returns Formatted string like "Mon, Apr 14, 2025 - 9:00 AM - 10:00 AM"
  */
-export function formatSchedule(schedule: SessionSchedule | null): string {
-  if (!schedule) return "Schedule TBD";
-
-  const days = schedule.daysOfWeek
-    .sort((a, b) => a - b)
-    .map((d) => DAYS_SHORT[d])
-    .join("/");
-
-  const startTime = formatTime12h(schedule.startTime);
-  const endTime = formatTime12h(schedule.endTime);
-
-  return `${days} ${startTime} - ${endTime}`;
+export function formatSessionDate(sessionDate: SessionDate): string {
+  const date = parseLocalDate(sessionDate.date);
+  const startTime = formatTime12h(sessionDate.startTime);
+  const endTime = formatTime12h(sessionDate.endTime);
+  
+  const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+  const monthDayYear = date.toLocaleDateString('en-US', { 
+    month: 'short', 
+    day: 'numeric', 
+    year: 'numeric' 
+  });
+  
+  return `${dayName}, ${monthDayYear} - ${startTime} - ${endTime}`;
 }
 
 /**
- * Format a schedule as a full description.
- * @param schedule The session schedule
- * @returns Full description like "Tuesdays and Thursdays from 6:00 PM to 7:00 PM"
+ * Format a session date in short format.
+ * @param sessionDate The session date and time
+ * @returns Formatted string like "Mon, Apr 14 - 9:00-10:00 AM"
  */
-export function formatScheduleFull(schedule: SessionSchedule | null): string {
-  if (!schedule) return "Schedule to be determined";
+export function formatSessionDateShort(sessionDate: SessionDate): string {
+  const date = parseLocalDate(sessionDate.date);
+  const startTime = formatTime12h(sessionDate.startTime);
+  const endTime = formatTime12h(sessionDate.endTime);
+  
+  const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+  const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  
+  return `${dayName}, ${monthDay} - ${startTime}-${endTime}`;
+}
 
-  const dayNames = schedule.daysOfWeek
-    .sort((a, b) => a - b)
-    .map((d) => DAYS_OF_WEEK[d] + "s"); // Add 's' for plural
-
-  let daysText: string;
-  if (dayNames.length === 1) {
-    daysText = dayNames[0];
-  } else if (dayNames.length === 2) {
-    daysText = `${dayNames[0]} and ${dayNames[1]}`;
-  } else {
-    const lastDay = dayNames.pop();
-    daysText = `${dayNames.join(", ")}, and ${lastDay}`;
+/**
+ * Parse JSON string to ProgramSessionSchedule, with fallback.
+ */
+export function parseSchedule(scheduleJson: unknown): ProgramSessionSchedule | null {
+  if (!scheduleJson) return null;
+  
+  // If already an array, validate and return
+  if (Array.isArray(scheduleJson)) {
+    const isValid = scheduleJson.every(item => 
+      typeof item === 'object' && 
+      item !== null &&
+      typeof (item as SessionDate).date === 'string' &&
+      typeof (item as SessionDate).startTime === 'string' &&
+      typeof (item as SessionDate).endTime === 'string'
+    );
+    
+    return isValid ? scheduleJson as ProgramSessionSchedule : null;
   }
-
-  const startTime = formatTime12h(schedule.startTime);
-  const endTime = formatTime12h(schedule.endTime);
-
-  return `${daysText} from ${startTime} to ${endTime}`;
-}
-
-/**
- * Calculate all session dates within a date range based on the schedule.
- * @param startDate The start of the session series
- * @param endDate The end of the session series
- * @param schedule The recurring schedule
- * @returns Array of dates when sessions occur
- */
-export function calculateSessionDates(
-  startDate: Date,
-  endDate: Date,
-  schedule: SessionSchedule
-): Date[] {
-  const dates: Date[] = [];
-  const current = new Date(startDate);
-
-  while (current <= endDate) {
-    const dayOfWeek = current.getDay() as DayOfWeek;
-    if (schedule.daysOfWeek.includes(dayOfWeek)) {
-      // Create a new date with the scheduled time
-      const [hours, minutes] = schedule.startTime.split(":").map(Number);
-      const sessionDate = new Date(current);
-      sessionDate.setHours(hours, minutes, 0, 0);
-      dates.push(sessionDate);
+  
+  // If string, try to parse
+  if (typeof scheduleJson === 'string') {
+    try {
+      const parsed = JSON.parse(scheduleJson);
+      if (Array.isArray(parsed)) {
+        return parseSchedule(parsed);
+      }
+    } catch {
+      return null;
     }
-    current.setDate(current.getDate() + 1);
   }
-
-  return dates;
+  
+  return null;
 }
 
 /**
- * Count total sessions within a date range based on the schedule.
+ * Stringify ProgramSessionSchedule to JSON.
  */
-export function countSessions(
-  startDate: Date,
-  endDate: Date,
-  schedule: SessionSchedule
-): number {
-  return calculateSessionDates(startDate, endDate, schedule).length;
+export function stringifySchedule(schedule: ProgramSessionSchedule): string {
+  return JSON.stringify(schedule);
 }
 
+/**
+ * Format a full schedule for display.
+ * @param schedule The session schedule
+ * @param maxSessions Maximum number of sessions to display (default: all)
+ * @returns Array of formatted session dates
+ */
+export function formatScheduleDates(
+  schedule: ProgramSessionSchedule | null,
+  maxSessions?: number
+): string[] {
+  if (!schedule || schedule.length === 0) return [];
+  
+  const sessions = maxSessions ? schedule.slice(0, maxSessions) : schedule;
+  return sessions.map(formatSessionDate);
+}
 
+/**
+ * Get the first and last date from a schedule.
+ * @param schedule The session schedule
+ * @returns Object with firstDate and lastDate, or null if no schedule
+ */
+export function getScheduleDateRange(schedule: ProgramSessionSchedule | null): {
+  firstDate: Date;
+  lastDate: Date;
+} | null {
+  if (!schedule || schedule.length === 0) return null;
+  
+  // Sort by date
+  const sortedSchedule = [...schedule].sort((a, b) =>
+    parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime()
+  );
+
+  return {
+    firstDate: parseLocalDate(sortedSchedule[0].date),
+    lastDate: parseLocalDate(sortedSchedule[sortedSchedule.length - 1].date),
+  };
+}
+
+/**
+ * Count total sessions in schedule.
+ */
+export function countSessions(schedule: ProgramSessionSchedule | null): number {
+  return schedule?.length || 0;
+}
+
+/**
+ * Get summary text for a schedule.
+ * @param schedule The session schedule
+ * @returns Summary like "5 sessions: Mon Apr 14, 2025 - Mon May 12, 2025"
+ */
+export function getScheduleSummary(schedule: ProgramSessionSchedule | null): string {
+  const sessionCount = countSessions(schedule);
+  
+  if (sessionCount === 0) {
+    return "No sessions scheduled";
+  }
+  
+  const dateRange = getScheduleDateRange(schedule);
+  if (!dateRange) {
+    return `${sessionCount} session${sessionCount !== 1 ? 's' : ''}`;
+  }
+  
+  const startDateStr = dateRange.firstDate.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+  
+  const endDateStr = dateRange.lastDate.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+  
+  return `${sessionCount} session${sessionCount !== 1 ? 's' : ''}: ${startDateStr} - ${endDateStr}`;
+}

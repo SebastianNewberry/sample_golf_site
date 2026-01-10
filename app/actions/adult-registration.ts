@@ -3,9 +3,8 @@
 import { getOrCreateRegularUser } from "@/db/queries/users";
 import {
   createAdultRegistration,
-  updateAdultRegistrationPaymentIntent,
 } from "@/db/queries/adult-registrations";
-import { createPaymentIntent } from "@/lib/stripe";
+import stripe from "@/lib/stripe"
 
 /**
  * Server action to initialize an adult registration (Step 1: Save data)
@@ -44,14 +43,18 @@ export async function initializeAdultRegistration(formData: {
       userId: user.id,
       programId: formData.programId,
       programSessionId: formData.programSessionId,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      phoneNumber: formData.phoneNumber,
       additionalComments: formData.additionalComments,
     });
 
-    // Step 3: Create Stripe payment intent with idempotency key
-    const paymentResult = await createPaymentIntent({
-      amount: Math.round(formData.programPrice * 100), // Convert to cents
-      currency: "usd",
-      customerEmail: formData.email,
+    // Step 3: Create Stripe Checkout Session
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      customer_email: formData.email,
+      client_reference_id: registration.id,
       metadata: {
         userId: user.id,
         adultRegistrationId: registration.id,
@@ -59,22 +62,34 @@ export async function initializeAdultRegistration(formData: {
         programSessionId: formData.programSessionId || "",
         type: "adult_registration",
       },
-      idempotencyKey: `adult-registration-${registration.id}`,
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: "Adult Program Registration",
+              metadata: {
+                programId: formData.programId,
+              },
+            },
+            unit_amount: Math.round(formData.programPrice * 100),
+          },
+          quantity: 1,
+        },
+      ],
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/programs/${formData.programId}`,
     });
 
-    if (!paymentResult.success) {
+    if (!session.url) {
       return {
         success: false,
-        error: "Failed to create payment intent. Please try again.",
+        error: "Failed to create checkout session URL",
       };
     }
 
-    // Step 4: Save payment intent ID to registration immediately
-    // This allows us to track the payment and prevents orphaned registrations
-    await updateAdultRegistrationPaymentIntent(
-      registration.id,
-      paymentResult.paymentIntentId!
-    );
+    // We don't have the Payment Intent ID yet (it's created by the session),
+    // but the webhook will handle linking it later based on metadata.
 
     return {
       success: true,
@@ -83,8 +98,7 @@ export async function initializeAdultRegistration(formData: {
       programId: formData.programId,
       programSessionId: formData.programSessionId,
       programPrice: formData.programPrice,
-      clientSecret: paymentResult.clientSecret,
-      paymentIntentId: paymentResult.paymentIntentId,
+      url: session.url,
     };
   } catch (error) {
     console.error("Error initializing adult registration:", error);

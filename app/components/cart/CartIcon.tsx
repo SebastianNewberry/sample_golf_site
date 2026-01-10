@@ -7,7 +7,7 @@ import { useCart } from "./CartContext";
 import { motion, AnimatePresence } from "motion/react";
 
 export function CartIcon() {
-  const { itemCount, isLoading } = useCart();
+  const { itemCount, isLoading, cartAnimationTrigger } = useCart();
 
   return (
     <Link
@@ -15,7 +15,18 @@ export function CartIcon() {
       className="relative inline-flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-300 transition-colors"
       aria-label={`Shopping cart with ${itemCount} items`}
     >
-      <ShoppingCart size={22} className="text-gray-800" />
+      <motion.div
+        key={cartAnimationTrigger}
+        animate={{
+          rotate: [0, -10, 10, -10, 10, 0],
+        }}
+        transition={{
+          duration: 0.5,
+          ease: "easeInOut",
+        }}
+      >
+        <ShoppingCart size={22} className="text-gray-800" />
+      </motion.div>
       <AnimatePresence>
         {!isLoading && itemCount > 0 && (
           <motion.span

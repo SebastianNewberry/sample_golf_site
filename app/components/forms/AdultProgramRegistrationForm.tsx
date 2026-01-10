@@ -24,12 +24,12 @@ const adultProgramRegistrationSchema = z.object({
   // User Information
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
-  email: z.string().email('Invalid email address'),
+  email: z.email('Invalid email address'),
   phoneNumber: z.string().min(10, 'Phone number must be at least 10 digits'),
 
   // Program Information
-  programId: z.string().uuid('Invalid program ID'),
-  programSessionId: z.string().uuid('Invalid session ID').optional().or(z.literal('')),
+  programId: z.string('Invalid program ID'),
+  programSessionId: z.string('Invalid session ID').optional().or(z.literal('')),
   additionalComments: z.string().optional(),
 });
 
@@ -81,16 +81,9 @@ export function AdultProgramRegistrationForm({
         programPrice: programPrice,
       });
 
-      if (result.success) {
-        // Redirect to checkout page with payment intent details
-        const checkoutParams = new URLSearchParams({
-          clientSecret: result.clientSecret!,
-          programName: programName,
-          price: programPrice.toString(),
-          type: 'adult',
-        });
-
-        router.push(`/checkout?${checkoutParams.toString()}`);
+      if (result.success && result.url) {
+        // Redirect to Stripe Hosted Checkout
+        window.location.href = result.url;
       } else {
         setSubmitError(result.error || 'Registration failed. Please try again.');
       }

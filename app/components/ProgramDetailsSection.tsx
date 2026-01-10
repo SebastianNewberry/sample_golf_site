@@ -26,7 +26,7 @@ interface ProgramDetailsSectionProps {
  */
 export function ProgramDetailsSection({
   details,
-  title = "Program details:",
+  title,
   className = "",
 }: ProgramDetailsSectionProps) {
   // Parse details if it's a string
@@ -42,8 +42,8 @@ export function ProgramDetailsSection({
   }
 
   return (
-    <div className={`bg-white rounded-xl p-8 shadow-sm ${className}`}>
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">{title}</h2>
+    <div className={`${className}`}>
+      {title && <h2 className="text-2xl font-bold text-gray-800 mb-6">{title}</h2>}
       <div className="grid gap-4">
         {parsedDetails.map((detail, index) => {
           const IconComponent = getDetailIcon(detail.type);
@@ -52,7 +52,7 @@ export function ProgramDetailsSection({
           return (
             <div
               key={`${detail.type}-${index}`}
-              className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg"
+              className="flex items-start gap-4 py-3"
             >
               <IconComponent className="text-green-600 shrink-0" size={24} />
               <div>

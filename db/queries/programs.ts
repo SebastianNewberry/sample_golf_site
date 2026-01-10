@@ -1,6 +1,27 @@
 import { db } from "@/db";
 import { program, programSession } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, or, like } from "drizzle-orm";
+
+// Get all programs with their sessions
+export async function getProgramsWithSessions(type: "adult" | "junior") {
+  const programs = await db.select().from(program).where(eq(program.type, type));
+
+  const programsWithSessions = await Promise.all(
+    programs.map(async (p) => {
+      const sessions = await db
+        .select()
+        .from(programSession)
+        .where(eq(programSession.programId, p.id));
+
+      return {
+        ...p,
+        sessions,
+      };
+    })
+  );
+
+  return programsWithSessions;
+}
 
 // Get all programs
 export async function getAllPrograms() {
@@ -18,17 +39,9 @@ export async function getProgramById(id: string) {
   return results[0] || null;
 }
 
-// Get a program by category and optional level
-export async function getProgramByCategory(
-  category: string,
-  level?: string | null
-) {
-  const results = await db.select().from(program).where(eq(program.category, category));
-  
-  if (level) {
-    return results.find((p) => p.level === level) || null;
-  }
-  
+// Get a program by name (case-insensitive)
+export async function getProgramByName(name: string) {
+  const results = await db.select().from(program).where(like(program.name, name));
   return results[0] || null;
 }
 
@@ -64,8 +77,6 @@ export async function createProgram(data: {
   name: string;
   description: string;
   type: "adult" | "junior";
-  category: string;
-  level?: string | null;
   price: string;
   duration: string;
   capacity?: number;
@@ -79,8 +90,6 @@ export async function createProgram(data: {
       name: data.name,
       description: data.description,
       type: data.type,
-      category: data.category,
-      level: data.level,
       price: data.price,
       duration: data.duration,
       capacity: data.capacity ?? 6,
@@ -126,8 +135,6 @@ export async function updateProgram(
     name: string;
     description: string;
     type: "adult" | "junior";
-    category: string;
-    level: string | null;
     price: string;
     duration: string;
     capacity: number;

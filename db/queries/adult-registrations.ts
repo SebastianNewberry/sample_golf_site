@@ -10,18 +10,28 @@ export async function createAdultRegistration(data: {
   userId: string;
   programId: string;
   programSessionId?: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phoneNumber: string;
   additionalComments?: string;
   stripePaymentIntentId?: string;
   stripeCustomerId?: string;
   paymentStatus?: 'pending' | 'paid' | 'failed' | 'cancelled';
   paymentAmount?: string;
 }) {
+
+  console.log("Ran adult registration")
   const result = await db
     .insert(adultRegistration)
     .values({
       userId: data.userId,
       programId: data.programId,
       programSessionId: data.programSessionId,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phoneNumber: data.phoneNumber,
       additionalComments: data.additionalComments,
       stripePaymentIntentId: data.stripePaymentIntentId,
       stripeCustomerId: data.stripeCustomerId,

@@ -15,7 +15,9 @@ import {
 import { getOrCreateRegularUser } from "@/db/queries/users";
 import {
   getCheckoutSessionByPaymentIntentId,
+  getCheckoutSessionByCheckoutId,
   completeCheckoutSession,
+  updateCheckoutSessionPaymentIntent,
 } from "@/db/queries/checkout-sessions";
 import { deleteCart } from "@/db/queries/cart";
 
@@ -56,6 +58,9 @@ export async function POST(req: Request) {
     switch (event.type) {
       case "payment_intent.succeeded":
         await handlePaymentIntentSucceeded(event.data.object);
+        break;
+      case "checkout.session.completed":
+        await handleCheckoutSessionCompleted(event.data.object);
         break;
       case "payment_intent.payment_failed":
         await handlePaymentIntentFailed(event.data.object);
@@ -118,13 +123,23 @@ async function handleCartCheckoutSuccess(paymentIntent: any) {
   console.log(`Processing cart checkout: ${checkoutId}`);
 
   // Get checkout session with form data
-  const checkoutSession = await getCheckoutSessionByPaymentIntentId(
+  let checkoutSession = await getCheckoutSessionByPaymentIntentId(
     paymentIntent.id
   );
 
+  // Fallback: If not found by PI, try finding by checkout ID (Race condition fix)
+  if (!checkoutSession && checkoutId) {
+    checkoutSession = await getCheckoutSessionByCheckoutId(checkoutId);
+
+    // If found, we should link the PI for future reference
+    if (checkoutSession && !checkoutSession.stripePaymentIntentId) {
+      await updateCheckoutSessionPaymentIntent(checkoutId, paymentIntent.id);
+    }
+  }
+
   if (!checkoutSession) {
     console.error(
-      `No checkout session found for payment intent ${paymentIntent.id}`
+      `No checkout session found for payment intent ${paymentIntent.id} or checkout ID ${checkoutId}`
     );
     return;
   }
@@ -143,7 +158,7 @@ async function handleCartCheckoutSuccess(paymentIntent: any) {
       : paymentAmount;
 
   // Process each item in the checkout
-  for (const item of formData.items) {
+  for (const [index, item] of formData.items.entries()) {
     try {
       if (item.registrationType === "adult") {
         await createAdultRegistrationFromCheckout(
@@ -161,7 +176,7 @@ async function handleCartCheckoutSuccess(paymentIntent: any) {
         );
       }
     } catch (error) {
-      console.error(`Error processing item ${item.cartItemId}:`, error);
+      console.error(`[Webhook] Error processing item ${index} (${item.cartItemId}):`, error);
       // Continue processing other items even if one fails
     }
   }
@@ -201,6 +216,11 @@ async function createAdultRegistrationFromCheckout(
     additionalComments?: string;
   };
 
+  if (!formData) {
+    console.error("[Webhook] Missing formData for adult registration item");
+    throw new Error("Missing formData for adult registration item");
+  }
+
   // Get or create user
   const user = await getOrCreateRegularUser({
     firstName: formData.firstName,
@@ -214,6 +234,10 @@ async function createAdultRegistrationFromCheckout(
     userId: user.id,
     programId: item.programId,
     programSessionId: item.programSessionId,
+    firstName: formData.firstName,
+    lastName: formData.lastName,
+    email: formData.email,
+    phoneNumber: formData.phoneNumber,
     additionalComments: formData.additionalComments,
     stripePaymentIntentId: paymentIntentId,
     stripeCustomerId: stripeCustomerId,
@@ -221,7 +245,6 @@ async function createAdultRegistrationFromCheckout(
     paymentAmount: paymentAmount,
   });
 
-  console.log(`Adult registration created: ${registration.id}`);
   return registration;
 }
 
@@ -265,6 +288,10 @@ async function createJuniorRegistrationFromCheckout(
   // Create junior registration
   const juniorReg = await createJuniorRegistration({
     userId: user.id,
+    primaryContactFirstName: formData.primaryContactFirstName,
+    primaryContactLastName: formData.primaryContactLastName,
+    primaryContactEmail: formData.primaryContactEmail,
+    primaryContactPhone: formData.primaryContactPhone,
     phoneType: formData.phoneType,
     preferredContactMethod: formData.preferredContactMethod,
     childFirstName: formData.childFirstName,
@@ -287,9 +314,6 @@ async function createJuniorRegistrationFromCheckout(
     paymentAmount: paymentAmount,
   });
 
-  console.log(
-    `Junior registration created: ${juniorReg.id}, program registration: ${programReg.id}`
-  );
   return { juniorReg, programReg };
 }
 
@@ -415,6 +439,42 @@ async function handlePaymentIntentCanceled(paymentIntent: any) {
         paymentStatus: "cancelled",
       });
     }
+  }
+}
+
+
+
+/**
+ * Handle checkout session completed
+ */
+async function handleCheckoutSessionCompleted(session: any) {
+  console.log("Checkout session completed:", session.id);
+
+  // Extract metadata
+  const metadata = session.metadata;
+
+  if (metadata && metadata.type === "cart_checkout") {
+    // This is a cart checkout
+    const checkoutId = metadata.checkoutId;
+    const paymentIntentId = session.payment_intent as string;
+
+    // Update local session with PI if available
+    if (checkoutId && paymentIntentId) {
+      await updateCheckoutSessionPaymentIntent(checkoutId, paymentIntentId);
+    }
+
+    // Create compatible object for existing handler
+    // If payment_intent is string, we might need more data if handleCartCheckoutSuccess uses it deep
+    // handleCartCheckoutSuccess uses: paymentIntent.id, paymentIntent.metadata, paymentIntent.amount, paymentIntent.customer
+
+    const paymentIntentCompatible = {
+      id: paymentIntentId || session.id,
+      amount: session.amount_total,
+      metadata: metadata,
+      customer: session.customer,
+    };
+
+    await handleCartCheckoutSuccess(paymentIntentCompatible);
   }
 }
 

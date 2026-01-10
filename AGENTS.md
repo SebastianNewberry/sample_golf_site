@@ -103,7 +103,7 @@ const juniorRegistrationSchema = z.object({
   // Parent/Guardian Information
   primaryContactFirstName: z.string().min(1, 'First name is required'),
   primaryContactLastName: z.string().min(1, 'Last name is required'),
-  primaryContactEmail: z.string().email('Invalid email address'),
+  primaryContactEmail: z.email('Invalid email address'),
   primaryContactPhone: z.string().min(10, 'Phone number must be at least 10 digits'),
   phoneType: z.enum(['mobile', 'home', 'work']),
   preferredContactMethod: z.enum(['text', 'email']),

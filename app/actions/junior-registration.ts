@@ -6,7 +6,7 @@ import {
   createJuniorProgramRegistration,
   updateJuniorProgramRegistrationPaymentIntent,
 } from '@/db/queries/junior-registrations';
-import { createPaymentIntent } from '@/lib/stripe';
+import stripe, { createPaymentIntent } from '@/lib/stripe';
 
 /**
  * Server action to initialize a junior registration (Step 1: Save data)
@@ -52,8 +52,13 @@ export async function initializeJuniorRegistration(formData: {
     });
 
     // Step 2: Create the junior registration
+    // Step 2: Create the junior registration
     const juniorReg = await createJuniorRegistration({
       userId: user.id,
+      primaryContactFirstName: formData.primaryContactFirstName,
+      primaryContactLastName: formData.primaryContactLastName,
+      primaryContactEmail: formData.primaryContactEmail,
+      primaryContactPhone: formData.primaryContactPhone,
       phoneType: formData.phoneType,
       preferredContactMethod: formData.preferredContactMethod,
       childFirstName: formData.childFirstName,
@@ -74,11 +79,11 @@ export async function initializeJuniorRegistration(formData: {
       paymentStatus: 'pending',
     });
 
-    // Step 4: Create Stripe payment intent with idempotency key
-    const paymentResult = await createPaymentIntent({
-      amount: Math.round(formData.programPrice * 100), // Convert to cents
-      currency: 'usd',
-      customerEmail: formData.primaryContactEmail,
+    // Step 4: Create Stripe Checkout Session
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      customer_email: formData.primaryContactEmail,
+      client_reference_id: programReg.id,
       metadata: {
         userId: user.id,
         juniorRegistrationId: juniorReg.id,
@@ -87,22 +92,33 @@ export async function initializeJuniorRegistration(formData: {
         programSessionId: formData.programSessionId || '',
         type: 'junior_registration',
       },
-      idempotencyKey: `junior-registration-${programReg.id}`,
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: "Junior Program Registration",
+              metadata: {
+                programId: formData.programId,
+              },
+            },
+            unit_amount: Math.round(formData.programPrice * 100),
+          },
+          quantity: 1,
+        },
+      ],
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/programs/${formData.programId}`,
     });
 
-    if (!paymentResult.success) {
+    if (!session.url) {
       return {
         success: false,
-        error: 'Failed to create payment intent. Please try again.',
+        error: 'Failed to create checkout session URL',
       };
     }
 
-    // Step 5: Save payment intent ID to program registration immediately
-    // This allows us to track the payment and prevents orphaned registrations
-    await updateJuniorProgramRegistrationPaymentIntent(
-      programReg.id,
-      paymentResult.paymentIntentId!
-    );
+    // We don't have the Payment Intent ID yet, webhook will handle linking.
 
     return {
       success: true,
@@ -112,8 +128,7 @@ export async function initializeJuniorRegistration(formData: {
       programId: formData.programId,
       programSessionId: formData.programSessionId,
       programPrice: formData.programPrice,
-      clientSecret: paymentResult.clientSecret,
-      paymentIntentId: paymentResult.paymentIntentId,
+      url: session.url,
     };
   } catch (error) {
     console.error('Error initializing junior registration:', error);

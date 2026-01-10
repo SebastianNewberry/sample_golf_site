@@ -15,6 +15,7 @@ interface BuyNowButtonProps {
   className?: string;
   size?: "default" | "sm" | "lg" | "icon";
   children?: React.ReactNode;
+  disabled?: boolean;
 }
 
 export function BuyNowButton({
@@ -25,12 +26,15 @@ export function BuyNowButton({
   className = "",
   size = "default",
   children,
+  disabled = false,
 }: BuyNowButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { refreshCart } = useCart();
 
   const handleBuyNow = async () => {
+    if (disabled) return;
+
     setIsLoading(true);
 
     try {
@@ -61,7 +65,7 @@ export function BuyNowButton({
   return (
     <Button
       onClick={handleBuyNow}
-      disabled={isLoading}
+      disabled={isLoading || disabled}
       className={className}
       size={size}
       variant="default"
