@@ -1,7 +1,13 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { ChevronLeft, ChevronRight, Clock, Calendar as CalendarIcon } from "lucide-react";
+import Link from "next/link";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Calendar as CalendarIcon,
+} from "lucide-react";
 
 interface CalendarEvent {
   id: string;
@@ -11,9 +17,10 @@ interface CalendarEvent {
   category?: string;
   color: string;
   startTime?: string;
-  endTime?: string;
   sessionName?: string;
+  endTime?: string;
   programDescription?: string;
+  url?: string;
 }
 
 interface ProgramCalendarProps {
@@ -80,7 +87,7 @@ export function ProgramCalendar({
       const eventDateOnly = new Date(
         event.date.getFullYear(),
         event.date.getMonth(),
-        event.date.getDate()
+        event.date.getDate(),
       );
       return eventDateOnly.getTime() === eventDate.getTime();
     });
@@ -150,25 +157,37 @@ export function ProgramCalendar({
                   <div className="text-xs text-gray-700 font-medium text-center mb-1">
                     {day}
                   </div>
-                  <div className={`${isExpanded ? "overflow-y-auto max-h-[160px]" : "space-y-1"}`}>
-                    {visibleEvents.map((event) => (
-                      <div
-                        key={event.id}
-                        className={`text-[10px] px-1 py-0.5 rounded text-white truncate cursor-pointer hover:opacity-80 transition-all hover:shadow-md relative mb-1`}
-                        style={{ backgroundColor: event.color }}
-                        onMouseEnter={(e) => {
-                          setHoveredEvent(event);
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          setTooltipPosition({
-                            x: rect.left,
-                            y: rect.bottom + window.scrollY + 8,
-                          });
-                        }}
-                        onMouseLeave={() => setHoveredEvent(null)}
-                      >
-                        {event.title}
-                      </div>
-                    ))}
+                  <div
+                    className={`${isExpanded ? "overflow-y-auto max-h-[160px]" : "space-y-1"}`}
+                  >
+                    {visibleEvents.map((event) => {
+                      const EventContent = (
+                        <div
+                          className={`text-[10px] px-1 py-0.5 rounded text-white truncate cursor-pointer hover:opacity-80 transition-all hover:shadow-md relative mb-1`}
+                          style={{ backgroundColor: event.color }}
+                          onMouseEnter={(e) => {
+                            setHoveredEvent(event);
+                            const rect =
+                              e.currentTarget.getBoundingClientRect();
+                            setTooltipPosition({
+                              x: rect.left,
+                              y: rect.bottom + 8,
+                            });
+                          }}
+                          onMouseLeave={() => setHoveredEvent(null)}
+                        >
+                          {event.title}
+                        </div>
+                      );
+
+                      return event.url ? (
+                        <Link key={event.id} href={event.url} className="block">
+                          {EventContent}
+                        </Link>
+                      ) : (
+                        <div key={event.id}>{EventContent}</div>
+                      );
+                    })}
                     {!isExpanded && dayEvents.length > 3 && (
                       <button
                         onClick={() => {
@@ -253,7 +272,9 @@ export function ProgramCalendar({
                 className="w-3 h-3 rounded-full flex-shrink-0 mt-0.5"
                 style={{ backgroundColor: hoveredEvent.color }}
               />
-              <span className="capitalize">{hoveredEvent.programType} Program</span>
+              <span className="capitalize">
+                {hoveredEvent.programType} Program
+              </span>
             </div>
             {hoveredEvent.programDescription && (
               <div className="pt-2 border-t border-gray-100">
@@ -268,4 +289,3 @@ export function ProgramCalendar({
     </div>
   );
 }
-

@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   Form,
   FormControl,
@@ -12,28 +12,36 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { initializeAdultRegistration } from '@/app/actions/adult-registration';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { initializeAdultRegistration } from "@/app/actions/adult-registration";
 
 // Zod schema for adult program registration
 const adultProgramRegistrationSchema = z.object({
   // User Information
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  email: z.email('Invalid email address'),
-  phoneNumber: z.string().min(10, 'Phone number must be at least 10 digits'),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.email("Invalid email address"),
+  phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
 
   // Program Information
-  programId: z.string('Invalid program ID'),
-  programSessionId: z.string('Invalid session ID').optional().or(z.literal('')),
+  programId: z.string("Invalid program ID"),
+  programSessionId: z.string("Invalid session ID").optional().or(z.literal("")),
   additionalComments: z.string().optional(),
 });
 
-type AdultProgramRegistrationFormValues = z.infer<typeof adultProgramRegistrationSchema>;
+type AdultProgramRegistrationFormValues = z.infer<
+  typeof adultProgramRegistrationSchema
+>;
 
 interface AdultProgramRegistrationFormProps {
   programId: string;
@@ -55,13 +63,13 @@ export function AdultProgramRegistrationForm({
   const form = useForm<AdultProgramRegistrationFormValues>({
     resolver: zodResolver(adultProgramRegistrationSchema),
     defaultValues: {
-      firstName: '',
-      lastName: '',
-      email: '',
-      phoneNumber: '',
+      firstName: "",
+      lastName: "",
+      email: "",
+      phoneNumber: "",
       programId: programId,
-      programSessionId: '',
-      additionalComments: '',
+      programSessionId: "",
+      additionalComments: "",
     },
   });
 
@@ -82,13 +90,14 @@ export function AdultProgramRegistrationForm({
       });
 
       if (result.success && result.url) {
-        // Redirect to Stripe Hosted Checkout
-        window.location.href = result.url;
+        router.push(result.url); // Redirect to Stripe Hosted Checkout
       } else {
-        setSubmitError(result.error || 'Registration failed. Please try again.');
+        setSubmitError(
+          result.error || "Registration failed. Please try again.",
+        );
       }
     } catch (error) {
-      setSubmitError('An unexpected error occurred. Please try again.');
+      setSubmitError("An unexpected error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -106,7 +115,9 @@ export function AdultProgramRegistrationForm({
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           {/* Personal Information Section */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Personal Information</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Personal Information
+            </h3>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -145,7 +156,11 @@ export function AdultProgramRegistrationForm({
                 <FormItem>
                   <FormLabel>Email Address *</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="john@example.com" {...field} />
+                    <Input
+                      type="email"
+                      placeholder="john@example.com"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -176,7 +191,10 @@ export function AdultProgramRegistrationForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Select Session</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a session" />
@@ -185,7 +203,9 @@ export function AdultProgramRegistrationForm({
                       <SelectContent>
                         {sessions.map((session) => (
                           <SelectItem key={session.id} value={session.id}>
-                            {session.name} ({new Date(session.startDate).toLocaleDateString()} - {new Date(session.endDate).toLocaleDateString()})
+                            {session.name} (
+                            {new Date(session.startDate).toLocaleDateString()} -{" "}
+                            {new Date(session.endDate).toLocaleDateString()})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -226,7 +246,9 @@ export function AdultProgramRegistrationForm({
               className="w-full bg-orange-500 hover:bg-orange-600 text-white"
               size="lg"
             >
-              {isSubmitting ? 'Processing...' : `Continue to Payment - $${programPrice.toFixed(2)}`}
+              {isSubmitting
+                ? "Processing..."
+                : `Continue to Payment - $${programPrice.toFixed(2)}`}
             </Button>
           </div>
         </form>
@@ -234,4 +256,3 @@ export function AdultProgramRegistrationForm({
     </div>
   );
 }
-

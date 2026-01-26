@@ -36,6 +36,12 @@ const PROGRAM_IMAGE_MAP: Record<string, string> = {
   "754bf4be-0ef6-4123-b5ff-b107e03c2f10": "/junior_private_instruction.webp", // Junior Private Golf Instruction
 };
 
+// Private Instruction Program IDs for special handling
+const PRIVATE_INSTRUCTION_IDS = [
+  "f89b62ee-ffda-421d-a525-8bd2a580f24e", // Adult
+  "754bf4be-0ef6-4123-b5ff-b107e03c2f10", // Junior
+];
+
 export default function CartPage() {
   const { items, total, isLoading, removeItem, updateQuantity, clearCart } =
     useCart();
@@ -48,33 +54,33 @@ export default function CartPage() {
     }
 
     // Sort by date
-    const sortedSchedule = [...schedule].sort((a, b) => 
-      new Date(a.date).getTime() - new Date(b.date).getTime()
+    const sortedSchedule = [...schedule].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
     );
 
     // Helper to parse date string (YYYY-MM-DD) to Date object
     const parseDate = (dateString: string): Date => {
-      const [year, month, day] = dateString.split('-').map(Number);
+      const [year, month, day] = dateString.split("-").map(Number);
       return new Date(year, month - 1, day);
     };
 
     // Helper to format date in Eastern Time
     const formatDateInEastern = (dateString: string): string => {
       const date = parseDate(dateString);
-      return date.toLocaleDateString('en-US', {
-        timeZone: 'America/New_York',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
+      return date.toLocaleDateString("en-US", {
+        timeZone: "America/New_York",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
       });
     };
 
     // Helper to get day of week in Eastern Time
     const getDayOfWeekInEastern = (dateString: string): string => {
       const date = parseDate(dateString);
-      return date.toLocaleDateString('en-US', { 
-        timeZone: 'America/New_York',
-        weekday: 'long' 
+      return date.toLocaleDateString("en-US", {
+        timeZone: "America/New_York",
+        weekday: "long",
       });
     };
 
@@ -82,44 +88,90 @@ export default function CartPage() {
     const dateRange = `${formatDateInEastern(sortedSchedule[0].date)} - ${formatDateInEastern(sortedSchedule[sortedSchedule.length - 1].date)}`;
 
     // Get unique days of week from the schedule in Eastern Time
-    const daysOfWeek = sortedSchedule.map(s => getDayOfWeekInEastern(s.date));
-    
+    const daysOfWeek = sortedSchedule.map((s) => getDayOfWeekInEastern(s.date));
+
     // Get unique days and count occurrences
-    const uniqueDaysWithCounts = daysOfWeek.reduce((acc, day) => {
-      acc[day] = (acc[day] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const uniqueDaysWithCounts = daysOfWeek.reduce(
+      (acc, day) => {
+        acc[day] = (acc[day] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     const uniqueDays = Object.keys(uniqueDaysWithCounts).sort((a, b) => {
-      const dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const dayOrder = [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday",
+      ];
       return dayOrder.indexOf(a) - dayOrder.indexOf(b);
     });
 
-    // Format days of week (e.g., "Thursdays & Saturdays" or "Mondays, Wednesdays, & Fridays")
+    // Format days of week
     let daysDisplay: string;
     if (uniqueDays.length === 1) {
-      daysDisplay = uniqueDays[0] + 's';
+      daysDisplay = uniqueDays[0] + "s";
     } else if (uniqueDays.length === 2) {
-      daysDisplay = uniqueDays[0] + 's & ' + uniqueDays[1] + 's';
+      daysDisplay = uniqueDays[0] + "s & " + uniqueDays[1] + "s";
     } else {
       const lastDay = uniqueDays.pop();
-      daysDisplay = uniqueDays.map(d => d + 's').join(', ') + ' & ' + lastDay + 's';
+      daysDisplay =
+        uniqueDays.map((d) => d + "s").join(", ") + " & " + lastDay + "s";
     }
 
     // Check if all sessions are at the same time
-    const allSameTime = sortedSchedule.every(s => 
-      s.startTime === sortedSchedule[0].startTime && 
-      s.endTime === sortedSchedule[0].endTime
+    const allSameTime = sortedSchedule.every(
+      (s) =>
+        s.startTime === sortedSchedule[0].startTime &&
+        s.endTime === sortedSchedule[0].endTime,
     );
 
     return {
       sessionCount: schedule.length,
       dateRange,
       daysOfWeek: daysDisplay,
-      timeRange: allSameTime 
+      timeRange: allSameTime
         ? `${formatTime12h(sortedSchedule[0].startTime)} - ${formatTime12h(sortedSchedule[0].endTime)}`
         : null,
     };
+  };
+
+  // Helper to format private instruction metadata for display
+  const formatPrivateInstructionMetadata = (metadataJson: string | null) => {
+    if (!metadataJson) return null;
+    try {
+      const metadata = JSON.parse(metadataJson);
+      if (!metadata.slots || !Array.isArray(metadata.slots)) return null;
+
+      // Parse dates from metadata slots
+      const formattedSlots = metadata.slots.map((slot: any) => {
+        const date = new Date(slot.date);
+        return {
+          date: date.toLocaleDateString("en-US", {
+            timeZone: "America/New_York",
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          }),
+          time: `${formatTime12h(slot.startTime)} - ${formatTime12h(slot.endTime)}`,
+        };
+      });
+
+      return {
+        duration: metadata.duration,
+        totalHours: metadata.totalHours,
+        sessionCount: metadata.slots.length,
+        slots: formattedSlots,
+      };
+    } catch (e) {
+      return null;
+    }
   };
 
   if (isLoading) {
@@ -147,12 +199,15 @@ export default function CartPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/adult-programs/get-golf-ready-level-1">
-                <Button className="bg-orange-500 hover:bg-orange-600 text-white py-3 px-8 text-lg">
+                <Button className="bg-orange-500 hover:bg-orange-600 text-white py-3 px-8 text-lg cursor-pointer transition-transform hover:scale-105">
                   Browse Adult Programs
                 </Button>
               </Link>
               <Link href="/junior-programs/beginner-series">
-                <Button variant="outline" className="py-3 px-8 text-lg">
+                <Button
+                  variant="outline"
+                  className="py-3 px-8 text-lg cursor-pointer transition-transform hover:scale-105 border-green-600 text-green-700 hover:bg-green-50 hover:text-green-800"
+                >
                   Browse Junior Programs
                 </Button>
               </Link>
@@ -172,7 +227,7 @@ export default function CartPage() {
             <h1 className="text-4xl font-bold text-gray-800">Shopping Cart</h1>
             <Button
               variant="ghost"
-              className="text-gray-600 hover:text-red-600 text-base"
+              className="text-gray-500 hover:text-red-600 hover:bg-red-50 text-base cursor-pointer"
               onClick={() => clearCart()}
               type="button"
             >
@@ -185,10 +240,22 @@ export default function CartPage() {
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-6">
               {items.map((item) => {
-                const scheduleInfo = item.session ? formatSessionSchedule(item.session.schedule) : null;
+                const scheduleInfo = item.session
+                  ? formatSessionSchedule(item.session.schedule)
+                  : null;
 
-                // Get the program image - use imageUrl from database or fall back to mapping
-                const programImage = item.program?.imageUrl || PROGRAM_IMAGE_MAP[item.programId];
+                const privateInfo = PRIVATE_INSTRUCTION_IDS.includes(
+                  item.programId,
+                )
+                  ? formatPrivateInstructionMetadata(item.metadata)
+                  : null;
+
+                const isPrivate = PRIVATE_INSTRUCTION_IDS.includes(
+                  item.programId,
+                );
+
+                const programImage =
+                  item.program?.imageUrl || PROGRAM_IMAGE_MAP[item.programId];
 
                 return (
                   <div key={item.id}>
@@ -206,7 +273,6 @@ export default function CartPage() {
                               priority
                             />
                           ) : (
-                            // Fallback to gradient with letter if no image found
                             <div className="absolute inset-0 bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center">
                               <span className="text-white text-3xl font-bold">
                                 {item.program?.type === "junior" ? "J" : "A"}
@@ -230,28 +296,98 @@ export default function CartPage() {
                               {item.session && (
                                 <div className="mt-3 space-y-2">
                                   <div className="flex items-center gap-2 text-sm text-gray-700">
-                                    <Calendar size={16} className="text-green-600" />
-                                    <span className="font-semibold">{item.session.name}</span>
+                                    <Calendar
+                                      size={16}
+                                      className="text-green-600"
+                                    />
+                                    <span className="font-semibold">
+                                      {item.session.name}
+                                    </span>
                                   </div>
                                   {scheduleInfo && (
                                     <>
                                       <div className="flex items-center gap-2 text-sm text-gray-700 ml-6">
-                                        <Calendar size={16} className="text-orange-500" />
+                                        <Calendar
+                                          size={16}
+                                          className="text-orange-500"
+                                        />
                                         <span>{scheduleInfo.dateRange}</span>
                                       </div>
                                       <div className="flex items-center gap-2 text-sm text-gray-700 ml-6">
-                                        <Calendar size={16} className="text-green-600" />
+                                        <Calendar
+                                          size={16}
+                                          className="text-green-600"
+                                        />
                                         <span>{scheduleInfo.daysOfWeek}</span>
                                       </div>
                                       <div className="flex items-center gap-2 text-sm text-gray-700 ml-6">
-                                        <Clock size={16} className="text-orange-500" />
+                                        <Clock
+                                          size={16}
+                                          className="text-orange-500"
+                                        />
                                         <span>
-                                          {scheduleInfo.sessionCount} {scheduleInfo.sessionCount === 1 ? 'session' : 'sessions'}
-                                          {scheduleInfo.timeRange && ` • ${scheduleInfo.timeRange}`}
+                                          {scheduleInfo.sessionCount}{" "}
+                                          {scheduleInfo.sessionCount === 1
+                                            ? "session"
+                                            : "sessions"}
+                                          {scheduleInfo.timeRange &&
+                                            ` • ${scheduleInfo.timeRange}`}
                                         </span>
                                       </div>
                                     </>
                                   )}
+                                </div>
+                              )}
+
+                              {/* Private Instruction Metadata */}
+                              {privateInfo && (
+                                <div className="mt-4 space-y-3">
+                                  <div className="flex items-center gap-2 text-sm text-gray-800 font-semibold bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-100 w-fit">
+                                    <Clock
+                                      size={16}
+                                      className="text-orange-600"
+                                    />
+                                    <span>{privateInfo.duration}</span>
+                                    <span className="text-gray-400 mx-1">
+                                      •
+                                    </span>
+                                    <span className="text-green-700">
+                                      {privateInfo.totalHours ||
+                                        privateInfo.sessionCount * 1}{" "}
+                                      hrs total
+                                    </span>
+                                  </div>
+
+                                  <div className="space-y-1.5 pl-1">
+                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                      Scheduled Sessions:
+                                    </p>
+                                    {privateInfo.slots.map(
+                                      (slot: any, idx: number) => (
+                                        <div
+                                          key={idx}
+                                          className="flex items-center gap-3 text-sm text-gray-700 group"
+                                        >
+                                          <div className="w-5 h-5 rounded-full bg-green-50 flex items-center justify-center text-[10px] font-bold text-green-700 border border-green-100 shrink-0">
+                                            {idx + 1}
+                                          </div>
+                                          <div className="flex gap-2 items-baseline">
+                                            <span className="font-medium">
+                                              {slot.date}
+                                            </span>
+                                            <span className="text-gray-400 text-xs">
+                                              at
+                                            </span>
+                                            <span className="text-gray-600 font-medium">
+                                              {formatTime12h(
+                                                slot.time.split(" - ")[0],
+                                              )}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      ),
+                                    )}
+                                  </div>
                                 </div>
                               )}
                             </div>
@@ -271,9 +407,9 @@ export default function CartPage() {
                                 onClick={() =>
                                   updateQuantity(item.id, item.quantity - 1)
                                 }
-                                disabled={item.quantity <= 1}
+                                disabled={item.quantity <= 1 || isPrivate}
                                 className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 ${
-                                  item.quantity <= 1
+                                  item.quantity <= 1 || isPrivate
                                     ? "border-gray-200 text-gray-300 cursor-not-allowed"
                                     : "border-gray-300 hover:bg-gray-100 cursor-pointer"
                                 }`}
@@ -290,7 +426,12 @@ export default function CartPage() {
                                 onClick={() =>
                                   updateQuantity(item.id, item.quantity + 1)
                                 }
-                                className="w-10 h-10 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-100 transition-colors shrink-0 cursor-pointer"
+                                disabled={isPrivate}
+                                className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 ${
+                                  isPrivate
+                                    ? "border-gray-100 text-gray-100 cursor-not-allowed"
+                                    : "border-gray-300 hover:bg-gray-100 cursor-pointer"
+                                }`}
                                 aria-label="Increase quantity"
                               >
                                 <Plus size={16} />
@@ -345,8 +486,8 @@ export default function CartPage() {
                   </div>
                 </div>
 
-                <Link href="/checkout" className="cursor-pointer">
-                  <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-4 text-lg font-semibold">
+                <Link href="/checkout" className="cursor-pointer block">
+                  <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-4 text-lg font-semibold cursor-pointer shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
                     Proceed to Checkout
                     <ArrowRight className="ml-2 w-5 h-5" />
                   </Button>

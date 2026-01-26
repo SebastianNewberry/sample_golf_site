@@ -450,11 +450,8 @@ async function seed() {
 
       // Create some sample sessions for group programs
       if (
-        programData.capacity > 1 &&
-        programData.category !== "open-practice"
+        programData.capacity > 1
       ) {
-        // Define schedule based on program type
-        const isCamp = programData.category === "golf-camp";
         
         const sessions = [
           {
@@ -463,9 +460,7 @@ async function seed() {
             startDate: new Date("2025-04-01"),
             endDate: new Date("2025-04-30"),
             schedule: scheduleToJson(
-              isCamp
-                ? generateCampSchedule(new Date("2025-04-01"), new Date("2025-04-30"))
-                : generateSaturdaySchedule(new Date("2025-04-01"), new Date("2025-04-30"))
+                generateCampSchedule(new Date("2025-04-01"), new Date("2025-04-30"))
             ),
             capacity: programData.capacity,
             isActive: true,
@@ -476,9 +471,7 @@ async function seed() {
             startDate: new Date("2025-05-01"),
             endDate: new Date("2025-05-31"),
             schedule: scheduleToJson(
-              isCamp
-                ? generateCampSchedule(new Date("2025-05-01"), new Date("2025-05-31"))
-                : generateSaturdaySchedule(new Date("2025-05-01"), new Date("2025-05-31"))
+              generateCampSchedule(new Date("2025-05-01"), new Date("2025-05-31"))
             ),
             capacity: programData.capacity,
             isActive: true,
@@ -489,9 +482,7 @@ async function seed() {
             startDate: new Date("2025-06-01"),
             endDate: new Date("2025-06-30"),
             schedule: scheduleToJson(
-              isCamp
-                ? generateCampSchedule(new Date("2025-06-01"), new Date("2025-06-30"))
-                : generateSaturdaySchedule(new Date("2025-06-01"), new Date("2025-06-30"))
+              generateCampSchedule(new Date("2025-06-01"), new Date("2025-06-30"))
             ),
             capacity: programData.capacity,
             isActive: true,

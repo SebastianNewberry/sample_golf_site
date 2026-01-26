@@ -61,6 +61,7 @@ export async function addToCart(data: {
   programSessionId?: string;
   registrationType: "adult" | "junior";
   price: number;
+  metadata?: string;
 }) {
   try {
     const sessionId = await getOrCreateSessionId();
@@ -72,6 +73,7 @@ export async function addToCart(data: {
       programSessionId: data.programSessionId,
       registrationType: data.registrationType,
       priceAtAdd: data.price.toFixed(2),
+      metadata: data.metadata,
     });
 
     return {
@@ -120,7 +122,7 @@ export async function getCart() {
     const total = await getCartTotal(cartData.id);
     const itemCount = cartData.items.reduce(
       (sum, item) => sum + item.quantity,
-      0
+      0,
     );
 
     return {

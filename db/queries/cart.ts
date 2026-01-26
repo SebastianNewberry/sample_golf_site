@@ -1,6 +1,8 @@
+import "server-only";
+
 import { db } from "@/db/index";
 import { cart, cartItem, program, programSession } from "@/db/schema";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, and, asc, isNull } from "drizzle-orm";
 
 const CART_EXPIRY_DAYS = 30;
 
@@ -37,6 +39,7 @@ export async function getCartWithItems(sessionId: string) {
       quantity: cartItem.quantity,
       priceAtAdd: cartItem.priceAtAdd,
       createdAt: cartItem.createdAt,
+      metadata: cartItem.metadata,
       program: {
         id: program.id,
         name: program.name,
@@ -110,6 +113,9 @@ export async function getOrCreateCart(sessionId: string, userId?: string) {
 /**
  * Add item to cart
  */
+/**
+ * Add item to cart
+ */
 export async function addItemToCart(data: {
   cartId: string;
   programId: string;
@@ -117,30 +123,39 @@ export async function addItemToCart(data: {
   registrationType: "adult" | "junior";
   quantity?: number;
   priceAtAdd: string;
+  metadata?: string;
 }) {
-  // Check if item already exists in cart (same program + session)
+  // Check if item already exists in cart (same program + session + same metadata)
+  // For private instruction, metadata contains the slot time, so different slots = different items
   const existingItems = await db
     .select()
     .from(cartItem)
     .where(
       and(
         eq(cartItem.cartId, data.cartId),
-        eq(cartItem.programId, data.programId)
-      )
-    )
-    .limit(1);
+        eq(cartItem.programId, data.programId),
+        data.programSessionId
+          ? eq(cartItem.programSessionId, data.programSessionId)
+          : isNull(cartItem.programSessionId),
+      ),
+    );
 
-  if (existingItems.length > 0) {
+  // Filter in memory for metadata match since equating text/json in SQL can be tricky/strict
+  const matchingItem = existingItems.find(
+    (item) =>
+      item.programSessionId === (data.programSessionId || null) &&
+      item.metadata === (data.metadata || null),
+  );
+
+  if (matchingItem) {
     // Update quantity instead of adding duplicate
-    const existing = existingItems[0];
     const result = await db
       .update(cartItem)
       .set({
-        quantity: existing.quantity + (data.quantity || 1),
-        programSessionId: data.programSessionId,
+        quantity: matchingItem.quantity + (data.quantity || 1),
         updatedAt: new Date(),
       })
-      .where(eq(cartItem.id, existing.id))
+      .where(eq(cartItem.id, matchingItem.id))
       .returning();
 
     return result[0];
@@ -156,6 +171,7 @@ export async function addItemToCart(data: {
       registrationType: data.registrationType,
       quantity: data.quantity || 1,
       priceAtAdd: data.priceAtAdd,
+      metadata: data.metadata,
     })
     .returning();
 
@@ -165,10 +181,7 @@ export async function addItemToCart(data: {
 /**
  * Update cart item quantity
  */
-export async function updateCartItemQuantity(
-  itemId: string,
-  quantity: number
-) {
+export async function updateCartItemQuantity(itemId: string, quantity: number) {
   if (quantity <= 0) {
     return await removeCartItem(itemId);
   }
@@ -240,4 +253,3 @@ export async function getCartTotal(cartId: string) {
     return total + item.quantity * parseFloat(item.priceAtAdd);
   }, 0);
 }
-

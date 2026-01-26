@@ -1,10 +1,21 @@
+import "server-only";
+
 import { db } from "@/db";
-import { program, programSession } from "@/db/schema";
-import { eq, or, like } from "drizzle-orm";
+import {
+  program,
+  programSession,
+  instructorAvailability,
+  adultRegistration,
+  juniorProgramRegistration,
+} from "@/db/schema";
+import { eq, or, like, and, gt, count } from "drizzle-orm";
 
 // Get all programs with their sessions
 export async function getProgramsWithSessions(type: "adult" | "junior") {
-  const programs = await db.select().from(program).where(eq(program.type, type));
+  const programs = await db
+    .select()
+    .from(program)
+    .where(eq(program.type, type));
 
   const programsWithSessions = await Promise.all(
     programs.map(async (p) => {
@@ -17,7 +28,7 @@ export async function getProgramsWithSessions(type: "adult" | "junior") {
         ...p,
         sessions,
       };
-    })
+    }),
   );
 
   return programsWithSessions;
@@ -41,23 +52,26 @@ export async function getProgramById(id: string) {
 
 // Get a program by name (case-insensitive)
 export async function getProgramByName(name: string) {
-  const results = await db.select().from(program).where(like(program.name, name));
+  const results = await db
+    .select()
+    .from(program)
+    .where(like(program.name, name));
   return results[0] || null;
 }
 
 // Get a program with its sessions
 export async function getProgramWithSessions(programId: string) {
   const programData = await getProgramById(programId);
-  
+
   if (!programData) {
     return null;
   }
-  
+
   const sessions = await db
     .select()
     .from(programSession)
     .where(eq(programSession.programId, programId));
-  
+
   return {
     ...programData,
     sessions,
@@ -79,7 +93,6 @@ export async function createProgram(data: {
   type: "adult" | "junior";
   price: string;
   duration: string;
-  capacity?: number;
   imageUrl?: string | null;
   features?: string[];
   details?: string; // JSON string of ProgramDetail[]
@@ -92,7 +105,6 @@ export async function createProgram(data: {
       type: data.type,
       price: data.price,
       duration: data.duration,
-      capacity: data.capacity ?? 6,
       imageUrl: data.imageUrl,
       features: data.features,
       details: data.details,
@@ -137,11 +149,10 @@ export async function updateProgram(
     type: "adult" | "junior";
     price: string;
     duration: string;
-    capacity: number;
     imageUrl: string | null;
     features: string[];
     details: string; // JSON string of ProgramDetail[]
-  }>
+  }>,
 ) {
   const result = await db
     .update(program)
@@ -157,3 +168,62 @@ export async function deleteProgram(id: string) {
   await db.delete(program).where(eq(program.id, id));
 }
 
+// Get active instructor availability rules by type
+export async function getInstructorAvailability(type: "adult" | "junior") {
+  return await db
+    .select()
+    .from(instructorAvailability)
+    .where(eq(instructorAvailability.type, type));
+}
+// Check availability for a program session including pending holds
+export async function checkProgramSessionCapacity(sessionId: string) {
+  const session = await db.query.programSession.findFirst({
+    where: eq(programSession.id, sessionId),
+    with: {
+      program: true,
+    },
+  });
+
+  if (!session) {
+    return { available: false, remaining: 0, error: "Session not found" };
+  }
+
+  const now = new Date();
+  let currentCount = 0;
+
+  // Logic: Count confirmed (paid) OR (pending AND not expired)
+  const activeHoldRule = (table: any) =>
+    or(
+      eq(table.paymentStatus, "paid"),
+      and(eq(table.paymentStatus, "pending"), gt(table.expiresAt, now)),
+    );
+
+  if (session.program.type === "adult") {
+    const [result] = await db
+      .select({ count: count() })
+      .from(adultRegistration)
+      .where(
+        and(
+          eq(adultRegistration.programSessionId, sessionId),
+          activeHoldRule(adultRegistration),
+        ),
+      );
+    currentCount = result.count;
+  } else {
+    const [result] = await db
+      .select({ count: count() })
+      .from(juniorProgramRegistration)
+      .where(
+        and(
+          eq(juniorProgramRegistration.programSessionId, sessionId),
+          activeHoldRule(juniorProgramRegistration),
+        ),
+      );
+    currentCount = result.count;
+  }
+
+  return {
+    available: currentCount < session.capacity,
+    remaining: session.capacity - currentCount,
+  };
+}

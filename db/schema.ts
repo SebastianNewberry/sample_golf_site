@@ -24,7 +24,7 @@ export const regularUser = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index("user_email_idx").on(table.email)]
+  (table) => [index("user_email_idx").on(table.email)],
 );
 
 export const user = pgTable("user", {
@@ -56,7 +56,7 @@ export const session = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
   },
-  (table) => [index("session_userId_idx").on(table.userId)]
+  (table) => [index("session_userId_idx").on(table.userId)],
 );
 
 export const account = pgTable(
@@ -80,7 +80,7 @@ export const account = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index("account_userId_idx").on(table.userId)]
+  (table) => [index("account_userId_idx").on(table.userId)],
 );
 
 export const verification = pgTable(
@@ -96,7 +96,7 @@ export const verification = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index("verification_identifier_idx").on(table.identifier)]
+  (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
 export const regularUserRelations = relations(regularUser, ({ many }) => ({
@@ -142,7 +142,9 @@ export const googleCalendarIntegration = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index("google_calendar_integration_user_id_idx").on(table.userId)]
+  (table) => [
+    index("google_calendar_integration_user_id_idx").on(table.userId),
+  ],
 );
 
 export const googleCalendarIntegrationRelations = relations(
@@ -152,7 +154,7 @@ export const googleCalendarIntegrationRelations = relations(
       fields: [googleCalendarIntegration.userId],
       references: [user.id],
     }),
-  })
+  }),
 );
 
 // Golf Programs
@@ -178,12 +180,42 @@ export const program = pgTable("program", {
    * See lib/program-details.ts for available detail types and their icons.
    */
   details: text("details"), // JSON string of structured details
+
+  // Scheduling Type: 'session' (Group Classes) or 'appointment' (Private Lessons)
+  schedulingType: text("scheduling_type").notNull().default("session"),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
 });
+
+// Instructor Availability (JSON-based schedule like programSession)
+// One row per type (adult/junior) with a schedule JSON
+export const instructorAvailability = pgTable(
+  "instructor_availability",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    type: text("type").notNull().default("adult"), // 'adult' or 'junior'
+
+    // Schedule (JSON) - Array<{ date: string, startTime: string, endTime: string, googleEventId?: string }>
+    schedule: json("schedule"),
+
+    // Google Calendar integration
+    googleCalendarId: text("google_calendar_id"),
+    syncWithGoogleCalendar: boolean("sync_with_google_calendar")
+      .default(true)
+      .notNull(),
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [index("instructor_availability_type_idx").on(table.type)],
+);
 
 export const programSession = pgTable(
   "program_session",
@@ -215,7 +247,7 @@ export const programSession = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index("program_session_program_id_idx").on(table.programId)]
+  (table) => [index("program_session_program_id_idx").on(table.programId)],
 );
 
 // Adult Program Registration
@@ -231,7 +263,7 @@ export const adultRegistration = pgTable(
       .references(() => program.id, { onDelete: "cascade" }),
     programSessionId: uuid("program_session_id").references(
       () => programSession.id,
-      { onDelete: "set null" }
+      { onDelete: "set null" },
     ),
 
     // Form Data Snapshot
@@ -246,6 +278,7 @@ export const adultRegistration = pgTable(
     stripeCustomerId: text("stripe_customer_id"), // Stripe customer ID
     paymentStatus: text("payment_status").notNull().default("pending"), // 'pending', 'paid', 'failed', 'cancelled'
     paymentAmount: decimal("payment_amount", { precision: 10, scale: 2 }), // Amount paid
+    expiresAt: timestamp("expires_at"), // For pending holds
 
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
@@ -257,9 +290,9 @@ export const adultRegistration = pgTable(
     index("adult_registration_user_id_idx").on(table.userId),
     index("adult_registration_program_id_idx").on(table.programId),
     index("adult_registration_payment_intent_idx").on(
-      table.stripePaymentIntentId
+      table.stripePaymentIntentId,
     ),
-  ]
+  ],
 );
 
 // Junior Program Registration Form Data
@@ -296,7 +329,7 @@ export const juniorRegistration = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index("junior_registration_user_id_idx").on(table.userId)]
+  (table) => [index("junior_registration_user_id_idx").on(table.userId)],
 );
 
 // Link junior registrations to specific programs
@@ -312,7 +345,7 @@ export const juniorProgramRegistration = pgTable(
       .references(() => program.id, { onDelete: "cascade" }),
     programSessionId: uuid("program_session_id").references(
       () => programSession.id,
-      { onDelete: "set null" }
+      { onDelete: "set null" },
     ),
 
     // Payment fields
@@ -321,6 +354,7 @@ export const juniorProgramRegistration = pgTable(
     stripeCustomerId: text("stripe_customer_id"), // Stripe customer ID
     paymentStatus: text("payment_status").notNull().default("pending"), // 'pending', 'paid', 'failed', 'cancelled'
     paymentAmount: decimal("payment_amount", { precision: 10, scale: 2 }), // Amount paid
+    expiresAt: timestamp("expires_at"), // For pending holds
 
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
@@ -330,13 +364,13 @@ export const juniorProgramRegistration = pgTable(
   },
   (table) => [
     index("junior_program_registration_junior_reg_id_idx").on(
-      table.juniorRegistrationId
+      table.juniorRegistrationId,
     ),
     index("junior_program_registration_program_id_idx").on(table.programId),
     index("junior_program_registration_payment_intent_idx").on(
-      table.stripePaymentIntentId
+      table.stripePaymentIntentId,
     ),
-  ]
+  ],
 );
 
 // Relations
@@ -356,7 +390,7 @@ export const programSessionRelations = relations(
     }),
     adultRegistrations: many(adultRegistration),
     juniorProgramRegistrations: many(juniorProgramRegistration),
-  })
+  }),
 );
 
 export const adultRegistrationRelations = relations(
@@ -374,7 +408,7 @@ export const adultRegistrationRelations = relations(
       fields: [adultRegistration.programSessionId],
       references: [programSession.id],
     }),
-  })
+  }),
 );
 
 export const juniorRegistrationRelations = relations(
@@ -385,7 +419,7 @@ export const juniorRegistrationRelations = relations(
       references: [regularUser.id],
     }),
     programRegistrations: many(juniorProgramRegistration),
-  })
+  }),
 );
 
 export const juniorProgramRegistrationRelations = relations(
@@ -403,7 +437,7 @@ export const juniorProgramRegistrationRelations = relations(
       fields: [juniorProgramRegistration.programSessionId],
       references: [programSession.id],
     }),
-  })
+  }),
 );
 
 // ============================================
@@ -436,7 +470,7 @@ export const cart = pgTable(
   (table) => [
     index("cart_session_id_idx").on(table.sessionId),
     index("cart_user_id_idx").on(table.userId),
-  ]
+  ],
 );
 
 /**
@@ -455,7 +489,7 @@ export const cartItem = pgTable(
       .references(() => program.id, { onDelete: "cascade" }),
     programSessionId: uuid("program_session_id").references(
       () => programSession.id,
-      { onDelete: "set null" }
+      { onDelete: "set null" },
     ),
     // Type of registration - determines which form to show at checkout
     registrationType: text("registration_type").notNull(), // 'adult' or 'junior'
@@ -463,6 +497,8 @@ export const cartItem = pgTable(
     quantity: integer("quantity").notNull().default(1),
     // Price at time of adding to cart (in case price changes)
     priceAtAdd: decimal("price_at_add", { precision: 10, scale: 2 }).notNull(),
+    // Optional metadata (e.g., for private instruction slot details)
+    metadata: text("metadata"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
@@ -472,7 +508,7 @@ export const cartItem = pgTable(
   (table) => [
     index("cart_item_cart_id_idx").on(table.cartId),
     index("cart_item_program_id_idx").on(table.programId),
-  ]
+  ],
 );
 
 // Checkout Session - stores form data temporarily until payment completes
@@ -495,9 +531,9 @@ export const checkoutSession = pgTable(
   (table) => [
     index("checkout_session_checkout_id_idx").on(table.checkoutId),
     index("checkout_session_payment_intent_idx").on(
-      table.stripePaymentIntentId
+      table.stripePaymentIntentId,
     ),
-  ]
+  ],
 );
 
 // Cart Relations
@@ -517,7 +553,7 @@ export const checkoutSessionRelations = relations(
       fields: [checkoutSession.cartId],
       references: [cart.id],
     }),
-  })
+  }),
 );
 
 export const cartItemRelations = relations(cartItem, ({ one }) => ({
@@ -552,7 +588,91 @@ export const contactSubmission = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index("contact_submission_email_idx").on(table.email)]
+  (table) => [index("contact_submission_email_idx").on(table.email)],
+);
+
+export const booking = pgTable(
+  "booking",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    title: text("title").notNull(), // e.g., "Private Lesson - John Doe"
+    // Participant info moved to booking_participant table
+
+    userId: uuid("user_id").references(() => regularUser.id, {
+      onDelete: "set null",
+    }),
+    startTime: timestamp("start_time").notNull(),
+    endTime: timestamp("end_time").notNull(),
+    type: text("type").notNull(), // 'adult' | 'junior'
+    status: text("status").notNull().default("confirmed"), // 'confirmed', 'cancelled', 'pending_payment'
+    expiresAt: timestamp("expires_at"), // For pending holds
+    notes: text("notes"),
+
+    // Google Calendar integration
+    googleCalendarEventId: text("google_calendar_event_id"),
+    googleCalendarId: text("google_calendar_id"),
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("booking_user_id_idx").on(table.userId),
+    index("booking_start_time_idx").on(table.startTime),
+  ],
+);
+
+export const bookingRelations = relations(booking, ({ one, many }) => ({
+  user: one(regularUser, {
+    fields: [booking.userId],
+    references: [regularUser.id],
+  }),
+  participants: many(bookingParticipant),
+}));
+
+export const bookingParticipant = pgTable(
+  "booking_participant",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    bookingId: uuid("booking_id")
+      .notNull()
+      .references(() => booking.id, { onDelete: "cascade" }),
+
+    // Participant Details
+    name: text("name").notNull(),
+    email: text("email"),
+    phone: text("phone"),
+    type: text("type").notNull(), // 'adult' | 'junior'
+
+    // Explicit fields for Juniors
+    parentName: text("parent_name"),
+    parentEmail: text("parent_email"),
+    parentPhone: text("parent_phone"),
+    childAge: integer("child_age"),
+    childExperience: text("child_experience"),
+
+    // JSON details for any extra future data
+    details: json("details"),
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [index("booking_participant_booking_id_idx").on(table.bookingId)],
+);
+
+export const bookingParticipantRelations = relations(
+  bookingParticipant,
+  ({ one }) => ({
+    booking: one(booking, {
+      fields: [bookingParticipant.bookingId],
+      references: [booking.id],
+    }),
+  }),
 );
 
 // Type exports
@@ -584,3 +704,10 @@ export type NewGoogleCalendarIntegration =
   typeof googleCalendarIntegration.$inferInsert;
 export type ContactSubmission = typeof contactSubmission.$inferSelect;
 export type NewContactSubmission = typeof contactSubmission.$inferInsert;
+export type InstructorAvailability = typeof instructorAvailability.$inferSelect;
+export type NewInstructorAvailability =
+  typeof instructorAvailability.$inferInsert;
+export type Booking = typeof booking.$inferSelect;
+export type NewBooking = typeof booking.$inferInsert;
+export type BookingParticipant = typeof bookingParticipant.$inferSelect;
+export type NewBookingParticipant = typeof bookingParticipant.$inferInsert;

@@ -1,0 +1,1 @@
+ALTER TABLE "instructor_availability" ADD COLUMN "google_calendar_event_id" text;

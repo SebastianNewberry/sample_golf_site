@@ -1,0 +1,1 @@
+ALTER TABLE "instructor_availability" ADD COLUMN "type" text DEFAULT 'adult' NOT NULL;

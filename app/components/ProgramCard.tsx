@@ -20,6 +20,7 @@ interface ProgramCardProps {
   onSessionChange?: (sessionId: string) => void;
   showContactButton?: boolean;
   extraContent?: ReactNode;
+  imageClassName?: string;
 }
 
 export function ProgramCard({
@@ -37,6 +38,7 @@ export function ProgramCard({
   onSessionChange,
   showContactButton = false,
   extraContent,
+  imageClassName,
 }: ProgramCardProps) {
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden">
@@ -47,7 +49,7 @@ export function ProgramCard({
           alt={alt}
           width={600}
           height={400}
-          className="w-full max-h-[400px] object-cover bg-gray-100"
+          className={`w-full max-h-[400px] object-cover bg-gray-100 ${imageClassName || ""}`}
           priority
         />
       </div>

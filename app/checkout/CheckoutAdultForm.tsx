@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { formatPhoneNumber } from "@/lib/utils";
 
 // Zod schema for adult checkout form
 const adultCheckoutSchema = z.object({
@@ -35,6 +36,7 @@ interface CheckoutAdultFormProps {
   onBack: () => void;
   isLast: boolean;
   isProcessing: boolean;
+  primaryFormData?: AdultFormData | null;
 }
 
 export function CheckoutAdultForm({
@@ -44,6 +46,7 @@ export function CheckoutAdultForm({
   onBack,
   isLast,
   isProcessing,
+  primaryFormData,
 }: CheckoutAdultFormProps) {
   const form = useForm<AdultFormData>({
     resolver: zodResolver(adultCheckoutSchema),
@@ -60,9 +63,43 @@ export function CheckoutAdultForm({
     onSubmit(data);
   };
 
+  const handleCopyRegistration = () => {
+    if (primaryFormData) {
+      form.setValue("firstName", primaryFormData.firstName);
+      form.setValue("lastName", primaryFormData.lastName);
+      form.setValue("email", primaryFormData.email);
+      form.setValue("phoneNumber", primaryFormData.phoneNumber);
+      // We don't copy specific comments usually, but could if desired
+    }
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        {/* Copy Registration Callout */}
+        {primaryFormData && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-5 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h4 className="text-green-900 font-semibold mb-1">
+                Repeat details from previous registration?
+              </h4>
+              <p className="text-sm text-green-700">
+                You can automatically fill this form with the same details used
+                previously.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleCopyRegistration}
+              className="bg-white text-green-700 border-green-300 hover:bg-green-50 hover:text-green-800 hover:border-green-400 whitespace-nowrap shrink-0"
+            >
+              Copy previous details
+            </Button>
+          </div>
+        )}
+
         {/* Personal Information Section */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900">
@@ -106,7 +143,11 @@ export function CheckoutAdultForm({
               <FormItem>
                 <FormLabel>Email Address *</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="john@example.com" {...field} />
+                  <Input
+                    type="email"
+                    placeholder="john@example.com"
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -120,7 +161,15 @@ export function CheckoutAdultForm({
               <FormItem>
                 <FormLabel>Phone Number *</FormLabel>
                 <FormControl>
-                  <Input type="tel" placeholder="(555) 123-4567" {...field} />
+                  <Input
+                    type="tel"
+                    placeholder="(555) 123-4567"
+                    {...field}
+                    onChange={(e) => {
+                      const formatted = formatPhoneNumber(e.target.value);
+                      field.onChange(formatted);
+                    }}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -150,42 +199,43 @@ export function CheckoutAdultForm({
         </div>
 
         {/* Navigation Buttons */}
-        <div className="flex gap-4 pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onBack}
-            disabled={isProcessing}
-            className="flex-1"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
-          </Button>
-          <Button
-            type="submit"
-            disabled={isProcessing}
-            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : isLast ? (
-              <>
-                Continue to Payment
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </>
-            ) : (
-              <>
-                Next Registration
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </>
-            )}
-          </Button>
+        <div className="flex flex-col gap-3 pt-4">
+          <div className="flex gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onBack}
+              disabled={isProcessing}
+              className="flex-1 border-green-600 text-green-700 hover:bg-green-50 hover:text-green-800 cursor-pointer"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+            <Button
+              type="submit"
+              disabled={isProcessing}
+              className="flex-1 bg-orange-500 hover:bg-orange-600 text-white cursor-pointer"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : isLast ? (
+                <>
+                  Continue to Payment
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              ) : (
+                <>
+                  Next Registration
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </form>
     </Form>
   );
 }
-

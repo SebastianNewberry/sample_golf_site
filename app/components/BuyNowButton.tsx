@@ -66,7 +66,7 @@ export function BuyNowButton({
     <Button
       onClick={handleBuyNow}
       disabled={isLoading || disabled}
-      className={className}
+      className={`${className} cursor-pointer`}
       size={size}
       variant="default"
     >
@@ -84,4 +84,3 @@ export function BuyNowButton({
     </Button>
   );
 }
-

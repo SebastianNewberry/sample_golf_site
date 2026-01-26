@@ -20,6 +20,14 @@ import {
   updateCheckoutSessionPaymentIntent,
 } from "@/db/queries/checkout-sessions";
 import { deleteCart } from "@/db/queries/cart";
+import { getRegularUserByEmail } from "@/db/queries/users";
+import {
+  createBooking,
+  checkTimeSlotAvailability,
+  updateBookingStatus,
+  addBookingParticipants,
+  getBookingById,
+} from "@/db/queries/bookings";
 
 /**
  * Stripe webhook handler
@@ -41,7 +49,7 @@ export async function POST(req: Request) {
     console.error("Stripe webhook secret is not configured");
     return NextResponse.json(
       { error: "Webhook secret not configured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -77,7 +85,7 @@ export async function POST(req: Request) {
     console.error("Error processing webhook:", err);
     return NextResponse.json(
       { error: "Webhook processing failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -124,7 +132,7 @@ async function handleCartCheckoutSuccess(paymentIntent: any) {
 
   // Get checkout session with form data
   let checkoutSession = await getCheckoutSessionByPaymentIntentId(
-    paymentIntent.id
+    paymentIntent.id,
   );
 
   // Fallback: If not found by PI, try finding by checkout ID (Race condition fix)
@@ -139,7 +147,7 @@ async function handleCartCheckoutSuccess(paymentIntent: any) {
 
   if (!checkoutSession) {
     console.error(
-      `No checkout session found for payment intent ${paymentIntent.id} or checkout ID ${checkoutId}`
+      `No checkout session found for payment intent ${paymentIntent.id} or checkout ID ${checkoutId}`,
     );
     return;
   }
@@ -157,26 +165,288 @@ async function handleCartCheckoutSuccess(paymentIntent: any) {
       ? (paymentIntent.amount / 100 / formData.items.length).toFixed(2)
       : paymentAmount;
 
+  // ------------------------------------------------
+  // RESERVATION IDS (Private & Group)
+  // ------------------------------------------------
+  let reservationBookingIds: string[] = []; // Private Instruction Holds
+  let groupRegistrationIds: string[] = []; // Group Session Holds
+
+  try {
+    if (metadata.reservationBookingIds) {
+      reservationBookingIds = JSON.parse(metadata.reservationBookingIds);
+    }
+  } catch (e) {
+    console.error("Failed to parse reservationBookingIds", e);
+  }
+
+  try {
+    if (metadata.groupRegistrationIds) {
+      groupRegistrationIds = JSON.parse(metadata.groupRegistrationIds);
+    }
+  } catch (e) {
+    console.error("Failed to parse groupRegistrationIds", e);
+  }
+
+  // Track indices for consumption
+  let reservationBookingIndex = 0;
+  let groupRegistrationIndex = 0;
+
   // Process each item in the checkout
   for (const [index, item] of formData.items.entries()) {
     try {
-      if (item.registrationType === "adult") {
-        await createAdultRegistrationFromCheckout(
-          item,
-          paymentIntent.id,
-          paymentIntent.customer as string | undefined,
-          pricePerItem
-        );
-      } else if (item.registrationType === "junior") {
-        await createJuniorRegistrationFromCheckout(
-          item,
-          paymentIntent.id,
-          paymentIntent.customer as string | undefined,
-          pricePerItem
-        );
+      const itemWithMetadata = item as typeof item & { metadata?: string };
+      const isPrivate = !!itemWithMetadata.metadata;
+      const isGroup = !isPrivate && !!item.programId;
+
+      // ---------------------------------------------------
+      // CASE 1: Private Instruction (Create Reg + Confirm Booking)
+      // ---------------------------------------------------
+      if (isPrivate) {
+        // 1. Create Registration (Always Fresh for Private)
+        if (item.registrationType === "adult") {
+          await createAdultRegistrationFromCheckout(
+            item,
+            paymentIntent.id,
+            paymentIntent.customer as string | undefined,
+            pricePerItem,
+          );
+        } else if (item.registrationType === "junior") {
+          await createJuniorRegistrationFromCheckout(
+            item,
+            paymentIntent.id,
+            paymentIntent.customer as string | undefined,
+            pricePerItem,
+          );
+        }
+
+        // 2. Private Instruction Bookings
+        try {
+          const slotData = JSON.parse(itemWithMetadata.metadata as string);
+          const slots = slotData.slots || (slotData.date ? [slotData] : []);
+
+          if (slots.length > 0) {
+            console.log(
+              `[Webhook] Processing ${slots.length} bookings/slots for item ${item.cartItemId}`,
+            );
+
+            let userEmail = "";
+            let studentName = "";
+            let bookingType = item.registrationType;
+            let title = "";
+
+            if (item.registrationType === "adult") {
+              const adultData = item.formData as any;
+              userEmail = adultData.email;
+              studentName = `${adultData.firstName} ${adultData.lastName}`;
+              title = `Private Lesson - ${studentName}`;
+            } else {
+              const juniorData = item.formData as any;
+              userEmail = juniorData.primaryContactEmail;
+              studentName = `${juniorData.childFirstName} ${juniorData.childLastName}`;
+              title = `Junior Lesson - ${studentName}`;
+            }
+
+            const existingUser = await getRegularUserByEmail(userEmail);
+
+            if (existingUser) {
+              const participantData = {
+                name: studentName,
+                email: userEmail,
+                type: bookingType,
+                ...(bookingType === "junior"
+                  ? {
+                      parentName: `${(item.formData as any).primaryContactFirstName} ${(item.formData as any).primaryContactLastName}`,
+                      parentEmail: (item.formData as any).primaryContactEmail,
+                      parentPhone: (item.formData as any).primaryContactPhone,
+                      childAge: (item.formData as any).childAge,
+                      childExperience: (item.formData as any)
+                        .childExperienceLevel,
+                    }
+                  : {}),
+              };
+
+              for (const slot of slots) {
+                // Consume reserved ID
+                const reservedBookingId =
+                  reservationBookingIds[reservationBookingIndex];
+                reservationBookingIndex++;
+
+                let confirmedReservation = false;
+
+                if (reservedBookingId) {
+                  try {
+                    const booking = await getBookingById(reservedBookingId);
+                    if (booking && booking.status === "pending_payment") {
+                      // Confirm Booking
+                      await updateBookingStatus(
+                        reservedBookingId,
+                        "confirmed",
+                        {
+                          expiresAt: null,
+                          notes: `Created via Checkout. Program: ${item.programId}`,
+                        },
+                      );
+                      await addBookingParticipants(reservedBookingId, [
+                        participantData,
+                      ]);
+                      confirmedReservation = true;
+                      console.log(
+                        `[Webhook] Confirmed reservation ${reservedBookingId}`,
+                      );
+                    }
+                  } catch (e) {
+                    console.error(
+                      `[Webhook] Failed to confirm reservation ${reservedBookingId}`,
+                      e,
+                    );
+                  }
+                }
+
+                if (!confirmedReservation) {
+                  // Fallback creation
+                  const baseDate = new Date(slot.date);
+                  const [startH, startM] = slot.startTime
+                    .split(":")
+                    .map(Number);
+                  const [endH, endM] = slot.endTime.split(":").map(Number);
+
+                  const startDate = new Date(baseDate);
+                  startDate.setHours(startH, startM, 0, 0);
+
+                  const endDate = new Date(baseDate);
+                  endDate.setHours(endH, endM, 0, 0);
+
+                  const isAvailable = await checkTimeSlotAvailability(
+                    startDate,
+                    endDate,
+                  );
+                  const status = isAvailable ? "confirmed" : "conflict";
+
+                  if (!isAvailable) {
+                    console.error(
+                      `[Webhook] DOUBLE BOOKING DETECTED for ${studentName} at ${startDate.toISOString()}. Marking as CONFLICT.`,
+                    );
+                  }
+
+                  await createBooking(
+                    {
+                      title,
+                      userId: existingUser.id,
+                      startTime: startDate,
+                      endTime: endDate,
+                      type: bookingType,
+                      status: status,
+                      notes:
+                        `Created via Checkout. Program: ${item.programId}` +
+                        (!isAvailable ? " [CONFLICT - REFUND NEEDED]" : ""),
+                    },
+                    [participantData],
+                  );
+                }
+              }
+            }
+          }
+        } catch (e) {
+          console.error(
+            `[Webhook] Failed to process Private bookings for item ${item.cartItemId}`,
+            e,
+          );
+        }
+      }
+
+      // ---------------------------------------------------
+      // CASE 2: Group Session (Confirm OR Create Registration)
+      // ---------------------------------------------------
+      else if (isGroup) {
+        const reservedRegId = groupRegistrationIds[groupRegistrationIndex];
+        groupRegistrationIndex++;
+
+        let confirmedGroupHold = false;
+
+        if (reservedRegId) {
+          try {
+            if (item.registrationType === "adult") {
+              // Confirm Adult Registration
+              await updateAdultRegistrationPaymentStatus(reservedRegId, {
+                stripePaymentIntentId: paymentIntent.id,
+                stripeCustomerId: paymentIntent.customer as string | undefined,
+                paymentStatus: "paid",
+                paymentAmount: pricePerItem,
+                // expiresAt remains set? NO, we should clear it or ignore it.
+                // `update` usually sets what we pass.
+                // We don't need to explicitly clear expiresAt if logic blindly checks "paid".
+                // But for cleanliness we could? My helper `updateAdult...` doesn't support clearing it explicitly unless I added `expiresAt` to params.
+                // I only added it to `create`.
+                // It's FINE. A paid registration with an expiry date in the past is still PAID.
+                // Queries check: status='paid' OR (...)
+              });
+            } else {
+              // Confirm Junior Program Registration
+              await updateJuniorProgramRegistrationPaymentStatus(
+                reservedRegId,
+                {
+                  stripePaymentIntentId: paymentIntent.id,
+                  stripeCustomerId: paymentIntent.customer as
+                    | string
+                    | undefined,
+                  paymentStatus: "paid",
+                  paymentAmount: pricePerItem,
+                },
+              );
+            }
+            confirmedGroupHold = true;
+            console.log(
+              `[Webhook] Confirmed group registration ${reservedRegId}`,
+            );
+          } catch (e) {
+            console.error(
+              `[Webhook] Failed to confirm group hold ${reservedRegId}`,
+              e,
+            );
+          }
+        }
+
+        if (!confirmedGroupHold) {
+          // Fallback: Create Fresh
+          if (item.registrationType === "adult") {
+            await createAdultRegistrationFromCheckout(
+              item,
+              paymentIntent.id,
+              paymentIntent.customer as string | undefined,
+              pricePerItem,
+            );
+          } else if (item.registrationType === "junior") {
+            await createJuniorRegistrationFromCheckout(
+              item,
+              paymentIntent.id,
+              paymentIntent.customer as string | undefined,
+              pricePerItem,
+            );
+          }
+        }
+      } else {
+        // Fallback for weird items (shouldn't happen, but treat as standard checkout creation)
+        if (item.registrationType === "adult") {
+          await createAdultRegistrationFromCheckout(
+            item,
+            paymentIntent.id,
+            paymentIntent.customer as string,
+            pricePerItem,
+          );
+        } else {
+          await createJuniorRegistrationFromCheckout(
+            item,
+            paymentIntent.id,
+            paymentIntent.customer as string,
+            pricePerItem,
+          );
+        }
       }
     } catch (error) {
-      console.error(`[Webhook] Error processing item ${index} (${item.cartItemId}):`, error);
+      console.error(
+        `[Webhook] Error processing item ${index} (${item.cartItemId}):`,
+        error,
+      );
       // Continue processing other items even if one fails
     }
   }
@@ -206,7 +476,7 @@ async function createAdultRegistrationFromCheckout(
   },
   paymentIntentId: string,
   stripeCustomerId: string | undefined,
-  paymentAmount: string
+  paymentAmount: string,
 ) {
   const formData = item.formData as {
     firstName: string;
@@ -259,7 +529,7 @@ async function createJuniorRegistrationFromCheckout(
   },
   paymentIntentId: string,
   stripeCustomerId: string | undefined,
-  paymentAmount: string
+  paymentAmount: string,
 ) {
   const formData = item.formData as {
     primaryContactFirstName: string;
@@ -322,7 +592,7 @@ async function createJuniorRegistrationFromCheckout(
  */
 async function handleLegacyAdultRegistration(paymentIntent: any) {
   const registration = await getAdultRegistrationByPaymentIntentId(
-    paymentIntent.id
+    paymentIntent.id,
   );
 
   if (registration) {
@@ -335,7 +605,7 @@ async function handleLegacyAdultRegistration(paymentIntent: any) {
     console.log(`Adult registration ${registration.id} marked as paid`);
   } else {
     console.warn(
-      `No adult registration found for payment intent ${paymentIntent.id}`
+      `No adult registration found for payment intent ${paymentIntent.id}`,
     );
   }
 }
@@ -345,7 +615,7 @@ async function handleLegacyAdultRegistration(paymentIntent: any) {
  */
 async function handleLegacyJuniorRegistration(paymentIntent: any) {
   const registration = await getJuniorProgramRegistrationByPaymentIntentId(
-    paymentIntent.id
+    paymentIntent.id,
   );
 
   if (registration) {
@@ -356,11 +626,11 @@ async function handleLegacyJuniorRegistration(paymentIntent: any) {
       paymentAmount: (paymentIntent.amount / 100).toFixed(2),
     });
     console.log(
-      `Junior program registration ${registration.id} marked as paid`
+      `Junior program registration ${registration.id} marked as paid`,
     );
   } else {
     console.error(
-      `No junior program registration found for payment intent ${paymentIntent.id}`
+      `No junior program registration found for payment intent ${paymentIntent.id}`,
     );
   }
 }
@@ -383,7 +653,7 @@ async function handlePaymentIntentFailed(paymentIntent: any) {
   // Handle legacy flows
   if (metadata.type === "adult_registration") {
     const registration = await getAdultRegistrationByPaymentIntentId(
-      paymentIntent.id
+      paymentIntent.id,
     );
     if (registration) {
       await updateAdultRegistrationPaymentStatus(registration.id, {
@@ -393,7 +663,7 @@ async function handlePaymentIntentFailed(paymentIntent: any) {
     }
   } else if (metadata.type === "junior_registration") {
     const registration = await getJuniorProgramRegistrationByPaymentIntentId(
-      paymentIntent.id
+      paymentIntent.id,
     );
     if (registration) {
       await updateJuniorProgramRegistrationPaymentStatus(registration.id, {
@@ -421,7 +691,7 @@ async function handlePaymentIntentCanceled(paymentIntent: any) {
   // Handle legacy flows
   if (metadata.type === "adult_registration") {
     const registration = await getAdultRegistrationByPaymentIntentId(
-      paymentIntent.id
+      paymentIntent.id,
     );
     if (registration) {
       await updateAdultRegistrationPaymentStatus(registration.id, {
@@ -431,7 +701,7 @@ async function handlePaymentIntentCanceled(paymentIntent: any) {
     }
   } else if (metadata.type === "junior_registration") {
     const registration = await getJuniorProgramRegistrationByPaymentIntentId(
-      paymentIntent.id
+      paymentIntent.id,
     );
     if (registration) {
       await updateJuniorProgramRegistrationPaymentStatus(registration.id, {
@@ -441,8 +711,6 @@ async function handlePaymentIntentCanceled(paymentIntent: any) {
     }
   }
 }
-
-
 
 /**
  * Handle checkout session completed

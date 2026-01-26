@@ -52,8 +52,9 @@ export function AddToCartButton({
     <Button
       onClick={handleAddToCart}
       disabled={isAddingToCart || disabled}
-      className={`${variant === "default" ? "bg-orange-500 hover:bg-orange-600" : ""
-        } ${className}`}
+      className={`${
+        variant === "default" ? "bg-orange-500 hover:bg-orange-600" : ""
+      } ${className} cursor-pointer`}
       variant={variant}
       size={size}
     >

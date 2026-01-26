@@ -3,6 +3,52 @@ import { ProgramCalendar } from "@/app/components/ProgramCalendar";
 import { getProgramsWithSessions } from "@/db/queries/programs";
 import { parseSchedule, parseLocalDate } from "@/lib/session-schedule";
 
+// Map program names to their page URLs
+// Keys should be normalized (lowercase, trimmed) for better matching
+const PROGRAM_URL_MAP: Record<string, string> = {
+  // Adult Programs
+  "get golf ready (level i)": "/adult-programs/get-golf-ready-level-1",
+  "get golf ready (level ii)": "/adult-programs/get-golf-ready-level-2",
+  "adult short game series": "/adult-programs/short-game",
+  "golf for women": "/adult-programs/women",
+  "adult open practice": "/adult-programs/open-practice",
+  "adult private golf instruction": "/adult-programs/private",
+
+  // Junior Programs
+  "junior beginner series": "/junior-programs/beginner-series",
+  "junior developmental series": "/junior-programs/developmental-series",
+  "junior golf camp": "/junior-programs/golf-camp",
+  "junior private instruction": "/junior-programs/private-instruction",
+};
+
+function getProgramUrl(
+  programName: string,
+  sessionId: string,
+): string | undefined {
+  // Normalize program name to match keys (lowercase, trim)
+  const normalizedName = programName.trim().toLowerCase();
+
+  // Try exact match first
+  let baseUrl = PROGRAM_URL_MAP[normalizedName];
+
+  // If no match, try to find a key that is contained in the program name (fuzzyish)
+  // Sort keys by length descending to match most specific names first (prevents Level I vs Level II collision)
+  if (!baseUrl) {
+    const key = Object.keys(PROGRAM_URL_MAP)
+      .sort((a, b) => b.length - a.length)
+      .find((k) => normalizedName.includes(k));
+    if (key) {
+      baseUrl = PROGRAM_URL_MAP[key];
+    }
+  }
+
+  if (baseUrl) {
+    return `${baseUrl}?sessionId=${sessionId}`;
+  }
+
+  return undefined;
+}
+
 // Helper function to generate calendar events from database
 async function generateCalendarEvents() {
   const events = [];
@@ -27,6 +73,7 @@ async function generateCalendarEvents() {
             endTime: sessionDate.endTime,
             sessionName: session.name,
             programDescription: program.description,
+            url: getProgramUrl(program.name, session.id),
           });
         });
       } else {
@@ -41,6 +88,7 @@ async function generateCalendarEvents() {
           endTime: "TBD",
           sessionName: session.name,
           programDescription: program.description,
+          url: getProgramUrl(program.name, session.id),
         });
       }
     });
@@ -66,6 +114,7 @@ async function generateCalendarEvents() {
             endTime: sessionDate.endTime,
             sessionName: session.name,
             programDescription: program.description,
+            url: getProgramUrl(program.name, session.id),
           });
         });
       } else {
@@ -80,6 +129,7 @@ async function generateCalendarEvents() {
           endTime: "TBD",
           sessionName: session.name,
           programDescription: program.description,
+          url: getProgramUrl(program.name, session.id),
         });
       }
     });
@@ -162,4 +212,3 @@ export default async function CalendarPage() {
     </div>
   );
 }
-

@@ -1,7 +1,15 @@
 "use client";
 
-import { useState, ReactNode, ReactElement } from "react";
+import { useState, ReactNode, ReactElement, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SessionCalendar } from "@/app/components/SessionCalendar";
 import { parseSchedule } from "@/lib/session-schedule";
 import type { ProgramSession } from "@/db/schema";
@@ -24,7 +32,18 @@ export function AdultProgramPageWrapper({
   sessions,
   children,
 }: AdultProgramPageWrapperProps) {
-  const [selectedSessionId, setSelectedSessionId] = useState<string>("");
+  const searchParams = useSearchParams();
+  const sessionIdParam = searchParams.get("sessionId");
+  const [selectedSessionId, setSelectedSessionId] = useState<string>(
+    sessionIdParam || "",
+  );
+
+  // Update selected session if URL param changes
+  useEffect(() => {
+    if (sessionIdParam) {
+      setSelectedSessionId(sessionIdParam);
+    }
+  }, [sessionIdParam]);
 
   // Get selected session's schedule
   const selectedSession = sessions.find((s) => s.id === selectedSessionId);
@@ -33,16 +52,14 @@ export function AdultProgramPageWrapper({
     : null;
 
   // Check if children is a function (render prop)
-  const isRenderFunction = typeof children === 'function';
+  const isRenderFunction = typeof children === "function";
 
   return (
     <>
       {/* Left Sidebar - Program Links + Calendar */}
       <div className="lg:col-span-3 space-y-2">
         {/* Header with program name */}
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">
-          {programName}
-        </h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-4">{programName}</h1>
 
         {/* Navigation Links */}
         <Link
@@ -108,21 +125,54 @@ export function AdultProgramPageWrapper({
 
         {/* Session Calendar - below navigation links */}
         <div className="mt-6">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">
-            Session Calendar
-          </h2>
-          <SessionCalendar schedule={schedule} />
+          <Card>
+            <CardHeader className="py-4">
+              <CardTitle className="text-lg">Available Sessions</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <Accordion
+                type="single"
+                collapsible
+                value={selectedSessionId}
+                onValueChange={setSelectedSessionId}
+                className="w-full"
+              >
+                {sessions.map((session) => (
+                  <AccordionItem
+                    key={session.id}
+                    value={session.id}
+                    className="border-b last:border-0 px-4"
+                  >
+                    <AccordionTrigger className="text-left hover:no-underline py-3">
+                      <span className="font-medium text-sm">
+                        {session.name ? session.name : "Session Details"}
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-4">
+                      <SessionCalendar
+                        schedule={
+                          session.schedule
+                            ? parseSchedule(session.schedule)
+                            : null
+                        }
+                      />
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
       {/* Main Content */}
       <div className="lg:col-span-6">
-        {isRenderFunction ? (
-          (children as (props: RenderProps) => ReactElement)({
-            selectedSessionId,
-            onSessionChange: setSelectedSessionId,
-          })
-        ) : children}
+        {isRenderFunction
+          ? (children as (props: RenderProps) => ReactElement)({
+              selectedSessionId,
+              onSessionChange: setSelectedSessionId,
+            })
+          : children}
       </div>
     </>
   );

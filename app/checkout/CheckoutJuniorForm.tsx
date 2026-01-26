@@ -23,6 +23,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
+import { formatPhoneNumber } from "@/lib/utils";
 
 // Zod schema for junior checkout form
 const juniorCheckoutSchema = z.object({
@@ -59,6 +60,7 @@ interface CheckoutJuniorFormProps {
   onBack: () => void;
   isLast: boolean;
   isProcessing: boolean;
+  primaryFormData?: JuniorFormData | null;
 }
 
 export function CheckoutJuniorForm({
@@ -68,6 +70,7 @@ export function CheckoutJuniorForm({
   onBack,
   isLast,
   isProcessing,
+  primaryFormData,
 }: CheckoutJuniorFormProps) {
   const form = useForm<JuniorFormData>({
     resolver: zodResolver(juniorCheckoutSchema),
@@ -92,9 +95,64 @@ export function CheckoutJuniorForm({
     onSubmit(data);
   };
 
+  const handleCopyParentInfo = () => {
+    if (primaryFormData) {
+      form.setValue(
+        "primaryContactFirstName",
+        primaryFormData.primaryContactFirstName,
+      );
+      form.setValue(
+        "primaryContactLastName",
+        primaryFormData.primaryContactLastName,
+      );
+      form.setValue("primaryContactEmail", primaryFormData.primaryContactEmail);
+      form.setValue("primaryContactPhone", primaryFormData.primaryContactPhone);
+      form.setValue("phoneType", primaryFormData.phoneType);
+      form.setValue(
+        "preferredContactMethod",
+        primaryFormData.preferredContactMethod,
+      );
+
+      // Copy Child Info
+      form.setValue("childFirstName", primaryFormData.childFirstName);
+      form.setValue("childLastName", primaryFormData.childLastName);
+      form.setValue("childAge", primaryFormData.childAge);
+      form.setValue(
+        "childExperienceLevel",
+        primaryFormData.childExperienceLevel,
+      );
+      form.setValue("hasOwnClubs", primaryFormData.hasOwnClubs);
+      // We generally don't copy friends grouping as that might differ per child
+    }
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+        {/* Copy Parent Info Callout */}
+        {primaryFormData && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-5 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h4 className="text-green-900 font-semibold mb-1">
+                Repeat details from previous registration?
+              </h4>
+              <p className="text-sm text-green-700">
+                Registering another child with the same parent/guardian? You can
+                reuse the contact details.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleCopyParentInfo}
+              className="bg-white text-green-700 border-green-300 hover:bg-green-50 hover:text-green-800 hover:border-green-400 whitespace-nowrap shrink-0"
+            >
+              Copy Parent & Contact Info
+            </Button>
+          </div>
+        )}
+
         {/* Primary Contact Section */}
         <div className="space-y-4">
           <h3 className="text-lg font-semibold text-gray-900">
@@ -156,7 +214,15 @@ export function CheckoutJuniorForm({
               <FormItem>
                 <FormLabel>Phone Number *</FormLabel>
                 <FormControl>
-                  <Input type="tel" placeholder="(555) 123-4567" {...field} />
+                  <Input
+                    type="tel"
+                    placeholder="(555) 123-4567"
+                    {...field}
+                    onChange={(e) => {
+                      const formatted = formatPhoneNumber(e.target.value);
+                      field.onChange(formatted);
+                    }}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -173,7 +239,7 @@ export function CheckoutJuniorForm({
                   <FormControl>
                     <RadioGroup
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value}
                       className="flex gap-4"
                     >
                       <div className="flex items-center space-x-2">
@@ -314,10 +380,7 @@ export function CheckoutJuniorForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Experience Level *</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select level" />
@@ -348,11 +411,13 @@ export function CheckoutJuniorForm({
             name="hasOwnClubs"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Does your child have their own golf clubs?</FormLabel>
+                <FormLabel>
+                  Does your child have their own golf clubs?
+                </FormLabel>
                 <FormControl>
                   <RadioGroup
                     onValueChange={(value) => field.onChange(value === "true")}
-                    defaultValue={field.value ? "true" : "false"}
+                    value={field.value ? "true" : "false"}
                     className="flex gap-6"
                   >
                     <div className="flex items-center space-x-2">
@@ -420,42 +485,43 @@ export function CheckoutJuniorForm({
         </div>
 
         {/* Navigation Buttons */}
-        <div className="flex gap-4 pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onBack}
-            disabled={isProcessing}
-            className="flex-1"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back
-          </Button>
-          <Button
-            type="submit"
-            disabled={isProcessing}
-            className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : isLast ? (
-              <>
-                Continue to Payment
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </>
-            ) : (
-              <>
-                Next Registration
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </>
-            )}
-          </Button>
+        <div className="flex flex-col gap-3 pt-4">
+          <div className="flex gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onBack}
+              disabled={isProcessing}
+              className="flex-1 border-green-600 text-green-700 hover:bg-green-50 hover:text-green-800 cursor-pointer"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+            <Button
+              type="submit"
+              disabled={isProcessing}
+              className="flex-1 bg-orange-500 hover:bg-orange-600 text-white cursor-pointer"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : isLast ? (
+                <>
+                  Continue to Payment
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              ) : (
+                <>
+                  Next Registration
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </form>
     </Form>
   );
 }
-

@@ -1,8 +1,8 @@
+import "server-only";
+
 import { db } from "@/db/index";
 import { checkoutSession } from "@/db/schema";
 import { eq } from "drizzle-orm";
-
-const CHECKOUT_EXPIRY_HOURS = 1;
 
 interface CheckoutFormData {
   items: {
@@ -23,10 +23,8 @@ export async function createCheckoutSession(data: {
   stripePaymentIntentId?: string;
   formData: CheckoutFormData;
   totalAmount: string;
+  expiresAt: Date;
 }) {
-  const expiresAt = new Date();
-  expiresAt.setHours(expiresAt.getHours() + CHECKOUT_EXPIRY_HOURS);
-
   const result = await db
     .insert(checkoutSession)
     .values({
@@ -35,7 +33,7 @@ export async function createCheckoutSession(data: {
       stripePaymentIntentId: data.stripePaymentIntentId,
       formData: JSON.stringify(data.formData),
       totalAmount: data.totalAmount,
-      expiresAt,
+      expiresAt: data.expiresAt,
     })
     .returning();
 
@@ -67,7 +65,7 @@ export async function getCheckoutSessionByCheckoutId(checkoutId: string) {
  * Get checkout session by payment intent ID
  */
 export async function getCheckoutSessionByPaymentIntentId(
-  paymentIntentId: string
+  paymentIntentId: string,
 ) {
   const sessions = await db
     .select()
@@ -91,7 +89,7 @@ export async function getCheckoutSessionByPaymentIntentId(
  */
 export async function updateCheckoutSessionPaymentIntent(
   checkoutId: string,
-  paymentIntentId: string
+  paymentIntentId: string,
 ) {
   const result = await db
     .update(checkoutSession)
@@ -127,4 +125,3 @@ export async function cleanupExpiredCheckoutSessions() {
   // For now, just a placeholder
   console.log("Cleanup expired checkout sessions called");
 }
-

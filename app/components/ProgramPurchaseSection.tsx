@@ -83,9 +83,9 @@ export function ProgramPurchaseSection({
           <div className="flex items-center gap-3 text-amber-700">
             <CalendarClock size={20} className="shrink-0" />
             <div>
-              <p className="font-semibold">Dates To Be Determined</p>
+              <p className="font-semibold">None Available</p>
               <p className="text-sm text-amber-600">
-                Check back soon or contact us for more info.
+                There are currently no available sessions.
               </p>
             </div>
           </div>

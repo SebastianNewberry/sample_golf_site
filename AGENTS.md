@@ -17,7 +17,7 @@ The project includes several mockup images that serve as design references:
 
 When implementing pages and components, follow these guidelines:
 
-1. **High Fidelity Implementation**: Webpages should look very similar to the mockups provided in the `mock/` folder. Use the mockups as the primary reference for layout, content placement, and overall visual structure.
+1. **High Fidelity Implementation**: Webpages should look very similar to mockups provided in `mock/` folder. Use the mockups as primary reference for layout, content placement, and overall visual structure.
 
 2. **Design Enhancements**: While maintaining similarity to the mockups, you may make slight adjustments to styling to improve the overall user experience, such as:
    - Enhanced spacing and typography
@@ -67,7 +67,7 @@ These custom colors are integrated with shadcn's theming system and can be used 
 **When creating UI components**:
 1. **Primary Approach**: Follow shadcn/ui themes and design patterns for consistency and modern aesthetics
 2. **Mockup Fidelity**: When trying to match the original mockups exactly, prioritize matching the visual design shown in the mockups while still using shadcn components as the foundation
-3. **Balance**: Use shadcn components as the base, but customize styling when necessary to achieve high fidelity with mockups
+3. **Balance**: Use shadcn components as the base, but customize styling when necessary to achieve high fidelity with the mockups
 
 **Example**: Use shadcn's `<Button>` component, but apply custom variants and colors to match the mockup's orange button style.
 
@@ -254,16 +254,39 @@ The backend follows a layered architecture with clear separation of concerns:
   - Functions are server-only
   - Direct interaction with Drizzle schema and queries
   - No "use server" directives (unless part of server actions layer)
+  - **All files in `/db` directory are SERVER-ONLY and should not be imported on client**
 
-Example structure:
+#### Server-Only Requirement
+
+**Critical Rule**: All files in `/db` directory MUST be server-only and should NEVER be imported into client components.
+
+This includes but is not limited to:
+- `db/index.ts` - Database connection setup
+- `db/schema.ts` - Drizzle schema definitions
+- `db/queries/*.ts` - All data access query files
+- Any other TypeScript files in `/db` directory
+
+**Example**:
+
+```typescript
+// db/queries/users.ts (SERVER-ONLY)
+import { db } from '@/db/index';
+import { users } from '@/db/schema';
+import { eq } from 'drizzle-orm';
+
+export async function getUserById(id: string) {
+  return await db.select().from(users).where(eq(users.id, id));
+}
 ```
-/db
-  ├── queries/
-  │   ├── users.ts          # User-related queries
-  │   ├── bookings.ts       # Booking-related queries
-  │   └── lessons.ts        # Lesson-related queries
-  └── schema.ts              # Drizzle schema definitions
-```
+
+**Why this is required**:
+1. **Next.js App Router compatibility**: These files should only execute on the server
+2. **Prevents client-side bundle**: Database code should never be sent to the browser
+3. **Security**: Protects database operations and sensitive data like API keys
+4. **Performance**: Reduces client bundle size by excluding server-only code
+5. **Build-time validation**: Next.js will error if these files are imported into client components
+
+**Verification**: When creating or modifying any file in `/db` directory, NEVER import these files into client components. The only exception is standalone scripts run directly with command-line tools like `npx tsx`.
 
 ### 2. Server Layer
 
@@ -446,4 +469,4 @@ toskigolfacademy/
 - All forms must use react-hook-form with Zod validation for type safety and consistent user experience
 - User accounts are automatically created based on email - no manual account creation needed
 - Forms should follow the established pattern: Zod schema → React Hook Form → shadcn/ui components → Server action
-
+- All files in the `/db` directory are SERVER-ONLY and must never be imported into client components

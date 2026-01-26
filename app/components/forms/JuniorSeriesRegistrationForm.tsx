@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import {
   Form,
   FormControl,
@@ -12,39 +12,56 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
-import { initializeJuniorRegistration } from '@/app/actions/junior-registration';
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { initializeJuniorRegistration } from "@/app/actions/junior-registration";
 
 // Zod schema for junior series registration
 const juniorSeriesRegistrationSchema = z.object({
   // Parent/Guardian Information
-  primaryContactFirstName: z.string().min(1, 'First name is required'),
-  primaryContactLastName: z.string().min(1, 'Last name is required'),
-  primaryContactEmail: z.email('Invalid email address'),
-  primaryContactPhone: z.string().min(10, 'Phone number must be at least 10 digits'),
-  phoneType: z.enum(['mobile', 'home', 'work']),
-  preferredContactMethod: z.enum(['text', 'email']),
+  primaryContactFirstName: z.string().min(1, "First name is required"),
+  primaryContactLastName: z.string().min(1, "Last name is required"),
+  primaryContactEmail: z.email("Invalid email address"),
+  primaryContactPhone: z
+    .string()
+    .min(10, "Phone number must be at least 10 digits"),
+  phoneType: z.enum(["mobile", "home", "work"]),
+  preferredContactMethod: z.enum(["text", "email"]),
 
   // Child Information
-  childFirstName: z.string().min(1, 'Child first name is required'),
-  childLastName: z.string().min(1, 'Child last name is required'),
-  childAge: z.number().min(5, 'Child must be at least 5 years old').max(18, 'Child must be under 19 years old'),
-  childExperienceLevel: z.string().min(1, 'Experience level is required'),
+  childFirstName: z.string().min(1, "Child first name is required"),
+  childLastName: z.string().min(1, "Child last name is required"),
+  childAge: z
+    .number()
+    .min(5, "Child must be at least 5 years old")
+    .max(18, "Child must be under 19 years old"),
+  childExperienceLevel: z.string().min(1, "Experience level is required"),
   hasOwnClubs: z.boolean(),
   friendsToGroupWith: z.string().optional(),
   additionalComments: z.string().optional(),
 
   // Program Information
-  programId: z.string().uuid('Invalid program ID'),
-  programSessionId: z.string().uuid('Invalid session ID').optional().or(z.literal('')),
+  programId: z.string().uuid("Invalid program ID"),
+  programSessionId: z
+    .string()
+    .uuid("Invalid session ID")
+    .optional()
+    .or(z.literal("")),
 });
 
-type JuniorSeriesRegistrationFormValues = z.infer<typeof juniorSeriesRegistrationSchema>;
+type JuniorSeriesRegistrationFormValues = z.infer<
+  typeof juniorSeriesRegistrationSchema
+>;
 
 interface JuniorSeriesRegistrationFormProps {
   programId: string;
@@ -66,21 +83,21 @@ export function JuniorSeriesRegistrationForm({
   const form = useForm<JuniorSeriesRegistrationFormValues>({
     resolver: zodResolver(juniorSeriesRegistrationSchema),
     defaultValues: {
-      primaryContactFirstName: '',
-      primaryContactLastName: '',
-      primaryContactEmail: '',
-      primaryContactPhone: '',
-      phoneType: 'mobile',
-      preferredContactMethod: 'email',
-      childFirstName: '',
-      childLastName: '',
+      primaryContactFirstName: "",
+      primaryContactLastName: "",
+      primaryContactEmail: "",
+      primaryContactPhone: "",
+      phoneType: "mobile",
+      preferredContactMethod: "email",
+      childFirstName: "",
+      childLastName: "",
       childAge: 0,
-      childExperienceLevel: '',
+      childExperienceLevel: "",
       hasOwnClubs: false,
-      friendsToGroupWith: '',
-      additionalComments: '',
+      friendsToGroupWith: "",
+      additionalComments: "",
       programId: programId,
-      programSessionId: '',
+      programSessionId: "",
     },
   });
 
@@ -108,14 +125,23 @@ export function JuniorSeriesRegistrationForm({
         programPrice: programPrice,
       });
 
-      if (result.success && result.url) {
-        // Redirect to Stripe Hosted Checkout
-        window.location.href = result.url;
+      if (result.success) {
+        if (result.url) {
+          // Redirect to Stripe Hosted Checkout
+          router.push(result.url);
+        } else {
+          // If no URL, assume registration is complete and refresh the page
+          // This might be for cases where no payment is needed or handled differently
+          router.refresh();
+          form.reset(); // Optionally reset the form
+        }
       } else {
-        setSubmitError(result.error || 'Registration failed. Please try again.');
+        setSubmitError(
+          result.error || "Registration failed. Please try again.",
+        );
       }
     } catch (error) {
-      setSubmitError('An unexpected error occurred. Please try again.');
+      setSubmitError("An unexpected error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -133,7 +159,9 @@ export function JuniorSeriesRegistrationForm({
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
           {/* Primary Contact Section */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900">Primary Contact</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              Primary Contact
+            </h3>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -172,7 +200,11 @@ export function JuniorSeriesRegistrationForm({
                 <FormItem>
                   <FormLabel>Primary Contact Email *</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="john@example.com" {...field} />
+                    <Input
+                      type="email"
+                      placeholder="john@example.com"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -207,19 +239,28 @@ export function JuniorSeriesRegistrationForm({
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="mobile" id="mobile" />
-                        <label htmlFor="mobile" className="text-sm font-medium cursor-pointer">
+                        <label
+                          htmlFor="mobile"
+                          className="text-sm font-medium cursor-pointer"
+                        >
                           Mobile
                         </label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="home" id="home" />
-                        <label htmlFor="home" className="text-sm font-medium cursor-pointer">
+                        <label
+                          htmlFor="home"
+                          className="text-sm font-medium cursor-pointer"
+                        >
                           Home
                         </label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="work" id="work" />
-                        <label htmlFor="work" className="text-sm font-medium cursor-pointer">
+                        <label
+                          htmlFor="work"
+                          className="text-sm font-medium cursor-pointer"
+                        >
                           Work
                         </label>
                       </div>
@@ -244,13 +285,19 @@ export function JuniorSeriesRegistrationForm({
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="text" id="text" />
-                        <label htmlFor="text" className="text-sm font-medium cursor-pointer">
+                        <label
+                          htmlFor="text"
+                          className="text-sm font-medium cursor-pointer"
+                        >
                           Text
                         </label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="email" id="email" />
-                        <label htmlFor="email" className="text-sm font-medium cursor-pointer">
+                        <label
+                          htmlFor="email"
+                          className="text-sm font-medium cursor-pointer"
+                        >
                           Email
                         </label>
                       </div>
@@ -264,7 +311,9 @@ export function JuniorSeriesRegistrationForm({
 
           {/* Child Information Section */}
           <div className="space-y-4 pt-6 border-t">
-            <h3 className="text-lg font-semibold text-gray-900">What is your child's name?</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              What is your child's name?
+            </h3>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -308,7 +357,9 @@ export function JuniorSeriesRegistrationForm({
                       min="5"
                       max="18"
                       {...field}
-                      onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                      onChange={(e) =>
+                        field.onChange(parseInt(e.target.value) || 0)
+                      }
                     />
                   </FormControl>
                   <FormMessage />
@@ -321,18 +372,29 @@ export function JuniorSeriesRegistrationForm({
               name="childExperienceLevel"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>What level of experience does your child have? *</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormLabel>
+                    What level of experience does your child have? *
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select experience level" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="1 - No Experience">1 - No Experience</SelectItem>
+                      <SelectItem value="1 - No Experience">
+                        1 - No Experience
+                      </SelectItem>
                       <SelectItem value="2 - Beginner">2 - Beginner</SelectItem>
-                      <SelectItem value="3 - Some Experience">3 - Some Experience</SelectItem>
-                      <SelectItem value="4 - Intermediate">4 - Intermediate</SelectItem>
+                      <SelectItem value="3 - Some Experience">
+                        3 - Some Experience
+                      </SelectItem>
+                      <SelectItem value="4 - Intermediate">
+                        4 - Intermediate
+                      </SelectItem>
                       <SelectItem value="5 - Advanced">5 - Advanced</SelectItem>
                     </SelectContent>
                   </Select>
@@ -346,22 +408,32 @@ export function JuniorSeriesRegistrationForm({
               name="hasOwnClubs"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Does your child have their own golf clubs? *</FormLabel>
+                  <FormLabel>
+                    Does your child have their own golf clubs? *
+                  </FormLabel>
                   <FormControl>
                     <RadioGroup
-                      onValueChange={(value) => field.onChange(value === 'true')}
-                      defaultValue={field.value ? 'true' : 'false'}
+                      onValueChange={(value) =>
+                        field.onChange(value === "true")
+                      }
+                      defaultValue={field.value ? "true" : "false"}
                       className="flex gap-6"
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="true" id="has-clubs" />
-                        <label htmlFor="has-clubs" className="text-sm font-medium cursor-pointer">
+                        <label
+                          htmlFor="has-clubs"
+                          className="text-sm font-medium cursor-pointer"
+                        >
                           Yes, they have their own clubs
                         </label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="false" id="no-clubs" />
-                        <label htmlFor="no-clubs" className="text-sm font-medium cursor-pointer">
+                        <label
+                          htmlFor="no-clubs"
+                          className="text-sm font-medium cursor-pointer"
+                        >
                           No, they need to borrow clubs
                         </label>
                       </div>
@@ -378,7 +450,8 @@ export function JuniorSeriesRegistrationForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>
-                    Does your child have friends they would like to be grouped together with?
+                    Does your child have friends they would like to be grouped
+                    together with?
                   </FormLabel>
                   <FormControl>
                     <Textarea
@@ -423,7 +496,10 @@ export function JuniorSeriesRegistrationForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Select Session (Optional)</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a session" />
@@ -432,7 +508,9 @@ export function JuniorSeriesRegistrationForm({
                       <SelectContent>
                         {sessions.map((session) => (
                           <SelectItem key={session.id} value={session.id}>
-                            {session.name} ({new Date(session.startDate).toLocaleDateString()} - {new Date(session.endDate).toLocaleDateString()})
+                            {session.name} (
+                            {new Date(session.startDate).toLocaleDateString()} -{" "}
+                            {new Date(session.endDate).toLocaleDateString()})
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -452,7 +530,7 @@ export function JuniorSeriesRegistrationForm({
               className="w-full"
               size="lg"
             >
-              {isSubmitting ? 'Processing...' : 'Continue to Payment'}
+              {isSubmitting ? "Processing..." : "Continue to Payment"}
             </Button>
           </div>
         </form>

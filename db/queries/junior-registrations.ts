@@ -1,6 +1,8 @@
-import { db } from '@/db/index';
-import { juniorRegistration, juniorProgramRegistration } from '@/db/schema';
-import { eq, and, isNull } from 'drizzle-orm';
+import "server-only";
+
+import { db } from "@/db/index";
+import { juniorRegistration, juniorProgramRegistration } from "@/db/schema";
+import { eq, and, isNull } from "drizzle-orm";
 
 /**
  * Create a new junior registration
@@ -21,10 +23,7 @@ export async function createJuniorRegistration(data: {
   friendsToGroupWith?: string;
   additionalComments?: string;
 }) {
-  const result = await db
-    .insert(juniorRegistration)
-    .values(data)
-    .returning();
+  const result = await db.insert(juniorRegistration).values(data).returning();
 
   return result[0];
 }
@@ -52,8 +51,9 @@ export async function createJuniorProgramRegistration(data: {
   programSessionId?: string;
   stripePaymentIntentId?: string;
   stripeCustomerId?: string;
-  paymentStatus?: 'pending' | 'paid' | 'failed' | 'cancelled';
+  paymentStatus?: "pending" | "paid" | "failed" | "cancelled";
   paymentAmount?: string;
+  expiresAt?: Date;
 }) {
   const result = await db
     .insert(juniorProgramRegistration)
@@ -63,8 +63,9 @@ export async function createJuniorProgramRegistration(data: {
       programSessionId: data.programSessionId,
       stripePaymentIntentId: data.stripePaymentIntentId,
       stripeCustomerId: data.stripeCustomerId,
-      paymentStatus: data.paymentStatus || 'pending',
+      paymentStatus: data.paymentStatus || "pending",
       paymentAmount: data.paymentAmount,
+      expiresAt: data.expiresAt,
     })
     .returning();
 
@@ -98,7 +99,7 @@ export async function getJuniorRegistrationsByUserId(userId: string) {
  * Get junior program registration by payment intent ID
  */
 export async function getJuniorProgramRegistrationByPaymentIntentId(
-  paymentIntentId: string
+  paymentIntentId: string,
 ) {
   const registrations = await db
     .select()
@@ -117,9 +118,9 @@ export async function updateJuniorProgramRegistrationPaymentStatus(
   data: {
     stripePaymentIntentId?: string;
     stripeCustomerId?: string;
-    paymentStatus: 'pending' | 'paid' | 'failed' | 'cancelled';
+    paymentStatus: "pending" | "paid" | "failed" | "cancelled";
     paymentAmount?: string;
-  }
+  },
 ) {
   const result = await db
     .update(juniorProgramRegistration)
@@ -139,7 +140,7 @@ export async function updateJuniorProgramRegistrationPaymentStatus(
  */
 export async function updateJuniorProgramRegistrationPaymentIntent(
   registrationId: string,
-  paymentIntentId: string
+  paymentIntentId: string,
 ) {
   const result = await db
     .update(juniorProgramRegistration)
@@ -163,18 +164,21 @@ export async function getOrCreateJuniorProgramRegistration(data: {
   programSessionId?: string;
   stripePaymentIntentId: string;
   stripeCustomerId?: string;
-  paymentStatus?: 'pending' | 'paid' | 'failed' | 'cancelled';
+  paymentStatus?: "pending" | "paid" | "failed" | "cancelled";
   paymentAmount?: string;
+  expiresAt?: Date;
 }) {
   // First, try to find existing registration by payment intent ID
-  const existing = await getJuniorProgramRegistrationByPaymentIntentId(data.stripePaymentIntentId);
+  const existing = await getJuniorProgramRegistrationByPaymentIntentId(
+    data.stripePaymentIntentId,
+  );
 
   if (existing) {
     // Update existing registration with payment info
     return await updateJuniorProgramRegistrationPaymentStatus(existing.id, {
       stripePaymentIntentId: data.stripePaymentIntentId,
       stripeCustomerId: data.stripeCustomerId,
-      paymentStatus: data.paymentStatus || 'pending',
+      paymentStatus: data.paymentStatus || "pending",
       paymentAmount: data.paymentAmount,
     });
   }
@@ -185,24 +189,38 @@ export async function getOrCreateJuniorProgramRegistration(data: {
     .from(juniorProgramRegistration)
     .where(
       and(
-        eq(juniorProgramRegistration.juniorRegistrationId, data.juniorRegistrationId),
+        eq(
+          juniorProgramRegistration.juniorRegistrationId,
+          data.juniorRegistrationId,
+        ),
         eq(juniorProgramRegistration.programId, data.programId),
-        eq(juniorProgramRegistration.paymentStatus, 'pending')
-      )
+        eq(juniorProgramRegistration.paymentStatus, "pending"),
+      ),
     )
     .limit(1);
 
   if (pendingRegistrations.length > 0) {
     // Update the pending registration with payment info
-    return await updateJuniorProgramRegistrationPaymentStatus(pendingRegistrations[0].id, {
-      stripePaymentIntentId: data.stripePaymentIntentId,
-      stripeCustomerId: data.stripeCustomerId,
-      paymentStatus: data.paymentStatus || 'pending',
-      paymentAmount: data.paymentAmount,
-    });
+    return await updateJuniorProgramRegistrationPaymentStatus(
+      pendingRegistrations[0].id,
+      {
+        stripePaymentIntentId: data.stripePaymentIntentId,
+        stripeCustomerId: data.stripeCustomerId,
+        paymentStatus: data.paymentStatus || "pending",
+        paymentAmount: data.paymentAmount,
+      },
+    );
   }
 
   // Create new registration with all payment fields
   return await createJuniorProgramRegistration(data);
 }
 
+/**
+ * Delete junior program registration by ID
+ */
+export async function deleteJuniorProgramRegistration(id: string) {
+  await db
+    .delete(juniorProgramRegistration)
+    .where(eq(juniorProgramRegistration.id, id));
+}

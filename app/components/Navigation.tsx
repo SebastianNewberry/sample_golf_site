@@ -298,7 +298,7 @@ export default function Navigation() {
                           .filter(
                             (program) =>
                               program.type !== "separator" &&
-                              program.type !== "section"
+                              program.type !== "section",
                           )
                           .map((program) => (
                             <Link
@@ -415,7 +415,12 @@ export default function Navigation() {
           <div className="hidden items-center gap-3 md:flex">
             <CartIcon />
             <a href="tel:+12488790909" className="hidden sm:block">
-              <Button variant="outline">{`(248) 879-0909`}</Button>
+              <Button
+                variant="outline"
+                className="text-orange-500 border-orange-200 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-300"
+              >
+                {"(248) 879-0909"}
+              </Button>
             </a>
           </div>
         </div>
@@ -498,7 +503,7 @@ export default function Navigation() {
                         .filter(
                           (program) =>
                             program.type !== "separator" &&
-                            program.type !== "section"
+                            program.type !== "section",
                         )
                         .map((program) => (
                           <li key={program.title}>
@@ -620,11 +625,12 @@ export default function Navigation() {
                     View Cart
                   </Button>
                 </Link>
-                <a href="tel:+12488790909">
-                  <Button variant="outline" className="w-full">
-                    {"(248) 879-0909"}
-                  </Button>
-                </a>
+                <Button
+                  variant="outline"
+                  className="w-full text-orange-500 border-orange-200 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-300"
+                >
+                  {"(248) 879-0909"}
+                </Button>
               </div>
             </motion.div>
           )}

@@ -2,6 +2,12 @@
 
 import React from "react";
 import { SessionDate, formatTime12h } from "@/lib/session-schedule";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface SessionCalendarProps {
   schedule: SessionDate[] | null;
@@ -34,7 +40,7 @@ export function SessionCalendar({ schedule }: SessionCalendarProps) {
 
   // Get date range using local Date objects
   const sortedDates = [...sessionDates].sort(
-    (a, b) => a.date.getTime() - b.date.getTime()
+    (a, b) => a.date.getTime() - b.date.getTime(),
   );
   const minDate = sortedDates[0].date;
   const maxDate = sortedDates[sortedDates.length - 1].date;
@@ -59,14 +65,14 @@ export function SessionCalendar({ schedule }: SessionCalendarProps) {
     return date.getDay();
   };
 
-  // Check if a date is in the schedule by comparing date keys
-  const getSessionForDate = (date: Date) => {
+  // Get all session slots for a date
+  const getSessionsForDate = (date: Date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     const dateKey = `${year}-${month}-${day}`;
 
-    return sessionDates.find((s) => s.dateKey === dateKey);
+    return sessionDates.filter((s) => s.dateKey === dateKey);
   };
 
   return (
@@ -129,45 +135,97 @@ export function SessionCalendar({ schedule }: SessionCalendarProps) {
                     );
                   }
 
-                  const session = getSessionForDate(day);
-                  const isSessionDate = !!session;
+                  const sessions = getSessionsForDate(day);
+                  const isSessionDate = sessions.length > 0;
+
+                  // Calculate availability summary
+                  let timeRanges: string[] = [];
+                  if (sessions.length > 0) {
+                    // Sort sessions by start time
+                    const sortedSessions = [...sessions].sort((a, b) => {
+                      return a.startTime.localeCompare(b.startTime);
+                    });
+
+                    // Merge adjacent slots
+                    timeRanges = sortedSessions.reduce<string[]>(
+                      (acc, session) => {
+                        // Simple range display for now - merge logic could be added here
+                        // But seeing every slot might be too much.
+                        // Let's try to merge if end of prev == start of curr
+
+                        // NOTE: Doing rudimentary merging for display
+                        // We need to parse times to check continuity.
+                        // This might be overkill if we just list them, but list could be long.
+                        // Let's do simple listing first, but grouped if possible.
+
+                        // Actually, let's implement a proper merge function helper
+                        return acc;
+                      },
+                      [],
+                    );
+                  }
+
+                  // Helper for merging times
+                  const getMergedTimeRanges = (slots: typeof sessions) => {
+                    if (slots.length === 0) return [];
+                    const sorted = [...slots].sort((a, b) =>
+                      a.startTime.localeCompare(b.startTime),
+                    );
+                    const ranges: { start: string; end: string }[] = [];
+
+                    let currentStart = sorted[0].startTime;
+                    let currentEnd = sorted[0].endTime;
+
+                    for (let i = 1; i < sorted.length; i++) {
+                      if (sorted[i].startTime === currentEnd) {
+                        currentEnd = sorted[i].endTime;
+                      } else {
+                        ranges.push({ start: currentStart, end: currentEnd });
+                        currentStart = sorted[i].startTime;
+                        currentEnd = sorted[i].endTime;
+                      }
+                    }
+                    ranges.push({ start: currentStart, end: currentEnd });
+                    return ranges;
+                  };
+
+                  const ranges = getMergedTimeRanges(sessions);
 
                   return (
-                    <div
-                      key={dayIndex}
-                      className={`aspect-square flex items-center justify-center text-xs rounded-sm transition-all relative group ${
-                        isSessionDate
-                          ? "bg-green-500 text-white font-semibold cursor-pointer hover:bg-green-600"
-                          : "bg-white text-gray-700"
-                      }`}
-                      title={
-                        session
-                          ? `${day.toLocaleDateString("en-US", {
-                              weekday: "short",
-                              month: "short",
-                              day: "numeric",
-                            })}
-${formatTime12h(session.startTime)} - ${formatTime12h(session.endTime)}`
-                          : undefined
-                      }
-                    >
-                      {day.getDate()}
-                      {isSessionDate && (
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-[10px] rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 shadow-lg">
-                          <div className="font-semibold">
-                            {day.toLocaleDateString("en-US", {
-                              weekday: "short",
-                              month: "short",
-                              day: "numeric",
-                            })}
+                    <TooltipProvider key={dayIndex}>
+                      <Tooltip delayDuration={0}>
+                        <TooltipTrigger asChild>
+                          <div
+                            className={`aspect-square flex items-center justify-center text-xs rounded-sm transition-all relative group ${
+                              isSessionDate
+                                ? "bg-green-500 text-white font-semibold cursor-pointer hover:bg-green-600"
+                                : "bg-white text-gray-700"
+                            }`}
+                          >
+                            {day.getDate()}
                           </div>
-                          <div>
-                            {formatTime12h(session.startTime)} -{" "}
-                            {formatTime12h(session.endTime)}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                        </TooltipTrigger>
+                        {isSessionDate && (
+                          <TooltipContent className="bg-gray-900 text-white text-xs border-none max-w-[200px]">
+                            <div className="font-semibold mb-1">
+                              {day.toLocaleDateString("en-US", {
+                                weekday: "short",
+                                month: "short",
+                                day: "numeric",
+                              })}
+                            </div>
+                            <div className="space-y-0.5">
+                              {ranges.map((range, idx) => (
+                                <div key={idx}>
+                                  {formatTime12h(range.start)} -{" "}
+                                  {formatTime12h(range.end)}
+                                </div>
+                              ))}
+                            </div>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
                   );
                 })}
               </div>

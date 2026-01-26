@@ -41,6 +41,7 @@ export function BeginnerSeriesClient({
       registrationType="junior"
       selectedSessionId={selectedSessionId}
       onSessionChange={onSessionChange}
+      imageClassName="object-top"
     />
   );
 }

@@ -20,9 +20,10 @@ interface CartItem {
   cartId: string;
   programId: string;
   programSessionId: string | null;
-  registrationType: string;
+  registrationType: "adult" | "junior";
   quantity: number;
   priceAtAdd: string;
+  metadata: string | null;
   createdAt: Date;
   program: {
     id: string;
@@ -54,6 +55,7 @@ interface CartContextType {
     programSessionId?: string;
     registrationType: "adult" | "junior";
     price: number;
+    metadata?: string;
   }) => Promise<{ success: boolean; message?: string; error?: string }>;
   removeItem: (itemId: string) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
@@ -101,6 +103,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     programSessionId?: string;
     registrationType: "adult" | "junior";
     price: number;
+    metadata?: string;
   }) => {
     setIsAddingToCart(true);
     try {
@@ -128,7 +131,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const newItemCount = newItems.reduce((sum, i) => sum + i.quantity, 0);
       const newTotal = newItems.reduce(
         (sum, i) => sum + parseFloat(i.priceAtAdd) * i.quantity,
-        0
+        0,
       );
       // Batch state updates using React 18 automatic batching
       setItemCount(newItemCount);
@@ -154,13 +157,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     // Optimistic update: update local state immediately
     setItems((prevItems) => {
       const newItems = prevItems.map((item) =>
-        item.id === itemId ? { ...item, quantity } : item
+        item.id === itemId ? { ...item, quantity } : item,
       );
       // Recalculate totals
       const newItemCount = newItems.reduce((sum, i) => sum + i.quantity, 0);
       const newTotal = newItems.reduce(
         (sum, i) => sum + parseFloat(i.priceAtAdd) * i.quantity,
-        0
+        0,
       );
       // Batch state updates using React 18 automatic batching
       setItemCount(newItemCount);

@@ -1,3 +1,5 @@
+import "server-only";
+
 // for seeding the database
 
 // import { drizzle } from "drizzle-orm/neon-http";

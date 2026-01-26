@@ -1,6 +1,8 @@
-import { db } from '@/db/index';
-import { adultRegistration } from '@/db/schema';
-import { eq } from 'drizzle-orm';
+import "server-only";
+
+import { db } from "@/db/index";
+import { adultRegistration } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 /**
  * Create a new adult registration
@@ -17,11 +19,11 @@ export async function createAdultRegistration(data: {
   additionalComments?: string;
   stripePaymentIntentId?: string;
   stripeCustomerId?: string;
-  paymentStatus?: 'pending' | 'paid' | 'failed' | 'cancelled';
+  paymentStatus?: "pending" | "paid" | "failed" | "cancelled";
   paymentAmount?: string;
+  expiresAt?: Date;
 }) {
-
-  console.log("Ran adult registration")
+  console.log("Ran adult registration");
   const result = await db
     .insert(adultRegistration)
     .values({
@@ -35,8 +37,9 @@ export async function createAdultRegistration(data: {
       additionalComments: data.additionalComments,
       stripePaymentIntentId: data.stripePaymentIntentId,
       stripeCustomerId: data.stripeCustomerId,
-      paymentStatus: data.paymentStatus || 'pending',
+      paymentStatus: data.paymentStatus || "pending",
       paymentAmount: data.paymentAmount,
+      expiresAt: data.expiresAt,
     })
     .returning();
 
@@ -49,7 +52,7 @@ export async function createAdultRegistration(data: {
  */
 export async function updateAdultRegistrationPaymentIntent(
   registrationId: string,
-  paymentIntentId: string
+  paymentIntentId: string,
 ) {
   const result = await db
     .update(adultRegistration)
@@ -90,7 +93,7 @@ export async function getAdultRegistrationsByUserId(userId: string) {
  * Get adult registration by payment intent ID
  */
 export async function getAdultRegistrationByPaymentIntentId(
-  paymentIntentId: string
+  paymentIntentId: string,
 ) {
   const registrations = await db
     .select()
@@ -109,9 +112,9 @@ export async function updateAdultRegistrationPaymentStatus(
   data: {
     stripePaymentIntentId?: string;
     stripeCustomerId?: string;
-    paymentStatus: 'pending' | 'paid' | 'failed' | 'cancelled';
+    paymentStatus: "pending" | "paid" | "failed" | "cancelled";
     paymentAmount?: string;
-  }
+  },
 ) {
   const result = await db
     .update(adultRegistration)
@@ -125,3 +128,9 @@ export async function updateAdultRegistrationPaymentStatus(
   return result[0];
 }
 
+/**
+ * Delete adult registration by ID
+ */
+export async function deleteAdultRegistration(id: string) {
+  await db.delete(adultRegistration).where(eq(adultRegistration.id, id));
+}
