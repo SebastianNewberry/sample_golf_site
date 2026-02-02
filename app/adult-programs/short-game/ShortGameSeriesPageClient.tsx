@@ -20,6 +20,7 @@ interface ShortGameSeriesPageClientProps {
   currentPage?: string;
   features: string[] | null;
   details: string | any[] | null;
+  initialSessionId?: string;
 }
 
 export function ShortGameSeriesPageClient({
@@ -34,6 +35,7 @@ export function ShortGameSeriesPageClient({
   currentPage = "short-game",
   features,
   details,
+  initialSessionId,
 }: ShortGameSeriesPageClientProps) {
   return (
     <>
@@ -41,6 +43,7 @@ export function ShortGameSeriesPageClient({
         programName="Adult Short Game Series"
         currentPage="short-game"
         sessions={sessions}
+        initialSessionId={initialSessionId}
       >
         {({ selectedSessionId, onSessionChange }) => (
           <ShortGameSeriesClient

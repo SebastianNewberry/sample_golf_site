@@ -6,7 +6,11 @@ import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
 import type { ProgramDetail } from "@/lib/program-details";
 import { OpenPracticePageClient } from "./OpenPracticePageClient";
 
-export default async function AdultOpenPractice() {
+export default async function AdultOpenPractice(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const searchParams = await props.searchParams;
+  const sessionId = typeof searchParams.sessionId === "string" ? searchParams.sessionId : undefined;
   const program = await getProgramById("0dc3ac70-8346-44c4-9ef6-b638ccbb9082");
   const sessions = program ? await getProgramSessions(program.id) : [];
 
@@ -31,6 +35,7 @@ export default async function AdultOpenPractice() {
               currentPage="open-practice"
               features={program.features || []}
               details={program.details || []}
+              initialSessionId={sessionId}
             />
           ) : (
             <>
@@ -45,7 +50,7 @@ export default async function AdultOpenPractice() {
             </>
           )}
         </div>
-      </div>
+      </div >
     </>
   );
 }

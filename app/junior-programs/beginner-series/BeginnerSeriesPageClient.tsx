@@ -20,6 +20,7 @@ interface BeginnerSeriesPageClientProps {
   currentPage?: string;
   features: string[] | null;
   details: string | any[] | null;
+  initialSessionId?: string;
 }
 
 export function BeginnerSeriesPageClient({
@@ -34,6 +35,7 @@ export function BeginnerSeriesPageClient({
   currentPage = "beginner-series",
   features,
   details,
+  initialSessionId,
 }: BeginnerSeriesPageClientProps) {
   const sessionsList = sessions.map((s) => ({ id: s.id, name: s.name }));
 
@@ -43,6 +45,7 @@ export function BeginnerSeriesPageClient({
         programName="Junior Beginner Series"
         currentPage="beginner-series"
         sessions={sessions}
+        initialSessionId={initialSessionId}
       >
         {({ selectedSessionId, onSessionChange }) => (
           <BeginnerSeriesClient

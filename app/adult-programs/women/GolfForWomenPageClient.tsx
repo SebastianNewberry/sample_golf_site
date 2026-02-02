@@ -20,6 +20,7 @@ interface GolfForWomenPageClientProps {
   currentPage?: string;
   features: string[] | null;
   details: string | any[] | null;
+  initialSessionId?: string;
 }
 
 export function GolfForWomenPageClient({
@@ -34,6 +35,7 @@ export function GolfForWomenPageClient({
   currentPage = "women",
   features,
   details,
+  initialSessionId,
 }: GolfForWomenPageClientProps) {
   return (
     <>
@@ -41,6 +43,7 @@ export function GolfForWomenPageClient({
         programName="Golf For Women"
         currentPage="women"
         sessions={sessions}
+        initialSessionId={initialSessionId}
       >
         {({ selectedSessionId, onSessionChange }) => (
           <GolfForWomenClient

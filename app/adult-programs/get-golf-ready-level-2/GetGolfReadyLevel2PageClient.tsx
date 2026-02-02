@@ -20,6 +20,7 @@ interface GetGolfReadyLevel2PageClientProps {
   currentPage?: string;
   features: string[] | null;
   details: string | any[] | null;
+  initialSessionId?: string;
 }
 
 export function GetGolfReadyLevel2PageClient({
@@ -34,6 +35,7 @@ export function GetGolfReadyLevel2PageClient({
   currentPage = "get-golf-ready-level-2",
   features,
   details,
+  initialSessionId,
 }: GetGolfReadyLevel2PageClientProps) {
   return (
     <>
@@ -41,6 +43,7 @@ export function GetGolfReadyLevel2PageClient({
         programName="Get Golf Ready Level II"
         currentPage="get-golf-ready-level-2"
         sessions={sessions}
+        initialSessionId={initialSessionId}
       >
         {({ selectedSessionId, onSessionChange }) => (
           <GetGolfReadyLevel2Client

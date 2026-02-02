@@ -5,7 +5,11 @@ import { ProgramDetailsSection } from "@/app/components/ProgramDetailsSection";
 import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
 import { ShortGameSeriesPageClient } from "./ShortGameSeriesPageClient";
 
-export default async function AdultShortGameSeries() {
+export default async function AdultShortGameSeries(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const searchParams = await props.searchParams;
+  const sessionId = typeof searchParams.sessionId === "string" ? searchParams.sessionId : undefined;
   const program = await getProgramById("9bc2b2b7-2774-4971-b469-4ce2a8d3a707");
   const sessions = program ? await getProgramSessions(program.id) : [];
 
@@ -30,6 +34,7 @@ export default async function AdultShortGameSeries() {
               currentPage="short-game"
               features={program.features || []}
               details={program.details || []}
+              initialSessionId={sessionId}
             />
           ) : (
             <>
@@ -44,7 +49,7 @@ export default async function AdultShortGameSeries() {
             </>
           )}
         </div>
-      </div>
+      </div >
     </>
   );
 }

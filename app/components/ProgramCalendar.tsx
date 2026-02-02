@@ -9,7 +9,7 @@ import {
   Calendar as CalendarIcon,
 } from "lucide-react";
 
-interface CalendarEvent {
+export interface CalendarEvent {
   id: string;
   title: string;
   date: Date;
@@ -148,9 +148,8 @@ export function ProgramCalendar({
           return (
             <div
               key={index}
-              className={`bg-white p-1 transition-all duration-300 ${
-                !day ? "bg-gray-50" : ""
-              } ${isExpanded ? "min-h-[200px]" : "min-h-[80px]"}`}
+              className={`bg-white p-1 transition-all duration-300 ${!day ? "bg-gray-50" : ""
+                } ${isExpanded ? "min-h-[200px]" : "min-h-[80px]"}`}
             >
               {day && (
                 <>

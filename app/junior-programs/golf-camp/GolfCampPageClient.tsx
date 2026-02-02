@@ -20,6 +20,7 @@ interface GolfCampPageClientProps {
   currentPage?: string;
   features: string[] | null;
   details: string | any[] | null;
+  initialSessionId?: string;
 }
 
 export function GolfCampPageClient({
@@ -34,6 +35,7 @@ export function GolfCampPageClient({
   currentPage = "golf-camp",
   features,
   details,
+  initialSessionId,
 }: GolfCampPageClientProps) {
   // The following state and calculations are now handled by JuniorProgramPageWrapper
   // const [selectedSessionId, setSelectedSessionId] = useState<string>("");
@@ -49,6 +51,7 @@ export function GolfCampPageClient({
         programName="Junior Golf Camp"
         currentPage="golf-camp"
         sessions={sessions}
+        initialSessionId={initialSessionId}
       >
         {({ selectedSessionId, onSessionChange }) => (
           <GolfCampClient

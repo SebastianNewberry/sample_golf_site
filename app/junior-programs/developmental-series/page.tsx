@@ -1,11 +1,12 @@
-import { CheckCircle2 } from "lucide-react";
 import { getProgramById, getProgramSessions } from "@/db/queries/programs";
-import { ProgramDetailsSection } from "@/app/components/ProgramDetailsSection";
 import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
-import { ProgramFeaturesAndDetails } from "@/app/components/ProgramFeaturesAndDetails";
 import { DevelopmentalSeriesPageWrapper } from "@/app/components/DevelopmentalSeriesPageWrapper";
 
-export default async function JuniorDevelopmentalSeries() {
+export default async function JuniorDevelopmentalSeries(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const searchParams = await props.searchParams;
+  const sessionId = typeof searchParams.sessionId === "string" ? searchParams.sessionId : undefined;
   const program = await getProgramById("cc6a73ca-95fb-4acb-be01-6cee4ce44475");
   const sessions = program ? await getProgramSessions(program.id) : [];
 
@@ -24,6 +25,7 @@ export default async function JuniorDevelopmentalSeries() {
                 sessions={sessions}
                 features={program.features || []}
                 details={program.details || []}
+                initialSessionId={sessionId}
               />
             </>
           ) : (

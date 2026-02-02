@@ -1,11 +1,13 @@
-import { CheckCircle2 } from "lucide-react";
 import defaultImage from "@/public/junior_beginner_series.webp";
 import { getProgramById, getProgramSessions } from "@/db/queries/programs";
-import { ProgramDetailsSection } from "@/app/components/ProgramDetailsSection";
 import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
 import { BeginnerSeriesPageClient } from "./BeginnerSeriesPageClient";
 
-export default async function JuniorBeginnerSeries() {
+export default async function JuniorBeginnerSeries(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const searchParams = await props.searchParams;
+  const sessionId = typeof searchParams.sessionId === "string" ? searchParams.sessionId : undefined;
   const program = await getProgramById("0284e4eb-fd96-4626-9009-272b7d985d88");
   const sessions = program ? await getProgramSessions(program.id) : [];
 
@@ -30,6 +32,7 @@ export default async function JuniorBeginnerSeries() {
               currentPage="beginner-series"
               features={program.features || []}
               details={program.details || []}
+              initialSessionId={sessionId}
             />
           ) : (
             <>

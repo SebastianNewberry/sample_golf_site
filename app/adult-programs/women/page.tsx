@@ -6,7 +6,11 @@ import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
 import type { ProgramDetail } from "@/lib/program-details";
 import { GolfForWomenPageClient } from "./GolfForWomenPageClient";
 
-export default async function GolfForWomenProgram() {
+export default async function GolfForWomenProgram(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const searchParams = await props.searchParams;
+  const sessionId = typeof searchParams.sessionId === "string" ? searchParams.sessionId : undefined;
   const program = await getProgramById("9160a3a8-a652-4ddf-a13f-298336168e04");
   const sessions = program ? await getProgramSessions(program.id) : [];
 
@@ -31,6 +35,7 @@ export default async function GolfForWomenProgram() {
               currentPage="women"
               features={program.features || []}
               details={program.details || []}
+              initialSessionId={sessionId}
             />
           ) : (
             <>
@@ -45,7 +50,7 @@ export default async function GolfForWomenProgram() {
             </>
           )}
         </div>
-      </div>
+      </div >
     </>
   );
 }

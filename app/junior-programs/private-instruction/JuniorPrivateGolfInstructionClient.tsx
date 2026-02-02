@@ -14,6 +14,7 @@ import { ProgramFeaturesAndDetails } from "@/app/components/ProgramFeaturesAndDe
 import { SessionCalendar } from "@/app/components/SessionCalendar";
 import { PrivateInstructionCalendar } from "@/app/components/PrivateInstructionCalendar";
 import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
 
 interface JuniorPrivateGolfInstructionClientProps {
   program: any;
@@ -282,11 +283,14 @@ export function JuniorPrivateGolfInstructionClient({
             <div className="mt-6">
               <SessionCalendar
                 schedule={availableSlots.map((s) => ({
-                  date: s.date.toISOString().split("T")[0],
+                  date: format(s.date, "yyyy-MM-dd"),
                   startTime: s.startTime,
                   endTime: s.endTime,
                 }))}
               />
+              <p className="text-xs text-gray-500 mt-2 px-1">
+                * Dates above are available dates, but you only sign up for individual sessions.
+              </p>
             </div>
           </div>
 
@@ -370,10 +374,9 @@ export function JuniorPrivateGolfInstructionClient({
                           key={pkg.name}
                           onClick={() => handlePriceSelect(pkg.name, pkg.price)}
                           className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-1 h-32
-                            ${
-                              selectedDuration === pkg.name
-                                ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))]"
-                                : "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
+                            ${selectedDuration === pkg.name
+                              ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))]"
+                              : "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
                             }`}
                         >
                           <p className="text-gray-600 font-medium">
@@ -438,10 +441,9 @@ export function JuniorPrivateGolfInstructionClient({
                           key={pkg.name}
                           onClick={() => handlePriceSelect(pkg.name, pkg.price)}
                           className={`p-5 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between
-                            ${
-                              selectedDuration === pkg.name
-                                ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))]"
-                                : "bg-white border-gray-200 hover:border-green-200 hover:bg-white shadow-sm"
+                            ${selectedDuration === pkg.name
+                              ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))]"
+                              : "bg-white border-gray-200 hover:border-green-200 hover:bg-white shadow-sm"
                             }`}
                         >
                           <div className="text-left">

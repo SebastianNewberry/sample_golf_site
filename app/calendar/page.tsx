@@ -1,7 +1,17 @@
 import React from "react";
-import { ProgramCalendar } from "@/app/components/ProgramCalendar";
-import { getProgramsWithSessions } from "@/db/queries/programs";
+import { ProgramCalendar, CalendarEvent } from "@/app/components/ProgramCalendar";
 import { parseSchedule, parseLocalDate } from "@/lib/session-schedule";
+import {
+  getInstructorAvailability,
+  getProgramsWithSessions,
+} from "@/db/queries/programs";
+import { getActiveBookingsByType } from "@/db/queries/bookings";
+import {
+  filterAvailableSlots,
+  extractBookedSessions,
+  toESTTimeString,
+  mergeSlotsToIntervals,
+} from "@/lib/availability";
 
 // Map program names to their page URLs
 // Keys should be normalized (lowercase, trimmed) for better matching
@@ -50,8 +60,8 @@ function getProgramUrl(
 }
 
 // Helper function to generate calendar events from database
-async function generateCalendarEvents() {
-  const events = [];
+async function generateCalendarEvents(): Promise<CalendarEvent[]> {
+  const events: CalendarEvent[] = [];
 
   // Get all adult programs
   const adultPrograms = await getProgramsWithSessions("adult");
@@ -68,7 +78,7 @@ async function generateCalendarEvents() {
             title: program.name,
             date: parseLocalDate(sessionDate.date),
             programType: "adult" as const,
-            color: "#3b82f6", // Blue for adult programs
+            color: "#f97316", // Orange for adult programs
             startTime: sessionDate.startTime,
             endTime: sessionDate.endTime,
             sessionName: session.name,
@@ -83,7 +93,7 @@ async function generateCalendarEvents() {
           title: program.name,
           date: session.startDate,
           programType: "adult" as const,
-          color: "#3b82f6", // Blue for adult programs
+          color: "#f97316", // Orange for adult programs
           startTime: "TBD",
           endTime: "TBD",
           sessionName: session.name,
@@ -138,8 +148,106 @@ async function generateCalendarEvents() {
   return events;
 }
 
+// Helper function to add private instruction availability to events
+async function addPrivateInstructionEvents(events: CalendarEvent[]) {
+  // Adult Private Availability
+  const adultAvailabilityData = await getInstructorAvailability("adult");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const adultRawSlots: any[] = adultAvailabilityData.flatMap((entry) => {
+    const schedule = entry.schedule;
+    return Array.isArray(schedule) ? schedule : [];
+  });
+
+  const adultRealBookings = await getActiveBookingsByType("adult");
+  const adultBookedSessions = [
+    ...adultRealBookings.map((b) => ({
+      date: b.startTime,
+      startTime: toESTTimeString(b.startTime),
+      endTime: toESTTimeString(b.endTime),
+    })),
+  ];
+
+  const adultAvailableSlots = filterAvailableSlots(adultRawSlots, adultBookedSessions);
+  const adultIntervals = mergeSlotsToIntervals(adultAvailableSlots);
+
+  Object.entries(adultIntervals).forEach(([dateKey, intervals]) => {
+    // Format intervals to "h:mm AM/PM - h:mm AM/PM"
+    const formattedIntervals = intervals.map(interval => {
+      const [start, end] = interval.split("-");
+      const formatTime = (t: string) => {
+        const [h, m] = t.split(":").map(Number);
+        const d = new Date();
+        d.setHours(h, m);
+        return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+      };
+      return `${formatTime(start)} - ${formatTime(end)}`;
+    }).join(", ");
+
+    events.push({
+      id: `adult-private-${dateKey}`,
+      title: `Adult Private Instruction Availability`,
+      date: parseLocalDate(dateKey),
+      programType: "adult",
+      color: "#ea580c", // Dark Orange
+      startTime: "", // Not specific single time
+      endTime: "",
+      sessionName: "",
+      programDescription: formattedIntervals, // Use description to show full list
+      url: "/adult-programs/private",
+    });
+  });
+
+  // Junior Private Availability
+  const juniorAvailabilityData = await getInstructorAvailability("junior");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const juniorRawSlots: any[] = juniorAvailabilityData.flatMap((entry) => {
+    const schedule = entry.schedule;
+    return Array.isArray(schedule) ? schedule : [];
+  });
+
+  const juniorRealBookings = await getActiveBookingsByType("junior");
+  const juniorBookedSessions = [
+    ...juniorRealBookings.map((b) => ({
+      date: b.startTime,
+      startTime: toESTTimeString(b.startTime),
+      endTime: toESTTimeString(b.endTime),
+    })),
+  ];
+
+  const juniorAvailableSlots = filterAvailableSlots(juniorRawSlots, juniorBookedSessions);
+  const juniorIntervals = mergeSlotsToIntervals(juniorAvailableSlots);
+
+  Object.entries(juniorIntervals).forEach(([dateKey, intervals]) => {
+    // Format intervals
+    const formattedIntervals = intervals.map(interval => {
+      const [start, end] = interval.split("-");
+      const formatTime = (t: string) => {
+        const [h, m] = t.split(":").map(Number);
+        const d = new Date();
+        d.setHours(h, m);
+        return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+      };
+      return `${formatTime(start)} - ${formatTime(end)}`;
+    }).join(", ");
+
+    events.push({
+      id: `junior-private-${dateKey}`,
+      title: `Junior Private Instruction Availability`,
+      date: parseLocalDate(dateKey),
+      programType: "junior",
+      color: "#15803d", // Darker green
+      startTime: "",
+      endTime: "",
+      sessionName: "",
+      programDescription: formattedIntervals,
+      url: "/junior-programs/private-instruction",
+    });
+  });
+}
+
 export default async function CalendarPage() {
   const events = await generateCalendarEvents();
+  await addPrivateInstructionEvents(events);
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -165,20 +273,26 @@ export default async function CalendarPage() {
               </h2>
               <ul className="space-y-2 text-sm text-gray-700">
                 <li className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-500" />
+                  <div className="w-3 h-3 rounded-full bg-orange-500" />
                   <span>Get Golf Ready (Level I & II)</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-500" />
+                  <div className="w-3 h-3 rounded-full bg-orange-500" />
                   <span>Adult Short Game Series</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-500" />
+                  <div className="w-3 h-3 rounded-full bg-orange-500" />
                   <span>Golf For Women</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-500" />
+                  <div className="w-3 h-3 rounded-full bg-orange-500" />
                   <span>Adult Open Practice</span>
+                </li>
+                <li className="pt-2 border-t border-gray-100 mt-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-[#ea580c]" />
+                    <span>Adult Private Instruction</span>
+                  </div>
                 </li>
               </ul>
             </div>
@@ -203,6 +317,12 @@ export default async function CalendarPage() {
                 <li className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-green-500" />
                   <span>Junior Developmental Camp</span>
+                </li>
+                <li className="pt-2 border-t border-gray-100 mt-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-[#15803d]" />
+                    <span>Junior Private Instruction</span>
+                  </div>
                 </li>
               </ul>
             </div>

@@ -2,7 +2,6 @@
 
 import { useState, ReactNode, ReactElement, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import {
   Accordion,
   AccordionContent,
@@ -24,6 +23,7 @@ interface JuniorProgramPageWrapperProps {
   currentPage: string;
   sessions: ProgramSession[];
   children: ReactNode | ((props: RenderProps) => ReactElement);
+  initialSessionId?: string | undefined;
 }
 
 export function JuniorProgramPageWrapper({
@@ -31,19 +31,11 @@ export function JuniorProgramPageWrapper({
   currentPage,
   sessions,
   children,
+  initialSessionId,
 }: JuniorProgramPageWrapperProps) {
-  const searchParams = useSearchParams();
-  const sessionIdParam = searchParams.get("sessionId");
   const [selectedSessionId, setSelectedSessionId] = useState<string>(
-    sessionIdParam || "",
+    initialSessionId || "",
   );
-
-  // Update selected session if URL param changes (optional, but good for navigation)
-  useEffect(() => {
-    if (sessionIdParam) {
-      setSelectedSessionId(sessionIdParam);
-    }
-  }, [sessionIdParam]);
 
   // Get selected session's schedule
   const selectedSession = sessions.find((s) => s.id === selectedSessionId);
@@ -64,51 +56,46 @@ export function JuniorProgramPageWrapper({
         {/* Navigation Links */}
         <Link
           href="/junior-programs/beginner-series"
-          className={`block px-4 py-3 text-sm ${
-            currentPage === "beginner-series"
-              ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-              : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-          }`}
+          className={`block px-4 py-3 text-sm ${currentPage === "beginner-series"
+            ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
+            : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
+            }`}
         >
           JUNIOR BEGINNER SERIES
         </Link>
         <Link
           href="/junior-programs/developmental-series"
-          className={`block px-4 py-3 text-sm ${
-            currentPage === "developmental-series"
-              ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-              : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-          }`}
+          className={`block px-4 py-3 text-sm ${currentPage === "developmental-series"
+            ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
+            : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
+            }`}
         >
           JUNIOR DEVELOPMENTAL SERIES
         </Link>
         <Link
           href="/junior-programs/golf-camp"
-          className={`block px-4 py-3 text-sm ${
-            currentPage === "golf-camp"
-              ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-              : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-          }`}
+          className={`block px-4 py-3 text-sm ${currentPage === "golf-camp"
+            ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
+            : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
+            }`}
         >
           JUNIOR GOLF CAMP
         </Link>
         <Link
           href="/junior-programs/developmental-camp"
-          className={`block px-4 py-3 text-sm ${
-            currentPage === "developmental-camp"
-              ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-              : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-          }`}
+          className={`block px-4 py-3 text-sm ${currentPage === "developmental-camp"
+            ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
+            : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
+            }`}
         >
           JUNIOR DEVELOPMENTAL GOLF CAMP
         </Link>
         <Link
           href="/junior-programs/private-instruction"
-          className={`block px-4 py-3 text-sm ${
-            currentPage === "private-instruction"
-              ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-              : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-          }`}
+          className={`block px-4 py-3 text-sm ${currentPage === "private-instruction"
+            ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
+            : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
+            }`}
         >
           JUNIOR PRIVATE GOLF INSTRUCTION
         </Link>
@@ -120,36 +107,42 @@ export function JuniorProgramPageWrapper({
               <CardTitle className="text-lg">Available Sessions</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <Accordion
-                type="single"
-                collapsible
-                value={selectedSessionId}
-                onValueChange={setSelectedSessionId}
-                className="w-full"
-              >
-                {sessions.map((session) => (
-                  <AccordionItem
-                    key={session.id}
-                    value={session.id}
-                    className="border-b last:border-0 px-4"
-                  >
-                    <AccordionTrigger className="text-left hover:no-underline py-3">
-                      <span className="font-medium text-sm">
-                        {session.name ? session.name : "Session Details"}
-                      </span>
-                    </AccordionTrigger>
-                    <AccordionContent className="pb-4">
-                      <SessionCalendar
-                        schedule={
-                          session.schedule
-                            ? parseSchedule(session.schedule)
-                            : null
-                        }
-                      />
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
+              {sessions.length > 0 ? (
+                <Accordion
+                  type="single"
+                  collapsible
+                  value={selectedSessionId}
+                  onValueChange={setSelectedSessionId}
+                  className="w-full"
+                >
+                  {sessions.map((session) => (
+                    <AccordionItem
+                      key={session.id}
+                      value={session.id}
+                      className="border-b last:border-0 px-4"
+                    >
+                      <AccordionTrigger className="text-left hover:no-underline py-3">
+                        <span className="font-medium text-sm">
+                          {session.name ? session.name : "Session Details"}
+                        </span>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4">
+                        <SessionCalendar
+                          schedule={
+                            session.schedule
+                              ? parseSchedule(session.schedule)
+                              : null
+                          }
+                        />
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              ) : (
+                <div className="p-6 text-center text-gray-500 text-sm font-medium">
+                  No Sessions Yet
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -159,9 +152,9 @@ export function JuniorProgramPageWrapper({
       <div className="lg:col-span-6">
         {isRenderFunction
           ? (children as (props: RenderProps) => ReactElement)({
-              selectedSessionId,
-              onSessionChange: setSelectedSessionId,
-            })
+            selectedSessionId,
+            onSessionChange: setSelectedSessionId,
+          })
           : children}
       </div>
     </>

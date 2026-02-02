@@ -5,7 +5,11 @@ import { ProgramDetailsSection } from "@/app/components/ProgramDetailsSection";
 import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
 import { GetGolfReadyLevel1PageClient } from "./GetGolfReadyLevel1PageClient";
 
-export default async function GetGolfReadyLevel1() {
+export default async function GetGolfReadyLevel1(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const searchParams = await props.searchParams;
+  const sessionId = typeof searchParams.sessionId === "string" ? searchParams.sessionId : undefined;
   const program = await getProgramById("583078c5-6e1f-40fc-a1a0-8c1cc88a6d7b");
   const sessions = program ? await getProgramSessions(program.id) : [];
 
@@ -30,6 +34,7 @@ export default async function GetGolfReadyLevel1() {
               currentPage="get-golf-ready-level-1"
               features={program.features || []}
               details={program.details || []}
+              initialSessionId={sessionId}
             />
           ) : (
             <>
@@ -44,7 +49,7 @@ export default async function GetGolfReadyLevel1() {
             </>
           )}
         </div>
-      </div>
+      </div >
     </>
   );
 }

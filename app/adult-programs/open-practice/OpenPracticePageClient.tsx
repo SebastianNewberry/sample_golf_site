@@ -20,6 +20,7 @@ interface OpenPracticePageClientProps {
   currentPage?: string;
   features: string[] | null;
   details: string | any[] | null;
+  initialSessionId?: string;
 }
 
 export function OpenPracticePageClient({
@@ -34,6 +35,7 @@ export function OpenPracticePageClient({
   currentPage = "open-practice",
   features,
   details,
+  initialSessionId,
 }: OpenPracticePageClientProps) {
   return (
     <>
@@ -41,6 +43,7 @@ export function OpenPracticePageClient({
         programName="Adult Open Practice"
         currentPage="open-practice"
         sessions={sessions}
+        initialSessionId={initialSessionId}
       >
         {({ selectedSessionId, onSessionChange }) => (
           <OpenPracticeClient

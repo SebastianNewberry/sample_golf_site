@@ -2,7 +2,6 @@
 
 import { useState, ReactNode, ReactElement, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import {
   Accordion,
   AccordionContent,
@@ -24,6 +23,7 @@ interface AdultProgramPageWrapperProps {
   currentPage: string;
   sessions: ProgramSession[];
   children: ReactNode | ((props: RenderProps) => ReactElement);
+  initialSessionId?: string;
 }
 
 export function AdultProgramPageWrapper({
@@ -31,19 +31,11 @@ export function AdultProgramPageWrapper({
   currentPage,
   sessions,
   children,
+  initialSessionId,
 }: AdultProgramPageWrapperProps) {
-  const searchParams = useSearchParams();
-  const sessionIdParam = searchParams.get("sessionId");
   const [selectedSessionId, setSelectedSessionId] = useState<string>(
-    sessionIdParam || "",
+    initialSessionId || "",
   );
-
-  // Update selected session if URL param changes
-  useEffect(() => {
-    if (sessionIdParam) {
-      setSelectedSessionId(sessionIdParam);
-    }
-  }, [sessionIdParam]);
 
   // Get selected session's schedule
   const selectedSession = sessions.find((s) => s.id === selectedSessionId);
@@ -64,61 +56,55 @@ export function AdultProgramPageWrapper({
         {/* Navigation Links */}
         <Link
           href="/adult-programs/get-golf-ready-level-1"
-          className={`block px-4 py-3 text-sm ${
-            currentPage === "get-golf-ready-level-1"
-              ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-              : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-          }`}
+          className={`block px-4 py-3 text-sm ${currentPage === "get-golf-ready-level-1"
+            ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
+            : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
+            }`}
         >
           GET GOLF READY (LEVEL I)
         </Link>
         <Link
           href="/adult-programs/get-golf-ready-level-2"
-          className={`block px-4 py-3 text-sm ${
-            currentPage === "get-golf-ready-level-2"
-              ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-              : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-          }`}
+          className={`block px-4 py-3 text-sm ${currentPage === "get-golf-ready-level-2"
+            ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
+            : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
+            }`}
         >
           GET GOLF READY (LEVEL II)
         </Link>
         <Link
           href="/adult-programs/short-game"
-          className={`block px-4 py-3 text-sm ${
-            currentPage === "short-game"
-              ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-              : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-          }`}
+          className={`block px-4 py-3 text-sm ${currentPage === "short-game"
+            ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
+            : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
+            }`}
         >
           ADULT SHORT GAME SERIES
         </Link>
         <Link
           href="/adult-programs/women"
-          className={`block px-4 py-3 text-sm ${
-            currentPage === "women"
-              ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-              : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-          }`}
+          className={`block px-4 py-3 text-sm ${currentPage === "women"
+            ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
+            : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
+            }`}
         >
           GOLF FOR WOMEN
         </Link>
         <Link
           href="/adult-programs/private"
-          className={`block px-4 py-3 text-sm ${
-            currentPage === "private"
-              ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-              : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-          }`}
+          className={`block px-4 py-3 text-sm ${currentPage === "private"
+            ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
+            : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
+            }`}
         >
           ADULT PRIVATE GOLF INSTRUCTION
         </Link>
         <Link
           href="/adult-programs/open-practice"
-          className={`block px-4 py-3 text-sm ${
-            currentPage === "open-practice"
-              ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-              : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-          }`}
+          className={`block px-4 py-3 text-sm ${currentPage === "open-practice"
+            ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
+            : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
+            }`}
         >
           ADULT OPEN PRACTICE
         </Link>
@@ -130,36 +116,42 @@ export function AdultProgramPageWrapper({
               <CardTitle className="text-lg">Available Sessions</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <Accordion
-                type="single"
-                collapsible
-                value={selectedSessionId}
-                onValueChange={setSelectedSessionId}
-                className="w-full"
-              >
-                {sessions.map((session) => (
-                  <AccordionItem
-                    key={session.id}
-                    value={session.id}
-                    className="border-b last:border-0 px-4"
-                  >
-                    <AccordionTrigger className="text-left hover:no-underline py-3">
-                      <span className="font-medium text-sm">
-                        {session.name ? session.name : "Session Details"}
-                      </span>
-                    </AccordionTrigger>
-                    <AccordionContent className="pb-4">
-                      <SessionCalendar
-                        schedule={
-                          session.schedule
-                            ? parseSchedule(session.schedule)
-                            : null
-                        }
-                      />
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
+              {sessions.length > 0 ? (
+                <Accordion
+                  type="single"
+                  collapsible
+                  value={selectedSessionId}
+                  onValueChange={setSelectedSessionId}
+                  className="w-full"
+                >
+                  {sessions.map((session) => (
+                    <AccordionItem
+                      key={session.id}
+                      value={session.id}
+                      className="border-b last:border-0 px-4"
+                    >
+                      <AccordionTrigger className="text-left hover:no-underline py-3">
+                        <span className="font-medium text-sm">
+                          {session.name ? session.name : "Session Details"}
+                        </span>
+                      </AccordionTrigger>
+                      <AccordionContent className="pb-4">
+                        <SessionCalendar
+                          schedule={
+                            session.schedule
+                              ? parseSchedule(session.schedule)
+                              : null
+                          }
+                        />
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              ) : (
+                <div className="p-6 text-center text-gray-500 text-sm font-medium">
+                  No Sessions Yet
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -169,9 +161,9 @@ export function AdultProgramPageWrapper({
       <div className="lg:col-span-6">
         {isRenderFunction
           ? (children as (props: RenderProps) => ReactElement)({
-              selectedSessionId,
-              onSessionChange: setSelectedSessionId,
-            })
+            selectedSessionId,
+            onSessionChange: setSelectedSessionId,
+          })
           : children}
       </div>
     </>

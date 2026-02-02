@@ -15,6 +15,7 @@ interface DevelopmentalSeriesPageWrapperProps {
   sessions: ProgramSession[];
   features: string[] | null;
   details: string | any[] | null;
+  initialSessionId?: string;
 }
 
 export function DevelopmentalSeriesPageWrapper({
@@ -25,6 +26,7 @@ export function DevelopmentalSeriesPageWrapper({
   sessions,
   features,
   details,
+  initialSessionId,
 }: DevelopmentalSeriesPageWrapperProps) {
   return (
     <>
@@ -32,6 +34,7 @@ export function DevelopmentalSeriesPageWrapper({
         programName="Junior Developmental Series"
         currentPage="developmental-series"
         sessions={sessions}
+        initialSessionId={initialSessionId}
       >
         {({ selectedSessionId, onSessionChange }) => (
           <DevelopmentalSeriesCard

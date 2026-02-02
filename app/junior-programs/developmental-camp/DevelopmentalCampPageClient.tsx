@@ -20,6 +20,7 @@ interface DevelopmentalCampPageClientProps {
   currentPage?: string;
   features: string[] | null;
   details: string | any[] | null;
+  initialSessionId?: string;
 }
 
 export function DevelopmentalCampPageClient({
@@ -34,6 +35,7 @@ export function DevelopmentalCampPageClient({
   currentPage = "developmental-camp",
   features,
   details,
+  initialSessionId,
 }: DevelopmentalCampPageClientProps) {
   return (
     <>
@@ -41,6 +43,7 @@ export function DevelopmentalCampPageClient({
         programName="Junior Developmental Golf Camp"
         currentPage="developmental-camp"
         sessions={sessions}
+        initialSessionId={initialSessionId}
       >
         {({ selectedSessionId, onSessionChange }) => (
           <DevelopmentalCampClient

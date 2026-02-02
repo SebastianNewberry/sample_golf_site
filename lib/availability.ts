@@ -6,6 +6,70 @@ export interface AvailabilityRule {
   endTime: string; // HH:mm
 }
 
+export interface Interval {
+  info: any;
+  start: string;
+  end: string;
+}
+
+export function mergeSlotsToIntervals(slots: TimeSlot[]): Record<string, string[]> {
+  const slotsByDate: Record<string, TimeSlot[]> = {};
+
+  // Group by date
+  slots.forEach((slot) => {
+    // Determine date key (using the date object's local date string or ISO string if handled carefully)
+    // We used `toESTDateString` logic effectively in filterAvailableSlots, 
+    // but here we have TimeSlot objects with a Date property.
+    // Let's assume the Date object is correct corresponding to the slot.
+    const dateKey = slot.date.toLocaleDateString("en-CA", {
+      timeZone: "America/New_York",
+    });
+    if (!slotsByDate[dateKey]) {
+      slotsByDate[dateKey] = [];
+    }
+    slotsByDate[dateKey].push(slot);
+  });
+
+  const result: Record<string, string[]> = {};
+
+  Object.keys(slotsByDate).forEach((dateKey) => {
+    const daySlots = slotsByDate[dateKey];
+    // Sort just in case
+    daySlots.sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+    const intervals: string[] = [];
+    if (daySlots.length === 0) return;
+
+    let currentStart = daySlots[0].startTime;
+    let currentEnd = daySlots[0].endTime;
+
+    for (let i = 1; i < daySlots.length; i++) {
+      const next = daySlots[i];
+
+      // Check continuity
+      // If next.startTime === currentEnd, we merge
+      // (Assuming 30 min slots, so adjacent means continuous)
+      if (next.startTime === currentEnd) {
+        currentEnd = next.endTime;
+      } else {
+        // Gap found, push current and start new
+        // Format: H:mm - H:mm (or AM/PM conversion later? The prompt asked for "10:30 to 11:30")
+        // The prompt asked for: "from the start time to 10:30 and then from 11:30 to the end time"
+        // Let's stick to 24h here for internal representation or convert? 
+        // The prompt example implies AM/PM. Let's do formatting in the page so this function remains generic
+        // OR we can do it here. Let's return Generic "HH:mm-HH:mm" strings and format in the View.
+        intervals.push(`${currentStart}-${currentEnd}`);
+        currentStart = next.startTime;
+        currentEnd = next.endTime;
+      }
+    }
+    intervals.push(`${currentStart}-${currentEnd}`);
+    result[dateKey] = intervals;
+  });
+
+  return result;
+}
+
 export interface BookedSession {
   date: Date;
   startTime: string;

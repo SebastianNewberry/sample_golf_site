@@ -76,12 +76,12 @@ export function SessionCalendar({ schedule }: SessionCalendarProps) {
   };
 
   return (
-    <div className="mt-4 bg-white border border-gray-200 rounded-lg p-4 shadow-sm relative overflow-visible">
+    <div className="mt-4 bg-white border border-gray-200 rounded-lg p-3 shadow-sm relative overflow-visible">
       <h3 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">
         Session Schedule
       </h3>
 
-      <div className="grid grid-cols-1 gap-4 overflow-visible">
+      <div className="grid grid-cols-3 gap-2 overflow-visible">
         {months.map((monthDate, monthIndex) => {
           const year = monthDate.getFullYear();
           const month = monthDate.getMonth();
@@ -107,8 +107,8 @@ export function SessionCalendar({ schedule }: SessionCalendarProps) {
               className="border border-gray-200 rounded-lg w-full overflow-visible"
             >
               {/* Month header */}
-              <div className="bg-green-600 text-white px-3 py-1.5 text-center rounded-t-lg">
-                <span className="text-sm font-bold">{monthName}</span>
+              <div className="bg-green-600 text-white px-1 py-1 text-center rounded-t-lg">
+                <span className="text-xs font-bold">{monthName}</span>
               </div>
 
               {/* Days of week header */}
@@ -116,7 +116,7 @@ export function SessionCalendar({ schedule }: SessionCalendarProps) {
                 {["S", "M", "T", "W", "T", "F", "S"].map((day, idx) => (
                   <div
                     key={idx}
-                    className="aspect-square py-1.5 text-center text-[10px] font-semibold text-gray-600 border-b border-gray-200"
+                    className="aspect-square flex items-center justify-center text-[8px] font-semibold text-gray-600 border-b border-gray-200"
                   >
                     {day}
                   </div>
@@ -124,7 +124,7 @@ export function SessionCalendar({ schedule }: SessionCalendarProps) {
               </div>
 
               {/* Calendar grid */}
-              <div className="grid grid-cols-7 gap-px bg-gray-200 p-1.5 rounded-b-lg overflow-visible">
+              <div className="grid grid-cols-7 gap-px bg-gray-200 p-0.5 rounded-b-lg overflow-visible">
                 {calendarDays.map((day, dayIndex) => {
                   if (!day) {
                     return (
@@ -196,11 +196,10 @@ export function SessionCalendar({ schedule }: SessionCalendarProps) {
                       <Tooltip delayDuration={0}>
                         <TooltipTrigger asChild>
                           <div
-                            className={`aspect-square flex items-center justify-center text-xs rounded-sm transition-all relative group ${
-                              isSessionDate
-                                ? "bg-green-500 text-white font-semibold cursor-pointer hover:bg-green-600"
-                                : "bg-white text-gray-700"
-                            }`}
+                            className={`aspect-square flex items-center justify-center text-[10px] rounded-sm transition-all relative group ${isSessionDate
+                              ? "bg-green-500 text-white font-semibold cursor-pointer hover:bg-green-600"
+                              : "bg-white text-gray-700"
+                              }`}
                           >
                             {day.getDate()}
                           </div>
