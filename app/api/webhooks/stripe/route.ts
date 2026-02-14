@@ -4,16 +4,14 @@ import stripe from "@/lib/stripe";
 import { sendRegistrationConfirmationEmail } from "@/lib/email";
 import {
   updateAdultRegistrationPaymentStatus,
-  getAdultRegistrationByPaymentIntentId,
   createAdultRegistration,
 } from "@/db/queries/adult-registrations";
 import {
   updateJuniorProgramRegistrationPaymentStatus,
-  getJuniorProgramRegistrationByPaymentIntentId,
   createJuniorRegistration,
   createJuniorProgramRegistration,
 } from "@/db/queries/junior-registrations";
-import { getOrCreateRegularUser } from "@/db/queries/users";
+import { getOrCreateRegularUser, getRegularUserByEmail } from "@/db/queries/users";
 import {
   getCheckoutSessionByPaymentIntentId,
   getCheckoutSessionByCheckoutId,
@@ -21,7 +19,6 @@ import {
   updateCheckoutSessionPaymentIntent,
 } from "@/db/queries/checkout-sessions";
 import { deleteCart } from "@/db/queries/cart";
-import { getRegularUserByEmail } from "@/db/queries/users";
 import {
   createBooking,
   checkTimeSlotAvailability,
@@ -96,7 +93,7 @@ export async function POST(req: Request) {
 
 /**
  * Handle successful payment
- * Creates registrations for cart checkouts or updates existing registrations
+ * Creates registrations for cart checkouts
  */
 async function handlePaymentIntentSucceeded(paymentIntent: any) {
   console.log(
@@ -106,21 +103,9 @@ async function handlePaymentIntentSucceeded(paymentIntent: any) {
 
   const metadata = paymentIntent.metadata;
 
-  // Handle cart checkout (new flow)
+  // Only handle cart checkout flow
   if (metadata.type === "cart_checkout") {
     await handleCartCheckoutSuccess(paymentIntent);
-    return;
-  }
-
-  // Handle legacy adult registration
-  if (metadata.type === "adult_registration") {
-    await handleLegacyAdultRegistration(paymentIntent);
-    return;
-  }
-
-  // Handle legacy junior registration
-  if (metadata.type === "junior_registration") {
-    await handleLegacyJuniorRegistration(paymentIntent);
     return;
   }
 
@@ -696,54 +681,6 @@ async function createJuniorRegistrationFromCheckout(
 }
 
 /**
- * Handle legacy adult registration (direct checkout without cart)
- */
-async function handleLegacyAdultRegistration(paymentIntent: any) {
-  const registration = await getAdultRegistrationByPaymentIntentId(
-    paymentIntent.id,
-  );
-
-  if (registration) {
-    await updateAdultRegistrationPaymentStatus(registration.id, {
-      stripePaymentIntentId: paymentIntent.id,
-      stripeCustomerId: paymentIntent.customer as string | undefined,
-      paymentStatus: "paid",
-      paymentAmount: (paymentIntent.amount / 100).toFixed(2),
-    });
-    console.log(`Adult registration ${registration.id} marked as paid`);
-  } else {
-    console.warn(
-      `No adult registration found for payment intent ${paymentIntent.id}`,
-    );
-  }
-}
-
-/**
- * Handle legacy junior registration (direct checkout without cart)
- */
-async function handleLegacyJuniorRegistration(paymentIntent: any) {
-  const registration = await getJuniorProgramRegistrationByPaymentIntentId(
-    paymentIntent.id,
-  );
-
-  if (registration) {
-    await updateJuniorProgramRegistrationPaymentStatus(registration.id, {
-      stripePaymentIntentId: paymentIntent.id,
-      stripeCustomerId: paymentIntent.customer as string | undefined,
-      paymentStatus: "paid",
-      paymentAmount: (paymentIntent.amount / 100).toFixed(2),
-    });
-    console.log(
-      `Junior program registration ${registration.id} marked as paid`,
-    );
-  } else {
-    console.error(
-      `No junior program registration found for payment intent ${paymentIntent.id}`,
-    );
-  }
-}
-
-/**
  * Handle failed payment
  */
 async function handlePaymentIntentFailed(paymentIntent: any) {
@@ -755,30 +692,6 @@ async function handlePaymentIntentFailed(paymentIntent: any) {
   // The checkout session will eventually expire
   if (metadata.type === "cart_checkout") {
     console.log(`Cart checkout ${metadata.checkoutId} payment failed`);
-    return;
-  }
-
-  // Handle legacy flows
-  if (metadata.type === "adult_registration") {
-    const registration = await getAdultRegistrationByPaymentIntentId(
-      paymentIntent.id,
-    );
-    if (registration) {
-      await updateAdultRegistrationPaymentStatus(registration.id, {
-        stripePaymentIntentId: paymentIntent.id,
-        paymentStatus: "failed",
-      });
-    }
-  } else if (metadata.type === "junior_registration") {
-    const registration = await getJuniorProgramRegistrationByPaymentIntentId(
-      paymentIntent.id,
-    );
-    if (registration) {
-      await updateJuniorProgramRegistrationPaymentStatus(registration.id, {
-        stripePaymentIntentId: paymentIntent.id,
-        paymentStatus: "failed",
-      });
-    }
   }
 }
 
@@ -793,30 +706,6 @@ async function handlePaymentIntentCanceled(paymentIntent: any) {
   // For cart checkout, we don't create registrations on cancel
   if (metadata.type === "cart_checkout") {
     console.log(`Cart checkout ${metadata.checkoutId} payment canceled`);
-    return;
-  }
-
-  // Handle legacy flows
-  if (metadata.type === "adult_registration") {
-    const registration = await getAdultRegistrationByPaymentIntentId(
-      paymentIntent.id,
-    );
-    if (registration) {
-      await updateAdultRegistrationPaymentStatus(registration.id, {
-        stripePaymentIntentId: paymentIntent.id,
-        paymentStatus: "cancelled",
-      });
-    }
-  } else if (metadata.type === "junior_registration") {
-    const registration = await getJuniorProgramRegistrationByPaymentIntentId(
-      paymentIntent.id,
-    );
-    if (registration) {
-      await updateJuniorProgramRegistrationPaymentStatus(registration.id, {
-        stripePaymentIntentId: paymentIntent.id,
-        paymentStatus: "cancelled",
-      });
-    }
   }
 }
 

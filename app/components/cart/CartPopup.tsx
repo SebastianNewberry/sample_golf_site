@@ -126,7 +126,7 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 10, scale: 0.95 }}
           transition={{ duration: 0.2 }}
-          className="absolute top-0 w-80 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden md:-translate-x-1/2"
+          className="absolute top-0 w-96 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden md:-translate-x-1/2"
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
@@ -182,9 +182,8 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
               return (
                 <div
                   key={item.id}
-                  className={`p-3 border-b flex gap-3 last:border-0 hover:bg-gray-50 transition-colors group relative ${
-                    hasInsufficientQuantity || isSoldOut
-                  }`}
+                  className={`p-3 border-b flex gap-3 last:border-0 hover:bg-gray-50 transition-colors group relative ${hasInsufficientQuantity || isSoldOut
+                    }`}
                 >
                   <button
                     onClick={(e) => handleRemoveItem(e, item.id)}
@@ -219,7 +218,7 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
                           </p>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 mr-6">
                         <span className="text-sm font-bold text-gray-800">
                           $
                           {(
