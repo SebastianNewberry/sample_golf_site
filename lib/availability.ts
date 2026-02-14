@@ -109,11 +109,15 @@ export function extractBookedSessions(sessions: any[]): BookedSession[] {
       typeof s.schedule === "string" ? JSON.parse(s.schedule) : s.schedule;
 
     if (Array.isArray(sched) && sched.length > 0) {
-      return sched.map((slot: any) => ({
-        date: new Date(slot.date),
-        startTime: slot.startTime,
-        endTime: slot.endTime,
-      }));
+      return sched.map((slot: any) => {
+        // Parse YYYY-MM-DD as local date (not UTC midnight)
+        const [y, m, d] = slot.date.split('-').map(Number);
+        return {
+          date: new Date(y, m - 1, d),
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+        };
+      });
     } else {
       // If no schedule JSON, assume the session date/time itself is the booking
       // Convert UTC timestamps to EST "HH:mm" strings
@@ -180,7 +184,9 @@ export function filterAvailableSlots(
 
     // For the Date object in the result, we need to satisfy the interface.
     // We should probably ensure the Date object represents that day.
-    const slotReturnDate = new Date(slot.date);
+    // Parse YYYY-MM-DD as local date (not UTC midnight)
+    const [y, mo, da] = slotDateKey.split('-').map(Number);
+    const slotReturnDate = new Date(y, mo - 1, da);
 
     const slotStart = toMinutes(slot.startTime);
     const slotEnd = toMinutes(slot.endTime);

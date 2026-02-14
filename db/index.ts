@@ -15,7 +15,7 @@ import { drizzle } from "drizzle-orm/neon-http";
 import * as schema from "./schema";
 
 // This caches the connection in serverless environments to improve performance
-neonConfig.fetchConnectionCache = true;
+
 
 const sql = neon(process.env.DATABASE_URL!);
 

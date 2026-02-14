@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/app/components/cart/CartContext";
 import { addToCart } from "@/app/actions/cart";
 import { Loader2, Check, ShoppingCart, CreditCard } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react"; // Corrected from motion/react to framer-motion
+import { motion, AnimatePresence } from "motion/react";
 import defaultImage from "@/public/junior_private_instruction.webp";
 import { ProgramFeaturesAndDetails } from "@/app/components/ProgramFeaturesAndDetails";
 import { SessionCalendar } from "@/app/components/SessionCalendar";
@@ -355,7 +355,7 @@ export function JuniorPrivateGolfInstructionClient({
             <div className="mt-6">
               <SessionCalendar
                 schedule={availableSlots.map((s) => ({
-                  date: format(s.date, "yyyy-MM-dd"),
+                  date: s.date.toLocaleDateString("en-CA", { timeZone: "America/New_York" }),
                   startTime: s.startTime,
                   endTime: s.endTime,
                 }))}

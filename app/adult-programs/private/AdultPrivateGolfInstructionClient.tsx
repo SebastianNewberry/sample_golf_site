@@ -360,7 +360,7 @@ export function AdultPrivateGolfInstructionClient({
             <div className="mt-6">
               <SessionCalendar
                 schedule={availableSlots.map((s) => ({
-                  date: format(s.date, "yyyy-MM-dd"),
+                  date: s.date.toLocaleDateString("en-CA", { timeZone: "America/New_York" }),
                   startTime: s.startTime,
                   endTime: s.endTime,
                 }))}
@@ -447,10 +447,9 @@ export function AdultPrivateGolfInstructionClient({
                           key={pkg.name}
                           onClick={() => handlePriceSelect(pkg.name, pkg.price)}
                           className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-1 h-32
-                            ${
-                              selectedDuration === pkg.name
-                                ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))]"
-                                : "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
+                            ${selectedDuration === pkg.name
+                              ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))]"
+                              : "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
                             }`}
                         >
                           <p className="text-gray-600 font-medium">
@@ -497,10 +496,9 @@ export function AdultPrivateGolfInstructionClient({
                           key={pkg.name}
                           onClick={() => handlePriceSelect(pkg.name, pkg.price)}
                           className={`p-5 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between
-                            ${
-                              selectedDuration === pkg.name
-                                ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))]"
-                                : "bg-white border-gray-200 hover:border-green-200 hover:bg-white shadow-sm"
+                            ${selectedDuration === pkg.name
+                              ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))]"
+                              : "bg-white border-gray-200 hover:border-green-200 hover:bg-white shadow-sm"
                             }`}
                         >
                           <div className="text-left">
