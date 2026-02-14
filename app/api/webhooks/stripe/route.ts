@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import stripe from "@/lib/stripe";
+import { sendRegistrationConfirmationEmail } from "@/lib/email";
 import {
   updateAdultRegistrationPaymentStatus,
   getAdultRegistrationByPaymentIntentId,
@@ -460,6 +461,39 @@ async function handleCartCheckoutSuccess(paymentIntent: any) {
     console.log(`Cart ${cartId} deleted after successful checkout`);
   } catch (error) {
     console.error(`Error deleting cart ${cartId}:`, error);
+  }
+
+  // Send confirmation email
+  try {
+    // Get primary email from first item
+    const firstItem = formData.items[0];
+    const recipientEmail =
+      firstItem.registrationType === "adult"
+        ? (firstItem.formData as any).email
+        : (firstItem.formData as any).primaryContactEmail;
+
+    if (recipientEmail) {
+      // Build email items with program names (we need to fetch these)
+      const emailItems = formData.items.map((item, idx) => ({
+        programName: `Golf Program`, // Default name
+        registrationType: item.registrationType,
+        formData: item.formData as any,
+        sessionInfo: undefined,
+        price: pricePerItem,
+      }));
+
+      await sendRegistrationConfirmationEmail({
+        to: recipientEmail,
+        items: emailItems,
+        totalAmount: paymentAmount,
+        paymentId: paymentIntent.id,
+      });
+    } else {
+      console.warn("No recipient email found for confirmation email");
+    }
+  } catch (emailError) {
+    // Don't fail the webhook if email fails
+    console.error("Failed to send confirmation email:", emailError);
   }
 
   console.log(`Cart checkout ${checkoutId} completed successfully`);
