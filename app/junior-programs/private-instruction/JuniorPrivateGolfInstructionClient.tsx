@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/app/components/cart/CartContext";
 import { addToCart } from "@/app/actions/cart";
 import { Loader2, Check, ShoppingCart, CreditCard } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion"; // Corrected from motion/react to framer-motion
+import { motion, AnimatePresence } from "motion/react"; // Corrected from motion/react to framer-motion
 import defaultImage from "@/public/junior_private_instruction.webp";
 import { ProgramFeaturesAndDetails } from "@/app/components/ProgramFeaturesAndDetails";
 import { SessionCalendar } from "@/app/components/SessionCalendar";
@@ -447,10 +447,9 @@ export function JuniorPrivateGolfInstructionClient({
                           key={pkg.name}
                           onClick={() => handlePriceSelect(pkg.name, pkg.price)}
                           className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-1 h-32
-                            ${
-                              selectedDuration === pkg.name
-                                ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))]"
-                                : "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
+                            ${selectedDuration === pkg.name
+                              ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))]"
+                              : "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
                             }`}
                         >
                           <p className="text-gray-600 font-medium">
@@ -515,10 +514,9 @@ export function JuniorPrivateGolfInstructionClient({
                           key={pkg.name}
                           onClick={() => handlePriceSelect(pkg.name, pkg.price)}
                           className={`p-5 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between
-                            ${
-                              selectedDuration === pkg.name
-                                ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))]"
-                                : "bg-white border-gray-200 hover:border-green-200 hover:bg-white shadow-sm"
+                            ${selectedDuration === pkg.name
+                              ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))]"
+                              : "bg-white border-gray-200 hover:border-green-200 hover:bg-white shadow-sm"
                             }`}
                         >
                           <div className="text-left">
