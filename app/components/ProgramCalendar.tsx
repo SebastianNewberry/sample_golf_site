@@ -108,7 +108,7 @@ export function ProgramCalendar({
       <div className="bg-green-600 text-white px-4 py-3 flex items-center justify-between">
         <button
           onClick={previousMonth}
-          className="hover:bg-green-700 rounded p-1 transition-colors"
+          className="hover:bg-green-700 rounded p-1 transition-colors cursor-pointer"
           aria-label="Previous month"
         >
           <ChevronLeft size={20} />
@@ -116,7 +116,7 @@ export function ProgramCalendar({
         <h3 className="font-bold text-lg">{monthName}</h3>
         <button
           onClick={nextMonth}
-          className="hover:bg-green-700 rounded p-1 transition-colors"
+          className="hover:bg-green-700 rounded p-1 transition-colors cursor-pointer"
           aria-label="Next month"
         >
           <ChevronRight size={20} />
@@ -148,8 +148,9 @@ export function ProgramCalendar({
           return (
             <div
               key={index}
-              className={`bg-white p-1 transition-all duration-300 ${!day ? "bg-gray-50" : ""
-                } ${isExpanded ? "min-h-[200px]" : "min-h-[80px]"}`}
+              className={`bg-white p-1 transition-all duration-300 ${
+                !day ? "bg-gray-50" : ""
+              } ${isExpanded ? "min-h-[200px]" : "min-h-[80px]"}`}
             >
               {day && (
                 <>
@@ -241,11 +242,10 @@ export function ProgramCalendar({
       {/* Tooltip */}
       {hoveredEvent && (
         <div
-          className="fixed z-50 bg-white rounded-lg shadow-xl border border-gray-200 p-4 max-w-xs pointer-events-none"
+          className="fixed z-50 bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-80 pointer-events-none"
           style={{
             left: tooltipPosition.x,
             top: tooltipPosition.y,
-            transform: "translateX(-50%)",
           }}
         >
           <div className="font-bold text-sm text-gray-800 mb-2">

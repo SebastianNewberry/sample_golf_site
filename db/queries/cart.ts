@@ -1,10 +1,16 @@
 import "server-only";
 
 import { db } from "@/db/index";
-import { cart, cartItem, program, programSession } from "@/db/schema";
-import { eq, and, asc, isNull } from "drizzle-orm";
-
-const CART_EXPIRY_DAYS = 30;
+import {
+  cart,
+  cartItem,
+  program,
+  programSession,
+  adultRegistration,
+  juniorProgramRegistration,
+} from "@/db/schema";
+import { eq, and, asc, isNull, inArray, or, gt, sql } from "drizzle-orm";
+import { checkTimeSlotAvailability } from "./bookings";
 
 /**
  * Get cart by session ID
@@ -55,6 +61,8 @@ export async function getCartWithItems(sessionId: string) {
         startDate: programSession.startDate,
         endDate: programSession.endDate,
         schedule: programSession.schedule,
+        capacity: programSession.capacity,
+        enrolledCount: programSession.enrolledCount,
       },
     })
     .from(cartItem)
@@ -62,6 +70,159 @@ export async function getCartWithItems(sessionId: string) {
     .leftJoin(programSession, eq(cartItem.programSessionId, programSession.id))
     .where(eq(cartItem.cartId, cartData.id))
     .orderBy(asc(cartItem.createdAt));
+
+  // Calculate real-time enrolled counts for sessions in the cart
+  const sessionIds = items
+    .map((item) => item.programSessionId)
+    // Filter out nulls and duplicates
+    .filter((id): id is string => id !== null)
+    .filter((id, index, self) => self.indexOf(id) === index);
+
+  if (sessionIds.length > 0) {
+    // Fetch counts in parallel
+    // Logic: Count only confirmed (paid) registrations as we don't do holds
+    // We replicate the logic from checkProgramSessionCapacity
+    // We can't import the helper function easily so we reconstruct the condition
+    // For raw SQL builder in simple select, it's slightly verbose but safer to correct the count
+
+    const [adultCounts, juniorCounts] = await Promise.all([
+      db
+        .select({
+          sessionId: adultRegistration.programSessionId,
+          count: sql<number>`cast(count(*) as int)`,
+        })
+        .from(adultRegistration)
+        .where(
+          and(
+            inArray(adultRegistration.programSessionId, sessionIds),
+            eq(adultRegistration.paymentStatus, "paid"),
+          ),
+        )
+        .groupBy(adultRegistration.programSessionId),
+      db
+        .select({
+          sessionId: juniorProgramRegistration.programSessionId,
+          count: sql<number>`cast(count(*) as int)`,
+        })
+        .from(juniorProgramRegistration)
+        .where(
+          and(
+            inArray(juniorProgramRegistration.programSessionId, sessionIds),
+            eq(juniorProgramRegistration.paymentStatus, "paid"),
+          ),
+        )
+        .groupBy(juniorProgramRegistration.programSessionId),
+    ]);
+
+    // Create separate maps for adult and junior counts
+    const adultCountMap = new Map<string, number>();
+    const juniorCountMap = new Map<string, number>();
+
+    // Helper to populate maps
+    const populateMap = (
+      source: { sessionId: string | null; count: number }[],
+      targetMap: Map<string, number>,
+    ) => {
+      source.forEach((r) => {
+        if (r.sessionId) {
+          targetMap.set(
+            r.sessionId,
+            (targetMap.get(r.sessionId) || 0) + r.count,
+          );
+        }
+      });
+    };
+
+    populateMap(adultCounts, adultCountMap);
+    populateMap(juniorCounts, juniorCountMap);
+
+    // Update items with real-time enrolledCount based on program type
+    items.forEach((item) => {
+      if (item.programSessionId && item.session && item.program) {
+        let realtimeCount = 0;
+
+        // STRICTLY check the table that matches the program type
+        // This mirrors checkProgramSessionCapacity logic
+        if (item.program.type === "adult") {
+          realtimeCount = adultCountMap.get(item.programSessionId) || 0;
+        } else {
+          realtimeCount = juniorCountMap.get(item.programSessionId) || 0;
+        }
+
+        item.session.enrolledCount = realtimeCount;
+      }
+    });
+  }
+
+  // Check availability for Private Instruction items
+  for (const item of items) {
+    if (item.metadata && !item.session) {
+      try {
+        const slotData = JSON.parse(item.metadata);
+        const slots = slotData.slots || (slotData.date ? [slotData] : []);
+
+        for (const slot of slots) {
+          const baseDate = new Date(slot.date);
+          const [startH, startM] = slot.startTime.split(":").map(Number);
+          const [endH, endM] = slot.endTime.split(":").map(Number);
+
+          const startDate = new Date(baseDate);
+          startDate.setHours(startH, startM, 0, 0);
+
+          const endDate = new Date(baseDate);
+          endDate.setHours(endH, endM, 0, 0);
+
+          // Check availability
+          const availability = await checkTimeSlotAvailability(
+            startDate,
+            endDate,
+          );
+
+          if (!availability.available) {
+            // Attach availability status to the item
+            // We need to extend the type returned or just attach it as a property
+            // Since we are returning raw DB result + extras, we can cast or just assign
+            (item as any).availability = {
+              isAvailable: false,
+              error:
+                availability.reason === "hold_active"
+                  ? "This slot is currently on hold."
+                  : "This slot is no longer available.",
+            };
+            break; // Stop checking other slots for this item
+          }
+        }
+
+        // If we went through all slots and found no issues, mark as available
+        if (!(item as any).availability) {
+          (item as any).availability = { isAvailable: true };
+        }
+      } catch (error) {
+        console.error("Error checking private instruction availability", error);
+        (item as any).availability = {
+          isAvailable: false,
+          error: "Error validating slot.",
+        };
+      }
+    } else {
+      // For session based items, we already did logic above, but let's standardize the availability object
+      if (item.session) {
+        const enrolled = item.session.enrolledCount ?? 0;
+        const maxQuantity = Math.max(0, item.session.capacity - enrolled);
+        const isSoldOut = maxQuantity === 0;
+        const hasInsufficientQuantity = item.quantity > maxQuantity;
+
+        if (isSoldOut || hasInsufficientQuantity) {
+          (item as any).availability = {
+            isAvailable: false,
+            error: isSoldOut ? "Sold Out" : `Only ${maxQuantity} available`,
+          };
+        } else {
+          (item as any).availability = { isAvailable: true };
+        }
+      }
+    }
+  }
 
   return {
     ...cartData,
@@ -73,15 +234,11 @@ export async function getCartWithItems(sessionId: string) {
  * Create a new cart for a session
  */
 export async function createCart(sessionId: string, userId?: string) {
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + CART_EXPIRY_DAYS);
-
   const result = await db
     .insert(cart)
     .values({
       sessionId,
       userId,
-      expiresAt,
     })
     .returning();
 
@@ -96,12 +253,9 @@ export async function getOrCreateCart(sessionId: string, userId?: string) {
 
   if (existingCart) {
     // Update expiry on access
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + CART_EXPIRY_DAYS);
-
     await db
       .update(cart)
-      .set({ expiresAt, updatedAt: new Date() })
+      .set({ updatedAt: new Date() })
       .where(eq(cart.id, existingCart.id));
 
     return existingCart;

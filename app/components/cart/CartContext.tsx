@@ -40,7 +40,13 @@ interface CartItem {
     startDate: Date;
     endDate: Date;
     schedule: unknown;
+    capacity: number;
+    enrolledCount: number;
   } | null;
+  availability?: {
+    isAvailable: boolean;
+    error?: string;
+  };
 }
 
 interface CartContextType {

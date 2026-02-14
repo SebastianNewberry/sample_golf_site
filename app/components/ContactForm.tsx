@@ -124,7 +124,29 @@ export function ContactForm() {
               <FormItem>
                 <FormLabel>Contact Phone *</FormLabel>
                 <FormControl>
-                  <Input type="tel" placeholder="(555) 123-4567" {...field} />
+                  <Input
+                    type="tel"
+                    placeholder="(555) 123-4567"
+                    {...field}
+                    onChange={(e) => {
+                      const input = e.target.value;
+                      const numbers = input.replace(/\D/g, "");
+
+                      let formatted = numbers;
+                      if (numbers.length > 0) {
+                        if (numbers.length <= 3) {
+                          formatted = `(${numbers}`;
+                        } else if (numbers.length <= 6) {
+                          formatted = `(${numbers.slice(0, 3)}) ${numbers.slice(3)}`;
+                        } else {
+                          formatted = `(${numbers.slice(0, 3)}) ${numbers.slice(3, 6)}-${numbers.slice(6, 10)}`;
+                        }
+                      }
+
+                      field.onChange(formatted);
+                    }}
+                    maxLength={14}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

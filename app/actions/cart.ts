@@ -67,6 +67,30 @@ export async function addToCart(data: {
     const sessionId = await getOrCreateSessionId();
     const cart = await getOrCreateCart(sessionId);
 
+    // Capacity validation for sessions
+    if (data.programSessionId) {
+      const { available, remaining } = await checkProgramSessionCapacity(
+        data.programSessionId,
+      );
+
+      // Also check if they already have this in their cart and how many
+      const cartItems = await getCartWithItems(sessionId);
+      const currentInCart =
+        cartItems?.items
+          .filter((i) => i.programSessionId === data.programSessionId)
+          .reduce((sum, i) => sum + i.quantity, 0) || 0;
+
+      if (!available || currentInCart >= remaining) {
+        return {
+          success: false,
+          error:
+            remaining <= 0
+              ? "This session is currently full."
+              : `Only ${remaining} ${remaining === 1 ? "spot is" : "spots are"} available for this session, and you already have ${currentInCart} in your cart.`,
+        };
+      }
+    }
+
     const item = await addItemToCart({
       cartId: cart.id,
       programId: data.programId,
@@ -187,6 +211,30 @@ export async function removeFromCart(itemId: string) {
  */
 export async function updateCartItem(itemId: string, quantity: number) {
   try {
+    const sessionId = await getSessionId();
+    if (!sessionId) return { success: false, error: "Cart not found" };
+
+    const cartData = await getCartWithItems(sessionId);
+    const item = cartData?.items.find((i) => i.id === itemId);
+
+    if (!item) return { success: false, error: "Item not found" };
+
+    // If increasing quantity, check capacity
+    if (quantity > item.quantity && item.programSessionId) {
+      const { remaining } = await checkProgramSessionCapacity(
+        item.programSessionId,
+      );
+
+      // remaining is what's left in DB (Total Capacity - Enrolled).
+      // Since 'Enrolled' does not include items in cart, 'remaining' represents the absolute ceiling for this item's quantity.
+      if (quantity > remaining) {
+        return {
+          success: false,
+          error: `Only ${remaining} ${remaining === 1 ? "spot is" : "spots are"} available for this session.`,
+        };
+      }
+    }
+
     await updateCartItemQuantity(itemId, quantity);
     return { success: true, message: "Cart updated" };
   } catch (error) {
@@ -216,5 +264,21 @@ export async function emptyCart() {
   } catch (error) {
     console.error("Error clearing cart:", error);
     return { success: false, error: "Failed to clear cart" };
+  }
+}
+
+/**
+ * Check if a program session has availability
+ */
+import { checkProgramSessionCapacity } from "@/db/queries/programs";
+
+export async function checkSessionAvailability(sessionId: string) {
+  try {
+    const { available, remaining } =
+      await checkProgramSessionCapacity(sessionId);
+    return { success: true, available, remaining };
+  } catch (error) {
+    console.error("Error checking session availability:", error);
+    return { success: false, error: "Failed to check availability" };
   }
 }

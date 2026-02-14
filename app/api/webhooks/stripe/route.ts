@@ -28,6 +28,7 @@ import {
   addBookingParticipants,
   getBookingById,
 } from "@/db/queries/bookings";
+import { checkProgramSessionCapacity } from "@/db/queries/programs";
 
 /**
  * Stripe webhook handler
@@ -42,6 +43,8 @@ export async function POST(req: Request) {
   const body = await req.text();
   const headersList = await headers();
   const signature = headersList.get("stripe-signature") as string;
+
+  console.log("[Webhook] Received Stripe webhook request");
 
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
@@ -95,7 +98,10 @@ export async function POST(req: Request) {
  * Creates registrations for cart checkouts or updates existing registrations
  */
 async function handlePaymentIntentSucceeded(paymentIntent: any) {
-  console.log("Payment succeeded:", paymentIntent.id);
+  console.log(
+    `[Webhook] Payment succeeded: ${paymentIntent.id}. Metadata:`,
+    JSON.stringify(paymentIntent.metadata),
+  );
 
   const metadata = paymentIntent.metadata;
 
@@ -277,13 +283,28 @@ async function handleCartCheckoutSuccess(paymentIntent: any) {
                   try {
                     const booking = await getBookingById(reservedBookingId);
                     if (booking && booking.status === "pending_payment") {
+                      // Construct detailed notes
+                      const detailNotes = [
+                        `Student: ${studentName}`,
+                        `Type: ${bookingType === "adult" ? "Adult" : "Junior"} Private Lesson`,
+                        `Contact: ${userEmail}`,
+                        bookingType === "junior"
+                          ? `Parent: ${(item.formData as any).primaryContactFirstName} ${(item.formData as any).primaryContactLastName}`
+                          : null,
+                        (item.formData as any).additionalComments
+                          ? `Comments: ${(item.formData as any).additionalComments}`
+                          : null,
+                        `Program ID: ${item.programId}`,
+                      ]
+                        .filter(Boolean)
+                        .join("\n");
+
                       // Confirm Booking
                       await updateBookingStatus(
                         reservedBookingId,
                         "confirmed",
                         {
-                          expiresAt: null,
-                          notes: `Created via Checkout. Program: ${item.programId}`,
+                          notes: detailNotes,
                         },
                       );
                       await addBookingParticipants(reservedBookingId, [
@@ -328,6 +349,25 @@ async function handleCartCheckoutSuccess(paymentIntent: any) {
                     );
                   }
 
+                  // Construct detailed notes for fallback
+                  const detailNotes = [
+                    `Student: ${studentName}`,
+                    `Type: ${bookingType === "adult" ? "Adult" : "Junior"} Private Lesson`,
+                    `Contact: ${userEmail}`,
+                    bookingType === "junior"
+                      ? `Parent: ${(item.formData as any).primaryContactFirstName} ${(item.formData as any).primaryContactLastName}`
+                      : null,
+                    (item.formData as any).additionalComments
+                      ? `Comments: ${(item.formData as any).additionalComments}`
+                      : null,
+                    `Program ID: ${item.programId}`,
+                    !isAvailable
+                      ? "[CONFLICT - REFUND NEEDED] Slot taken during checkout."
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join("\n");
+
                   await createBooking(
                     {
                       title,
@@ -336,9 +376,7 @@ async function handleCartCheckoutSuccess(paymentIntent: any) {
                       endTime: endDate,
                       type: bookingType,
                       status: status,
-                      notes:
-                        `Created via Checkout. Program: ${item.programId}` +
-                        (!isAvailable ? " [CONFLICT - REFUND NEEDED]" : ""),
+                      notes: detailNotes,
                     },
                     [participantData],
                   );
@@ -372,12 +410,6 @@ async function handleCartCheckoutSuccess(paymentIntent: any) {
                 stripeCustomerId: paymentIntent.customer as string | undefined,
                 paymentStatus: "paid",
                 paymentAmount: pricePerItem,
-                // expiresAt remains set? NO, we should clear it or ignore it.
-                // `update` usually sets what we pass.
-                // We don't need to explicitly clear expiresAt if logic blindly checks "paid".
-                // But for cleanliness we could? My helper `updateAdult...` doesn't support clearing it explicitly unless I added `expiresAt` to params.
-                // I only added it to `create`.
-                // It's FINE. A paid registration with an expiry date in the past is still PAID.
                 // Queries check: status='paid' OR (...)
               });
             } else {
@@ -408,19 +440,59 @@ async function handleCartCheckoutSuccess(paymentIntent: any) {
 
         if (!confirmedGroupHold) {
           // Fallback: Create Fresh
+          let paymentStatus: "paid" | "failed" = "paid";
+          let additionalComments = "";
+
+          // FINAL CAPACITY CHECK (Anti-Overbooking)
+          if (item.programSessionId) {
+            try {
+              const capacityCheck = await checkProgramSessionCapacity(
+                item.programSessionId,
+              );
+              if (!capacityCheck.available) {
+                console.error(
+                  `[Webhook] OVERBOOKING DETECTED for session ${item.programSessionId}. Marking as FAILED.`,
+                );
+                paymentStatus = "failed";
+                additionalComments =
+                  "\n[SYSTEM: OVERBOOKED - REFUND NEEDED] Session was full at moment of payment processing.";
+              }
+            } catch (err) {
+              console.error(
+                `[Webhook] Error checking capacity for session ${item.programSessionId}`,
+                err,
+              );
+              // Fail-Open: Allow registration if capacity check fails to avoid data loss
+            }
+          }
+
           if (item.registrationType === "adult") {
+            const formData = item.formData as any;
+            if (additionalComments) {
+              formData.additionalComments =
+                (formData.additionalComments || "") + additionalComments;
+            }
+
             await createAdultRegistrationFromCheckout(
               item,
               paymentIntent.id,
               paymentIntent.customer as string | undefined,
               pricePerItem,
+              paymentStatus,
             );
           } else if (item.registrationType === "junior") {
+            const formData = item.formData as any;
+            if (additionalComments) {
+              formData.additionalComments =
+                (formData.additionalComments || "") + additionalComments;
+            }
+
             await createJuniorRegistrationFromCheckout(
               item,
               paymentIntent.id,
               paymentIntent.customer as string | undefined,
               pricePerItem,
+              paymentStatus,
             );
           }
         }
@@ -477,6 +549,7 @@ async function createAdultRegistrationFromCheckout(
   paymentIntentId: string,
   stripeCustomerId: string | undefined,
   paymentAmount: string,
+  paymentStatus: "paid" | "failed" = "paid",
 ) {
   const formData = item.formData as {
     firstName: string;
@@ -511,7 +584,7 @@ async function createAdultRegistrationFromCheckout(
     additionalComments: formData.additionalComments,
     stripePaymentIntentId: paymentIntentId,
     stripeCustomerId: stripeCustomerId,
-    paymentStatus: "paid",
+    paymentStatus: paymentStatus,
     paymentAmount: paymentAmount,
   });
 
@@ -530,6 +603,7 @@ async function createJuniorRegistrationFromCheckout(
   paymentIntentId: string,
   stripeCustomerId: string | undefined,
   paymentAmount: string,
+  paymentStatus: "paid" | "failed" = "paid",
 ) {
   const formData = item.formData as {
     primaryContactFirstName: string;
@@ -580,7 +654,7 @@ async function createJuniorRegistrationFromCheckout(
     programSessionId: item.programSessionId,
     stripePaymentIntentId: paymentIntentId,
     stripeCustomerId: stripeCustomerId,
-    paymentStatus: "paid",
+    paymentStatus: paymentStatus,
     paymentAmount: paymentAmount,
   });
 

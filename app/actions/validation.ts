@@ -5,12 +5,17 @@ import { checkProgramSessionCapacity } from "@/db/queries/programs";
 
 export interface ValidationResult {
   valid: boolean;
-  error?: string;
+  error?: string; // Global error
+  errors?: Record<string, string>; // Item-specific errors keyed by cartItemId
 }
 
 export async function validateCartAvailability(
   items: any[],
+  excludeCheckoutId?: string,
 ): Promise<ValidationResult> {
+  const errors: Record<string, string> = {};
+  let isValid = true;
+
   // Validate each item
   for (const item of items) {
     // Only Private Instruction items have slot metadata
@@ -22,10 +27,6 @@ export async function validateCartAvailability(
         const slots = slotData.slots || (slotData.date ? [slotData] : []);
 
         for (const slot of slots) {
-          // Parse times carefully matching the logic used in webhook
-          // slot.date is likely YYYY-MM-DD string
-          // slot.startTime is HH:mm
-
           const baseDate = new Date(slot.date);
           const [startH, startM] = slot.startTime.split(":").map(Number);
           const [endH, endM] = slot.endTime.split(":").map(Number);
@@ -37,44 +38,53 @@ export async function validateCartAvailability(
           endDate.setHours(endH, endM, 0, 0);
 
           // Check DB for overlapping confirmed bookings
-          const isAvailable = await checkTimeSlotAvailability(
+          const availability = await checkTimeSlotAvailability(
             startDate,
             endDate,
+            undefined, // excludeBookingId
+            excludeCheckoutId,
           );
 
-          if (!isAvailable) {
-            return {
-              valid: false,
-              error: `The slot on ${slot.date} at ${slot.startTime} is no longer available. Please remove it from your cart.`,
-            };
+          if (!availability.available) {
+            isValid = false;
+            const timeStr = `${slot.date} at ${slot.startTime}`;
+
+            if (availability.reason === "hold_active") {
+              errors[item.id] =
+                `The slot on ${timeStr} is currently being purchased by another customer. Please try again in 15 minutes.`;
+            } else {
+              errors[item.id] =
+                `The slot on ${timeStr} is no longer available.`;
+            }
+            break; // Stop checking slots for this item if one is invalid
           }
         }
       } catch (e) {
         console.error("Error parsing metadata during validation", e);
-        // If metadata is corrupt, we might want to block or allow?
-        // Safer to block if we can't verify.
-        return {
-          valid: false,
-          error: "Invalid cart item data. Please refresh.",
-        };
+        isValid = false;
+        errors[item.id] = "Invalid item data.";
       }
     }
 
-    // Future: Validate Group Sessions (programSessionId) capacity
+    // Validate Group Sessions (programSessionId) capacity
     if (item.programSessionId) {
-      // Check db.programSession.enrolledCount < capacity
-      // Logic to comes here if needed.
       const capacityCheck = await checkProgramSessionCapacity(
         item.programSessionId,
+        excludeCheckoutId,
       );
       if (!capacityCheck.available) {
-        return {
-          valid: false,
-          error: `The session is full (Remaining spots: ${capacityCheck.remaining}). Please remove it.`,
-        };
+        isValid = false;
+        errors[item.id] =
+          `This session is full (remaining: ${capacityCheck.remaining}).`;
       }
     }
   }
 
-  return { valid: true };
+  return {
+    valid: isValid,
+    errors: isValid ? undefined : errors,
+    error: isValid
+      ? undefined
+      : "Some items in your cart are no longer available.",
+  };
 }

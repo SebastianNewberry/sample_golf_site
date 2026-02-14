@@ -53,7 +53,6 @@ export async function createJuniorProgramRegistration(data: {
   stripeCustomerId?: string;
   paymentStatus?: "pending" | "paid" | "failed" | "cancelled";
   paymentAmount?: string;
-  expiresAt?: Date;
 }) {
   const result = await db
     .insert(juniorProgramRegistration)
@@ -65,7 +64,6 @@ export async function createJuniorProgramRegistration(data: {
       stripeCustomerId: data.stripeCustomerId,
       paymentStatus: data.paymentStatus || "pending",
       paymentAmount: data.paymentAmount,
-      expiresAt: data.expiresAt,
     })
     .returning();
 
@@ -166,7 +164,6 @@ export async function getOrCreateJuniorProgramRegistration(data: {
   stripeCustomerId?: string;
   paymentStatus?: "pending" | "paid" | "failed" | "cancelled";
   paymentAmount?: string;
-  expiresAt?: Date;
 }) {
   // First, try to find existing registration by payment intent ID
   const existing = await getJuniorProgramRegistrationByPaymentIntentId(

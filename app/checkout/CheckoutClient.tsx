@@ -25,7 +25,9 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { CheckoutAdultForm } from "./CheckoutAdultForm";
 import { CheckoutJuniorForm } from "./CheckoutJuniorForm";
-import { processCheckout } from "@/app/actions/checkout";
+import { createCheckoutPaymentIntent } from "@/app/actions/checkout";
+import { validateCartAvailability } from "@/app/actions/validation";
+import { EmbeddedPaymentForm } from "@/app/components/checkout/EmbeddedPaymentForm";
 
 // Initialize Stripe
 const stripePromise = loadStripe(
@@ -55,6 +57,7 @@ interface CartItemFormData {
   programSessionId?: string;
   registrationType: "adult" | "junior";
   formData: any;
+  storageKey: string;
 }
 
 // Success component
@@ -64,6 +67,9 @@ function CheckoutSuccess() {
 
   useEffect(() => {
     clearCart();
+    clearCart();
+    localStorage.removeItem("checkout_form_data");
+    localStorage.removeItem("pending_checkout_id");
   }, [clearCart]);
 
   return (
@@ -89,7 +95,7 @@ function CheckoutSuccess() {
       </div>
       <Button
         onClick={() => router.push("/")}
-        className="bg-green-600 hover:bg-green-700"
+        className="bg-green-600 enabled:hover:bg-green-700"
       >
         Return to Home
       </Button>
@@ -110,6 +116,8 @@ export function CheckoutClient() {
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string>("");
   const [isSuccess, setIsSuccess] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [paymentTotal, setPaymentTotal] = useState(0);
 
   // Check for success redirect
   useEffect(() => {
@@ -118,25 +126,95 @@ export function CheckoutClient() {
     }
   }, [searchParams]);
 
-  // Initialize form data list when items load
+  // Scroll to top when step changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentStep, currentFormIndex]);
+
+  // Validate cart availability on mount
+  useEffect(() => {
+    const validate = async () => {
+      if (items.length > 0 && !isSuccess) {
+        try {
+          const pendingCheckoutId = localStorage.getItem("pending_checkout_id");
+          const result = await validateCartAvailability(
+            items,
+            pendingCheckoutId || undefined,
+          );
+          if (!result.valid) {
+            router.push("/cart?validate=true");
+          }
+        } catch (error) {
+          console.error("Validation error:", error);
+        }
+      }
+    };
+    validate();
+  }, [items, isSuccess, router]);
+
+  // Load saved form data from localStorage on mount
   useEffect(() => {
     if (items.length > 0 && formDataList.length === 0) {
+      const savedDataJson = localStorage.getItem("checkout_form_data");
+      let savedData: Record<string, any> = {};
+      if (savedDataJson) {
+        try {
+          savedData = JSON.parse(savedDataJson);
+        } catch (e) {
+          console.error("Failed to parse saved form data", e);
+        }
+      }
+
       const newFormDataList: CartItemFormData[] = [];
 
       items.forEach((item) => {
         for (let i = 0; i < item.quantity; i++) {
+          // Try to find saved data for this specific item type/id
+          // We can key by cartItemId since specific items are distinct in cart
+          // If multiple quantities of same item, they have same cartItemId in DB?
+          // No, usually cart items are unique rows.
+          // Wait, if quantity > 1, are they unique rows?
+          // In the cart query: "items" seems to be rows.
+          // "quantity" field suggests one row per program+session combo.
+          // So if quantity is 2, we have one item with qty=2.
+          // This loop expands them to individual forms.
+          // to uniquely identify the *nth* form of a cart item, we need index.
+          const key = `${item.id}_${i}`;
+
           newFormDataList.push({
             cartItemId: item.id,
             programId: item.programId,
             programSessionId: item.programSessionId || undefined,
             registrationType: item.registrationType as "adult" | "junior",
-            formData: null,
+            formData: savedData[key] || null,
+            storageKey: key,
           });
         }
       });
 
       setFormDataList(newFormDataList);
-    } else if (items.length > 0 && formDataList.length > 0) {
+    }
+    // Handle cart updates (add/remove items) while staying on checkout
+    else if (items.length > 0 && formDataList.length > 0) {
+      // ... (existing logic for expanding list if needed) ...
+      // We might want to be smarter here but for now just preserving existing structure is safer
+      // The original code handled expansion. We should keep it but maybe ensuring we don't lose data.
+      // Actually, the simple expansion logic below might wipe data if we are not careful?
+      // The original code:
+      /*
+          if (totalItems > formDataList.length) { ... }
+        */
+      // It appends new empty forms. That is fine.
+      // But what if an item was REMOVED?
+      // The original code didn't handle removal cleanup in `formDataList` specifically,
+      // relying on the fact that `handleProceedToPayment` maps based on `formDataList`.
+      // If `formDataList` has stale entries, they might cause issues if we submit them.
+      // But `processCheckout` validates against `data.items`, which comes from `formDataList`.
+      // Ideally we should sync `formDataList` to exactly match `items`.
+
+      // Let's stick to the original logic for now to minimize regression risk,
+      // just patching the "Load" part.
+
       const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
       if (totalItems > formDataList.length) {
@@ -147,12 +225,22 @@ export function CheckoutClient() {
           ).length;
           if (currentFormsCheck < item.quantity) {
             for (let i = 0; i < item.quantity - currentFormsCheck; i++) {
+              // Try to load saved data for this new instance too?
+              const formIndex = currentFormsCheck + i;
+              const key = `${item.id}_${formIndex}`;
+              const savedDataJson = localStorage.getItem("checkout_form_data");
+              let savedData: Record<string, any> = {};
+              try {
+                savedData = JSON.parse(savedDataJson || "{}");
+              } catch {}
+
               newFormDataList.push({
                 cartItemId: item.id,
                 programId: item.programId,
                 programSessionId: item.programSessionId || undefined,
                 registrationType: item.registrationType as "adult" | "junior",
-                formData: null,
+                formData: savedData[key] || null,
+                storageKey: key,
               });
             }
           }
@@ -162,7 +250,29 @@ export function CheckoutClient() {
         }
       }
     }
-  }, [items, formDataList.length, formDataList]);
+  }, [items, formDataList.length, formDataList]); // Dependencies match original logic mostly
+
+  // Save to localStorage whenever formDataList updates
+  useEffect(() => {
+    if (formDataList.length > 0) {
+      const dataToSave: Record<string, any> = {};
+      // We need to map back to the keys: cartItemId_index
+      // We can iterate and reconstruct.
+      // Since formDataList is flat and ordered, we need to group by cartItemId to find index.
+      const counts: Record<string, number> = {};
+
+      formDataList.forEach((item) => {
+        const idx = counts[item.cartItemId] || 0;
+        counts[item.cartItemId] = idx + 1;
+
+        if (item.formData) {
+          dataToSave[`${item.cartItemId}_${idx}`] = item.formData;
+        }
+      });
+
+      localStorage.setItem("checkout_form_data", JSON.stringify(dataToSave));
+    }
+  }, [formDataList]);
 
   // Steps definition
   const steps = [
@@ -200,7 +310,7 @@ export function CheckoutClient() {
     setCheckoutError("");
 
     try {
-      const result = await processCheckout({
+      const result = await createCheckoutPaymentIntent({
         items: allFormData.map((item) => ({
           cartItemId: item.cartItemId,
           programId: item.programId,
@@ -211,10 +321,16 @@ export function CheckoutClient() {
         totalAmount: total,
       });
 
-      if (result.success && result.url) {
-        router.push(result.url);
+      if (result.success && result.clientSecret) {
+        setClientSecret(result.clientSecret);
+        setPaymentTotal(total);
+        if (result.checkoutId) {
+          localStorage.setItem("pending_checkout_id", result.checkoutId);
+        }
+        setCurrentStep(2); // Move to Payment Step
+        setIsProcessingCheckout(false);
       } else {
-        setCheckoutError(result.error || "Failed to process checkout");
+        setCheckoutError(result.error || "Failed to initialize payment");
         setIsProcessingCheckout(false);
       }
     } catch (error) {
@@ -369,18 +485,42 @@ export function CheckoutClient() {
                       <Button
                         variant="outline"
                         onClick={() => router.push("/cart")}
-                        className="flex-1 border-green-600 text-green-700 hover:bg-green-50 hover:text-green-800"
+                        className="flex-1 border-green-600 text-green-700 enabled:hover:bg-green-50 enabled:hover:text-green-800"
                       >
                         <ArrowLeft className="mr-2 h-4 w-4" />
                         Edit Cart
                       </Button>
-                      <Button
-                        onClick={() => setCurrentStep(1)}
-                        className="flex-1 bg-orange-500 hover:bg-orange-600 text-white cursor-pointer"
-                      >
-                        Continue to Registration
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
+
+                      {/* Check if all forms are complete */}
+                      {items.length > 0 &&
+                      formDataList.length ===
+                        items.reduce((sum, i) => sum + i.quantity, 0) &&
+                      formDataList.every((f) => f.formData !== null) ? (
+                        <>
+                          <Button
+                            variant="outline"
+                            onClick={() => setCurrentStep(1)}
+                            className="flex-1 border-orange-500 text-orange-600 enabled:hover:bg-orange-50 enabled:hover:text-orange-600"
+                          >
+                            Edit Registration
+                          </Button>
+                          <Button
+                            onClick={() => handleProceedToPayment(formDataList)}
+                            className="flex-1 bg-green-600 enabled:hover:bg-green-700 text-white cursor-pointer"
+                          >
+                            Pay Now
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          onClick={() => setCurrentStep(1)}
+                          className="flex-1 bg-orange-500 enabled:hover:bg-orange-600 text-white cursor-pointer"
+                        >
+                          Continue to Registration
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </motion.div>
                 )}
@@ -439,6 +579,8 @@ export function CheckoutClient() {
                         isLast={currentFormIndex === formDataList.length - 1}
                         isProcessing={isProcessingCheckout}
                         primaryFormData={getPrimaryFormData(currentFormIndex)}
+                        storageKey={formDataList[currentFormIndex]?.storageKey}
+                        onGoToCart={() => setCurrentStep(0)}
                       />
                     ) : (
                       <CheckoutAdultForm
@@ -464,6 +606,8 @@ export function CheckoutClient() {
                         isLast={currentFormIndex === formDataList.length - 1}
                         isProcessing={isProcessingCheckout}
                         primaryFormData={getPrimaryFormData(currentFormIndex)}
+                        storageKey={formDataList[currentFormIndex]?.storageKey}
+                        onGoToCart={() => setCurrentStep(0)}
                       />
                     )}
                   </motion.div>
@@ -471,16 +615,35 @@ export function CheckoutClient() {
 
                 {currentStep === 2 && (
                   <motion.div
-                    key="payment-redirect"
+                    key="payment-embedded"
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="flex flex-col items-center justify-center py-12"
                   >
-                    <Loader2 className="h-12 w-12 animate-spin text-green-600 mb-4" />
-                    <p className="text-lg text-gray-600">
-                      Redirecting to Stripe...
-                    </p>
+                    <div className="mb-6">
+                      <h2 className="text-xl font-bold text-gray-900 mb-2">
+                        Review & Pay
+                      </h2>
+                      <p className="text-gray-600">
+                        Enter your payment details below to complete your order.
+                      </p>
+                    </div>
+
+                    {clientSecret && (
+                      <Elements
+                        stripe={stripePromise}
+                        options={{
+                          clientSecret,
+                          appearance: { theme: "stripe" },
+                        }}
+                      >
+                        <EmbeddedPaymentForm
+                          clientSecret={clientSecret}
+                          totalAmount={paymentTotal}
+                          onBack={() => setCurrentStep(1)}
+                        />
+                      </Elements>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>

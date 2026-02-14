@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Loader2, CreditCard } from "lucide-react";
-import { addToCart } from "@/app/actions/cart";
+import { addToCart, checkSessionAvailability } from "@/app/actions/cart";
 import { useCart } from "@/app/components/cart/CartContext";
 
 interface BuyNowButtonProps {
@@ -30,7 +30,7 @@ export function BuyNowButton({
 }: BuyNowButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { refreshCart } = useCart();
+  const { refreshCart, items } = useCart();
 
   const handleBuyNow = async () => {
     if (disabled) return;
@@ -38,6 +38,34 @@ export function BuyNowButton({
     setIsLoading(true);
 
     try {
+      // If adding a specific session, check capacity
+      if (programSessionId) {
+        // 1. Check server for availability
+        const availability = await checkSessionAvailability(programSessionId);
+
+        if (!availability.success) {
+          alert("Failed to check availability");
+          setIsLoading(false);
+          return;
+        }
+
+        const { available, remaining } = availability;
+
+        // 3. Validate
+        // Check if we have hit the capacity limit including what's in cart
+        // 1. Calculate how many we already have in cart
+        const inCartQuantity = items
+          .filter((item) => item.programSessionId === programSessionId)
+          .reduce((sum, item) => sum + item.quantity, 0);
+
+        // We are trying to add 1 more
+        if (!available || remaining <= inCartQuantity) {
+          alert("Sorry, no more spots available.");
+          setIsLoading(false);
+          return;
+        }
+      }
+
       // Add item to cart
       const result = await addToCart({
         programId,
@@ -48,7 +76,6 @@ export function BuyNowButton({
 
       if (result.success) {
         await refreshCart();
-        // Immediately redirect to checkout
         router.push("/checkout");
       } else {
         console.error("Failed to add to cart:", result.error);
@@ -66,7 +93,7 @@ export function BuyNowButton({
     <Button
       onClick={handleBuyNow}
       disabled={isLoading || disabled}
-      className={`${className} cursor-pointer`}
+      className={className}
       size={size}
       variant="default"
     >

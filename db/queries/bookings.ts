@@ -7,7 +7,7 @@ import {
   bookingParticipant,
   NewBookingParticipant,
 } from "@/db/schema";
-import { eq, and, lt, gt, or } from "drizzle-orm";
+import { eq, and, lt, gt, or, not, like } from "drizzle-orm";
 
 // Get ALL bookings (including cancelled/expired) - keeping properly named for clarity if needed elsewhere
 export async function getBookingsByType(type: "adult" | "junior") {
@@ -17,21 +17,7 @@ export async function getBookingsByType(type: "adult" | "junior") {
 // Get only ACTIVE bookings (Confirmed + Valid Holds)
 export async function getActiveBookingsByType(type: "adult" | "junior") {
   const now = new Date();
-  return await db
-    .select()
-    .from(booking)
-    .where(
-      and(
-        eq(booking.type, type),
-        or(
-          eq(booking.status, "confirmed"),
-          and(
-            eq(booking.status, "pending_payment"),
-            gt(booking.expiresAt, now),
-          ),
-        ),
-      ),
-    );
+  return await db.select().from(booking).where(eq(booking.status, "confirmed"));
 }
 
 export async function getAllBookings() {
@@ -83,7 +69,8 @@ export async function createBooking(
 export async function checkTimeSlotAvailability(
   startTime: Date,
   endTime: Date,
-  excludeBookingId?: string,
+  excludeBookingId?: string, // existing parameter, maybe unused or used differently?
+  excludeCheckoutId?: string,
 ) {
   // Find any booking that overlaps with the requested time slot
   // Overlap logic: (StartA < EndB) and (EndA > StartB)
@@ -95,28 +82,33 @@ export async function checkTimeSlotAvailability(
 
   // A slot is taken if:
   // 1. Status is "confirmed"
-  // 2. OR Status is "pending_payment" AND expiresAt > Now
+  // 2. OR Status is "pending_payment" (logic simplified, expirations handled elsewhere/removed)
 
-  const statusRule = or(
-    eq(booking.status, "confirmed"),
-    and(
-      eq(booking.status, "pending_payment"),
-      gt(booking.expiresAt, new Date()),
-    ),
-  );
+  const statusRule = eq(booking.status, "confirmed");
 
   const conflictingBookings = await db
     .select()
     .from(booking)
     .where(and(...overlapRules, statusRule));
 
-  return conflictingBookings.length === 0;
+  if (conflictingBookings.length === 0) {
+    return { available: true };
+  }
+
+  // Determine reason
+  const hasConfirmed = conflictingBookings.some(
+    (b) => b.status === "confirmed",
+  );
+  return {
+    available: false,
+    reason: hasConfirmed ? "fully_booked" : "hold_active",
+  };
 }
 
 export async function updateBookingStatus(
   bookingId: string,
   status: "confirmed" | "cancelled" | "pending_payment",
-  updates: { expiresAt?: Date | null; notes?: string } = {},
+  updates: { notes?: string } = {},
 ) {
   await db
     .update(booking)

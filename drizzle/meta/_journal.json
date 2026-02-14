@@ -113,6 +113,41 @@
       "when": 1769396920190,
       "tag": "0015_lowly_weapon_omega",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1770496631314,
+      "tag": "0016_mighty_silverclaw",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1770561887660,
+      "tag": "0017_conscious_shriek",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1770564107430,
+      "tag": "0018_clammy_vermin",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1770584345179,
+      "tag": "0019_curved_spirit",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1770592603832,
+      "tag": "0020_sturdy_machine_man",
+      "breakpoints": true
     }
   ]
 }

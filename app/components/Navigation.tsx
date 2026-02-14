@@ -160,7 +160,7 @@ export default function Navigation() {
             </Link>
             <motion.button
               aria-label="Toggle menu"
-              className="hover:bg-gray-300 inline-flex size-10 items-center justify-center rounded-md border md:hidden"
+              className="hover:bg-gray-300 inline-flex size-10 items-center justify-center rounded-md border md:hidden cursor-pointer"
               onClick={() => setOpen((s) => !s)}
               whileTap={{ scale: 0.92 }}
             >
@@ -172,8 +172,9 @@ export default function Navigation() {
           <div className="hidden items-center gap-2 md:flex">
             <Link
               href="/"
-              className={`hover:bg-gray-300 rounded-md px-4 py-2 text-sm font-bold ${isHomeActive ? "text-orange-600" : "text-gray-800"
-                }`}
+              className={`hover:bg-gray-300 rounded-md px-4 py-2 text-sm font-bold ${
+                isHomeActive ? "text-orange-600" : "text-gray-800"
+              }`}
             >
               HOME
             </Link>
@@ -183,8 +184,9 @@ export default function Navigation() {
               <button
                 onMouseEnter={() => setJuniorProgramsOpen(true)}
                 onMouseLeave={() => setJuniorProgramsOpen(false)}
-                className={`inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-bold cursor-pointer ${isJuniorProgramsActive ? "text-orange-600" : "text-gray-800"
-                  } ${juniorProgramsOpen ? "bg-gray-300" : "hover:bg-gray-300"}`}
+                className={`inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-bold cursor-pointer ${
+                  isJuniorProgramsActive ? "text-orange-600" : "text-gray-800"
+                } ${juniorProgramsOpen ? "bg-gray-300" : "hover:bg-gray-300"}`}
               >
                 JUNIOR PROGRAMS <ChevronDown size={16} />
               </button>
@@ -302,14 +304,16 @@ export default function Navigation() {
                             <Link
                               key={program.title}
                               href={program.href || ""}
-                              className={`hover:bg-gray-300 block rounded-md p-2 ${pathname === program.href ? "bg-gray-300" : ""
-                                }`}
+                              className={`hover:bg-gray-300 block rounded-md p-2 ${
+                                pathname === program.href ? "bg-gray-300" : ""
+                              }`}
                             >
                               <p
-                                className={`text-sm font-bold ${pathname === program.href
+                                className={`text-sm font-bold ${
+                                  pathname === program.href
                                     ? "text-orange-600"
                                     : "text-gray-800"
-                                  }`}
+                                }`}
                               >
                                 {program.title}
                               </p>
@@ -330,8 +334,9 @@ export default function Navigation() {
               <button
                 onMouseEnter={() => setAdultProgramsOpen(true)}
                 onMouseLeave={() => setAdultProgramsOpen(false)}
-                className={`inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-bold cursor-pointer ${isAdultProgramsActive ? "text-orange-600" : "text-gray-800"
-                  } ${adultProgramsOpen ? "bg-gray-300" : "hover:bg-gray-300"}`}
+                className={`inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-bold cursor-pointer ${
+                  isAdultProgramsActive ? "text-orange-600" : "text-gray-800"
+                } ${adultProgramsOpen ? "bg-gray-300" : "hover:bg-gray-300"}`}
               >
                 ADULT PROGRAMS <ChevronDown size={16} />
               </button>
@@ -362,14 +367,16 @@ export default function Navigation() {
                         <li key={program.title}>
                           <Link
                             href={program.href || "/"}
-                            className={`hover:bg-gray-300 block rounded-md p-2 ${pathname === program.href ? "bg-gray-300" : ""
-                              }`}
+                            className={`hover:bg-gray-300 block rounded-md p-2 ${
+                              pathname === program.href ? "bg-gray-300" : ""
+                            }`}
                           >
                             <p
-                              className={`text-sm font-bold ${pathname === program.href
+                              className={`text-sm font-bold ${
+                                pathname === program.href
                                   ? "text-orange-600"
                                   : "text-gray-800"
-                                }`}
+                              }`}
                             >
                               {program.title}
                             </p>
@@ -387,16 +394,18 @@ export default function Navigation() {
 
             <Link
               href="/contact"
-              className={`hover:bg-gray-300 rounded-md px-4 py-2 text-sm font-bold ${isContactActive ? "text-orange-600" : "text-gray-800"
-                }`}
+              className={`hover:bg-gray-300 rounded-md px-4 py-2 text-sm font-bold ${
+                isContactActive ? "text-orange-600" : "text-gray-800"
+              }`}
             >
               CONNECT WITH US
             </Link>
 
             <Link
               href="/calendar"
-              className={`hover:bg-gray-300 rounded-md px-4 py-2 text-sm font-bold ${pathname === "/calendar" ? "text-orange-600" : "text-gray-800"
-                }`}
+              className={`hover:bg-gray-300 rounded-md px-4 py-2 text-sm font-bold ${
+                pathname === "/calendar" ? "text-orange-600" : "text-gray-800"
+              }`}
             >
               CALENDAR
             </Link>
@@ -405,14 +414,14 @@ export default function Navigation() {
           {/* Contact Button & Cart */}
           <div className="hidden items-center gap-3 md:flex">
             <CartIcon />
-            <a href="tel:+12488790909" className="hidden sm:block">
-              <Button
-                variant="outline"
-                className="text-orange-500 border-orange-200 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-300"
-              >
-                {"(248) 563-3561"}
-              </Button>
-            </a>
+            <div className="hidden sm:flex flex-col items-start leading-tight">
+              <span className="text-xs font-bold text-orange-600">
+                Contact Us
+              </span>
+              <span className="text-sm font-bold text-gray-800">
+                (248) 563-3561
+              </span>
+            </div>
           </div>
         </div>
 
@@ -427,8 +436,9 @@ export default function Navigation() {
             >
               <details ref={juniorDetailsRef} className="px-3">
                 <summary
-                  className={`hover:bg-gray-300 flex cursor-pointer list-none items-center justify-between rounded-md px-0 py-2 text-sm font-bold ${isJuniorProgramsActive ? "text-orange-600" : "text-gray-800"
-                    }`}
+                  className={`hover:bg-gray-300 flex cursor-pointer list-none items-center justify-between rounded-md px-0 py-2 text-sm font-bold ${
+                    isJuniorProgramsActive ? "text-orange-600" : "text-gray-800"
+                  }`}
                 >
                   <span>JUNIOR PROGRAMS</span>
                   <ChevronDown size={16} />
@@ -440,7 +450,14 @@ export default function Navigation() {
                       <p className="text-base font-bold text-gray-800">
                         About Our Junior Programs
                       </p>
-                      <div className="w-full h-48 bg-black rounded-lg" />
+                      <div className="relative w-full h-72">
+                        <Image
+                          src={aboutOurJuniorPrograms}
+                          alt="Junior Programs"
+                          fill
+                          className="object-cover rounded-lg"
+                        />
+                      </div>
                       <p className="text-xs text-gray-600 leading-relaxed">
                         Our junior programs are designed to benefit boys and
                         girls of all athletic abilities, levels of golf
@@ -455,13 +472,27 @@ export default function Navigation() {
                       </p>
                       <div className="grid grid-cols-2 gap-2 pt-2">
                         <div className="space-y-1">
-                          <div className="w-full h-28 bg-black rounded-lg" />
+                          <div className="relative w-full h-48">
+                            <Image
+                              src={pgaMember}
+                              alt="PGA Member"
+                              fill
+                              className="object-cover rounded-lg"
+                            />
+                          </div>
                           <p className="text-xs text-gray-600 text-center font-semibold">
                             PGA Member
                           </p>
                         </div>
                         <div className="space-y-1">
-                          <div className="w-full h-28 bg-black rounded-lg" />
+                          <div className="relative w-full h-48">
+                            <Image
+                              src={usKidsGolfCertified}
+                              alt="US Kids Golf Certified"
+                              fill
+                              className="object-cover rounded-lg"
+                            />
+                          </div>
                           <p className="text-xs text-gray-600 text-center font-semibold">
                             U.S. Kids Golf Certified
                           </p>
@@ -500,15 +531,17 @@ export default function Navigation() {
                             <Link
                               href={program.href || "/"}
                               onClick={handleLinkClick}
-                              className={`hover:bg-gray-300 flex flex-col rounded-md px-2 py-2 text-sm ${pathname === program.href ? "bg-gray-300" : ""
-                                }`}
+                              className={`hover:bg-gray-300 flex flex-col rounded-md px-2 py-2 text-sm ${
+                                pathname === program.href ? "bg-gray-300" : ""
+                              }`}
                             >
                               <div className="min-w-0">
                                 <p
-                                  className={`font-bold ${pathname === program.href
+                                  className={`font-bold ${
+                                    pathname === program.href
                                       ? "text-orange-600"
                                       : "text-gray-800"
-                                    }`}
+                                  }`}
                                 >
                                   {program.title}
                                 </p>
@@ -526,8 +559,9 @@ export default function Navigation() {
 
               <details ref={adultDetailsRef} className="px-3">
                 <summary
-                  className={`hover:bg-gray-300 flex cursor-pointer list-none items-center justify-between rounded-md px-0 py-2 text-sm font-bold ${isAdultProgramsActive ? "text-orange-600" : "text-gray-800"
-                    }`}
+                  className={`hover:bg-gray-300 flex cursor-pointer list-none items-center justify-between rounded-md px-0 py-2 text-sm font-bold ${
+                    isAdultProgramsActive ? "text-orange-600" : "text-gray-800"
+                  }`}
                 >
                   <span>ADULT PROGRAMS</span>
                   <ChevronDown size={16} />
@@ -539,15 +573,17 @@ export default function Navigation() {
                         <Link
                           href={program.href || "/"}
                           onClick={handleLinkClick}
-                          className={`hover:bg-gray-300 flex flex-col rounded-md px-2 py-2 text-sm ${pathname === program.href ? "bg-gray-300" : ""
-                            }`}
+                          className={`hover:bg-gray-300 flex flex-col rounded-md px-2 py-2 text-sm ${
+                            pathname === program.href ? "bg-gray-300" : ""
+                          }`}
                         >
                           <div className="min-w-0">
                             <p
-                              className={`font-bold ${pathname === program.href
+                              className={`font-bold ${
+                                pathname === program.href
                                   ? "text-orange-600"
                                   : "text-gray-800"
-                                }`}
+                              }`}
                             >
                               {program.title}
                             </p>
@@ -565,8 +601,9 @@ export default function Navigation() {
               <Link
                 href="/"
                 onClick={handleLinkClick}
-                className={`hover:bg-gray-300 flex items-center justify-between rounded-md px-3 py-2 text-sm font-bold ${isHomeActive ? "text-orange-600" : "text-gray-800"
-                  }`}
+                className={`hover:bg-gray-300 flex items-center justify-between rounded-md px-3 py-2 text-sm font-bold ${
+                  isHomeActive ? "text-orange-600" : "text-gray-800"
+                }`}
               >
                 <span>HOME</span>
                 <ChevronRight
@@ -578,8 +615,9 @@ export default function Navigation() {
               <Link
                 href="/contact"
                 onClick={handleLinkClick}
-                className={`hover:bg-gray-300 flex items-center justify-between rounded-md px-3 py-2 text-sm font-bold ${isContactActive ? "text-orange-600" : "text-gray-800"
-                  }`}
+                className={`hover:bg-gray-300 flex items-center justify-between rounded-md px-3 py-2 text-sm font-bold ${
+                  isContactActive ? "text-orange-600" : "text-gray-800"
+                }`}
               >
                 <span>CONNECT WITH US</span>
                 <ChevronRight
@@ -591,8 +629,9 @@ export default function Navigation() {
               <Link
                 href="/calendar"
                 onClick={handleLinkClick}
-                className={`hover:bg-gray-300 flex items-center justify-between rounded-md px-3 py-2 text-sm font-bold ${isCalendarActive ? "text-orange-600" : "text-gray-800"
-                  }`}
+                className={`hover:bg-gray-300 flex items-center justify-between rounded-md px-3 py-2 text-sm font-bold ${
+                  isCalendarActive ? "text-orange-600" : "text-gray-800"
+                }`}
               >
                 <span>CALENDAR</span>
                 <ChevronRight
@@ -602,17 +641,17 @@ export default function Navigation() {
               </Link>
 
               <div className="flex items-center gap-2 px-3 pt-2">
-                <Link href="/cart">
-                  <Button variant="outline" className="w-full">
-                    View Cart
-                  </Button>
-                </Link>
-                <Button
-                  variant="outline"
-                  className="w-full text-orange-500 border-orange-200 hover:bg-orange-50 hover:text-orange-600 hover:border-orange-300"
-                >
-                  {"(248) 563-3561"}
-                </Button>
+                <div className="flex-shrink-0">
+                  <CartIcon />
+                </div>
+                <div className="flex flex-col items-start">
+                  <span className="text-xs font-bold text-orange-600">
+                    Contact Us
+                  </span>
+                  <span className="text-sm font-bold text-gray-800">
+                    (248) 563-3561
+                  </span>
+                </div>
               </div>
             </motion.div>
           )}

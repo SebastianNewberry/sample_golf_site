@@ -14,7 +14,7 @@ import { ProgramFeaturesAndDetails } from "@/app/components/ProgramFeaturesAndDe
 import { SessionCalendar } from "@/app/components/SessionCalendar";
 import { PrivateInstructionCalendar } from "@/app/components/PrivateInstructionCalendar";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
+import { format, isSameDay } from "date-fns";
 
 interface JuniorPrivateGolfInstructionClientProps {
   program: any;
@@ -38,7 +38,33 @@ export function JuniorPrivateGolfInstructionClient({
   const [selectedSlots, setSelectedSlots] = useState<any[]>([]); // Array of slots
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
-  // Parse all available sessions into flat slots for the calendar
+  const { items } = useCart();
+
+  // Parse all available sessions into flat slots for the calendar, filtering out what's in cart
+  // Calculate slots currently in the cart
+  const cartSlots = useMemo(() => {
+    return items
+      .filter(
+        (item) =>
+          item.programId === program.id && item.registrationType === "junior",
+      )
+      .flatMap((item) => {
+        try {
+          if (item.metadata) {
+            const data = JSON.parse(item.metadata);
+            return (data.slots || []).map((s: any) => ({
+              ...s,
+              date: new Date(s.date),
+            }));
+          }
+        } catch (e) {
+          console.error("Failed to parse cart item metadata", e);
+        }
+        return [];
+      });
+  }, [items, program.id]);
+
+  // Use the pre-calculated available slots passed from server
   const availableSlots = useMemo(() => {
     return initialAvailableSlots.map((slot) => ({
       ...slot,
@@ -101,6 +127,28 @@ export function JuniorPrivateGolfInstructionClient({
   const handleAddToCart = async () => {
     if (selectedSlots.length === 0 || !selectedDuration) return;
 
+    // Double check: ensure none of the selected slots are already in cart
+    const isConflict = selectedSlots.some((slot) =>
+      items.some((item) => {
+        if (item.programId !== program.id) return false;
+        try {
+          const meta = item.metadata ? JSON.parse(item.metadata) : {};
+          return (meta.slots || []).some(
+            (s: any) =>
+              new Date(s.date).getTime() === slot.date.getTime() &&
+              s.startTime === slot.startTime,
+          );
+        } catch {
+          return false;
+        }
+      }),
+    );
+
+    if (isConflict) {
+      alert("One or more selected slots are already in your cart.");
+      return;
+    }
+
     // Calculate total hours
     const totalHours = (durationMinutes * selectedSlots.length) / 60;
 
@@ -150,12 +198,35 @@ export function JuniorPrivateGolfInstructionClient({
       }
 
       setShowSuccess(true);
+      setSelectedSlots([]); // Clear selection
       setTimeout(() => setShowSuccess(false), 2000);
     }
   };
 
   const handleBuyNow = async () => {
     if (selectedSlots.length === 0 || !selectedDuration) return;
+
+    // Double check conflict
+    const isConflict = selectedSlots.some((slot) =>
+      items.some((item) => {
+        if (item.programId !== program.id) return false;
+        try {
+          const meta = item.metadata ? JSON.parse(item.metadata) : {};
+          return (meta.slots || []).some(
+            (s: any) =>
+              new Date(s.date).getTime() === slot.date.getTime() &&
+              s.startTime === slot.startTime,
+          );
+        } catch {
+          return false;
+        }
+      }),
+    );
+
+    if (isConflict) {
+      alert("One or more selected slots are already in your cart.");
+      return;
+    }
 
     setIsBuyNowLoading(true);
 
@@ -235,6 +306,7 @@ export function JuniorPrivateGolfInstructionClient({
         onRemoveSlot={handleRemoveSlot}
         selectedSlots={selectedSlots}
         maxSlots={maxSlots}
+        inCartSlots={cartSlots}
         programName="Junior Private Instruction"
         durationMinutes={durationMinutes}
       />
@@ -289,7 +361,8 @@ export function JuniorPrivateGolfInstructionClient({
                 }))}
               />
               <p className="text-xs text-gray-500 mt-2 px-1">
-                * Dates above are available dates, but you only sign up for individual sessions.
+                * Dates above are available dates, but you only sign up for
+                individual sessions.
               </p>
             </div>
           </div>
@@ -374,9 +447,10 @@ export function JuniorPrivateGolfInstructionClient({
                           key={pkg.name}
                           onClick={() => handlePriceSelect(pkg.name, pkg.price)}
                           className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-1 h-32
-                            ${selectedDuration === pkg.name
-                              ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))]"
-                              : "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
+                            ${
+                              selectedDuration === pkg.name
+                                ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))]"
+                                : "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
                             }`}
                         >
                           <p className="text-gray-600 font-medium">
@@ -398,7 +472,7 @@ export function JuniorPrivateGolfInstructionClient({
                   {/* On-Course Coaching Section */}
                   <div className="mb-10 p-6 bg-gray-50 rounded-2xl border border-gray-100">
                     <h3 className="text-base font-bold text-gray-800 mb-2">
-                      On-Course Coaching
+                      On-Course Coaching (9 Hole Lesson)
                     </h3>
                     <p className="text-sm text-gray-600 mb-6 leading-relaxed max-w-4xl">
                       Our <strong>on-course coaching session</strong> teaches
@@ -441,9 +515,10 @@ export function JuniorPrivateGolfInstructionClient({
                           key={pkg.name}
                           onClick={() => handlePriceSelect(pkg.name, pkg.price)}
                           className={`p-5 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between
-                            ${selectedDuration === pkg.name
-                              ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))]"
-                              : "bg-white border-gray-200 hover:border-green-200 hover:bg-white shadow-sm"
+                            ${
+                              selectedDuration === pkg.name
+                                ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))]"
+                                : "bg-white border-gray-200 hover:border-green-200 hover:bg-white shadow-sm"
                             }`}
                         >
                           <div className="text-left">
@@ -497,7 +572,7 @@ export function JuniorPrivateGolfInstructionClient({
 
                           <Button
                             onClick={() => setIsCalendarOpen(true)}
-                            className="w-full h-14 bg-white border-2 border-green-600 text-green-700 hover:bg-green-50 text-sm font-bold flex items-center justify-center gap-3 rounded-xl shadow-sm"
+                            className="w-full h-14 bg-white border-2 border-green-600 text-green-700 enabled:hover:bg-green-50 text-sm font-bold flex items-center justify-center gap-3 rounded-xl shadow-sm"
                             disabled={!selectedDuration}
                           >
                             <CalendarClock className="w-6 h-6" />
@@ -526,7 +601,7 @@ export function JuniorPrivateGolfInstructionClient({
                               isAddingToCart
                             }
                             onClick={handleBuyNow}
-                            className="w-full py-3 font-bold text-sm bg-orange-500 hover:bg-orange-600 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+                            className="w-full py-3 font-bold text-sm bg-orange-500 enabled:hover:bg-orange-600 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white rounded-xl shadow-md enabled:hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
                           >
                             {isBuyNowLoading ? (
                               <Loader2 className="w-5 h-5 animate-spin" />
@@ -546,7 +621,7 @@ export function JuniorPrivateGolfInstructionClient({
                               isAddingToCart
                             }
                             onClick={handleAddToCart}
-                            className="w-full py-3 font-bold text-sm border-2 border-gray-200 bg-white hover:border-green-600 hover:text-green-700 disabled:bg-gray-50 disabled:border-gray-100 disabled:text-gray-300 rounded-xl transition-all flex items-center justify-center gap-2"
+                            className="w-full py-3 font-bold text-sm border-2 rounded-xl transition-all flex items-center justify-center gap-2 bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 border-green-600 disabled:bg-gray-50 disabled:border-gray-100 disabled:text-gray-300 cursor-pointer"
                           >
                             <AnimatePresence mode="wait">
                               {isAddingToCart ? (
@@ -593,7 +668,7 @@ export function JuniorPrivateGolfInstructionClient({
                       </span>
                       <a
                         href="tel:+12485633561"
-                        className="flex items-center gap-2 text-gray-500 hover:text-green-700 transition-colors font-medium"
+                        className="flex items-center gap-2 text-gray-500 hover:text-green-700 transition-colors font-medium cursor-pointer"
                       >
                         <Phone className="w-4 h-4" />
                         Call to Schedule: (248) 563-3561

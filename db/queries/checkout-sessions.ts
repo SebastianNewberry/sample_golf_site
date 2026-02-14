@@ -23,7 +23,6 @@ export async function createCheckoutSession(data: {
   stripePaymentIntentId?: string;
   formData: CheckoutFormData;
   totalAmount: string;
-  expiresAt: Date;
 }) {
   const result = await db
     .insert(checkoutSession)
@@ -33,7 +32,6 @@ export async function createCheckoutSession(data: {
       stripePaymentIntentId: data.stripePaymentIntentId,
       formData: JSON.stringify(data.formData),
       totalAmount: data.totalAmount,
-      expiresAt: data.expiresAt,
     })
     .returning();
 
