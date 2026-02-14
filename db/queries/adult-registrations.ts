@@ -21,7 +21,6 @@ export async function createAdultRegistration(data: {
   stripeCustomerId?: string;
   paymentStatus?: "pending" | "paid" | "failed" | "cancelled";
   paymentAmount?: string;
-  expiresAt?: Date;
 }) {
   console.log("Ran adult registration");
   const result = await db
@@ -39,7 +38,6 @@ export async function createAdultRegistration(data: {
       stripeCustomerId: data.stripeCustomerId,
       paymentStatus: data.paymentStatus || "pending",
       paymentAmount: data.paymentAmount,
-      expiresAt: data.expiresAt,
     })
     .returning();
 

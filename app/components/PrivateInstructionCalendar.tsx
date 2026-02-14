@@ -55,6 +55,7 @@ export interface PrivateInstructionCalendarProps {
   programName?: string;
   durationMinutes?: number;
   maxSlots?: number;
+  inCartSlots?: TimeSlot[];
 }
 
 // --- Constants ---
@@ -116,6 +117,7 @@ export function PrivateInstructionCalendar({
   durationMinutes = 60, // Default to 60 if missing
   maxSlots = 1,
   selectedSlot, // Keep for backward compat if needed, but prefer selectedSlots
+  inCartSlots = [],
 }: PrivateInstructionCalendarProps) {
   const [isMounted, setIsMounted] = useState(false);
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date());
@@ -231,7 +233,25 @@ export function PrivateInstructionCalendar({
     }
 
     // Check new selectedSlots
-    return selectedSlots.some((slot) => {
+    // Check new selectedSlots
+    if (
+      selectedSlots.some((slot) => {
+        const sDate = normalizeFromUTC(slot.date);
+        if (!isSameDay(sDate, date)) return false;
+
+        const [sH, sM] = slot.startTime.split(":").map(Number);
+        const [eH, eM] = slot.endTime.split(":").map(Number);
+
+        const sTotal = sH * 60 + sM;
+        const eTotal = eH * 60 + eM;
+
+        return slotTotal >= sTotal && slotTotal < eTotal;
+      })
+    )
+      return true;
+
+    // Check inCartSlots
+    return inCartSlots.some((slot) => {
       const sDate = normalizeFromUTC(slot.date);
       if (!isSameDay(sDate, date)) return false;
 
@@ -263,6 +283,19 @@ export function PrivateInstructionCalendar({
       if (onRemoveSlot) {
         onRemoveSlot(existingSlot);
       }
+      return;
+    }
+
+    // Check if we are interacting with a slot already in cart (Prevent selection/interaction)
+    const inCart = inCartSlots.some((slot) => {
+      const sDate = normalizeFromUTC(slot.date);
+      if (!isSameDay(sDate, date)) return false;
+      const [sH, sM] = slot.startTime.split(":").map(Number);
+      return sH === hour && sM === minute;
+    });
+
+    if (inCart) {
+      // Optional: Alert user
       return;
     }
 
@@ -338,7 +371,7 @@ export function PrivateInstructionCalendar({
               <button
                 onClick={() => setViewMode("calendar")}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
+                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer",
                   viewMode === "calendar"
                     ? "bg-white text-gray-900 shadow-sm"
                     : "text-gray-500 hover:text-gray-700",
@@ -350,7 +383,7 @@ export function PrivateInstructionCalendar({
               <button
                 onClick={() => setViewMode("list")}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all",
+                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer",
                   viewMode === "list"
                     ? "bg-white text-gray-900 shadow-sm"
                     : "text-gray-500 hover:text-gray-700",
@@ -471,7 +504,11 @@ export function PrivateInstructionCalendar({
                           const id = getSlotId(day, hour, minute);
                           const isAvailable = availableSlotIds.has(id);
                           // "isPartOfSelection" means this slot falls within the range of a selected booking (Green Block)
-                          const isPartOfSelection = isTimeSelected(day, hour, minute);
+                          const isPartOfSelection = isTimeSelected(
+                            day,
+                            hour,
+                            minute,
+                          );
 
                           // "isExactStart" means this is the specific time the user clicked (The "Head" of the booking)
                           const isExactStart = selectedSlots.some((slot) => {
@@ -511,31 +548,56 @@ export function PrivateInstructionCalendar({
                           // So we strictly check "Does this NEW potential selection overlap an EXISTING selection?"
                           // If it overlaps, and it is NOT part of the currently selected blocks, then block it.
                           let isOverlap = false;
-                          if (isAvailable && !isInsufficient && !isPartOfSelection) {
+                          if (
+                            isAvailable &&
+                            !isInsufficient &&
+                            !isPartOfSelection
+                          ) {
                             const currentStartTotal = hour * 60 + minute;
                             const currentEndTotal =
                               currentStartTotal + durationMinutes;
 
-                            isOverlap = selectedSlots.some((slot) => {
-                              const sDate = normalizeFromUTC(slot.date);
-                              if (!isSameDay(sDate, day)) return false;
+                            isOverlap =
+                              selectedSlots.some((slot) => {
+                                const sDate = normalizeFromUTC(slot.date);
+                                if (!isSameDay(sDate, day)) return false;
 
-                              const [sH, sM] = slot.startTime
-                                .split(":")
-                                .map(Number);
-                              const [sEndH, sEndM] = slot.endTime
-                                .split(":")
-                                .map(Number);
+                                const [sH, sM] = slot.startTime
+                                  .split(":")
+                                  .map(Number);
+                                const [sEndH, sEndM] = slot.endTime
+                                  .split(":")
+                                  .map(Number);
 
-                              const sStartTotal = sH * 60 + sM;
-                              const sEndTotal = sEndH * 60 + sEndM;
+                                const sStartTotal = sH * 60 + sM;
+                                const sEndTotal = sEndH * 60 + sEndM;
 
-                              // Overlap condition
-                              return (
-                                currentStartTotal < sEndTotal &&
-                                currentEndTotal > sStartTotal
-                              );
-                            });
+                                // Overlap condition
+                                return (
+                                  currentStartTotal < sEndTotal &&
+                                  currentEndTotal > sStartTotal
+                                );
+                              }) ||
+                              inCartSlots.some((slot) => {
+                                const sDate = normalizeFromUTC(slot.date);
+                                if (!isSameDay(sDate, day)) return false;
+
+                                const [sH, sM] = slot.startTime
+                                  .split(":")
+                                  .map(Number);
+                                const [sEndH, sEndM] = slot.endTime
+                                  .split(":")
+                                  .map(Number);
+
+                                const sStartTotal = sH * 60 + sM;
+                                const sEndTotal = sEndH * 60 + sEndM;
+
+                                // Overlap condition
+                                return (
+                                  currentStartTotal < sEndTotal &&
+                                  currentEndTotal > sStartTotal
+                                );
+                              });
                           }
 
                           // Green Hover Logic (for valid slots - fills entire duration)
@@ -598,7 +660,10 @@ export function PrivateInstructionCalendar({
                                 // Allow clicking on START of selection (to toggle/remove)
                                 // OR allow clicking on valid NEW slots
                                 // PREVENT clicking on "tail" slots (isPartOfSelection but !isExactStart)
-                                if (isExactStart || (allow && !isPartOfSelection)) {
+                                if (
+                                  isExactStart ||
+                                  (allow && !isPartOfSelection)
+                                ) {
                                   handleSlotClick(day, hour, minute);
                                 }
                               }}
@@ -748,10 +813,22 @@ export function PrivateInstructionCalendar({
                             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 p-1">
                               {availableTimesForDay.map(({ h, m }) => {
                                 const currentStartTotal = h * 60 + m;
-                                const currentEndTotal = currentStartTotal + durationMinutes;
+                                const currentEndTotal =
+                                  currentStartTotal + durationMinutes;
 
                                 let isSelected = false;
                                 let isOverlap = false;
+
+                                // Check in-cart status first
+                                let isInCart = false;
+                                inCartSlots.forEach((slot) => {
+                                  const sDate = normalizeFromUTC(slot.date);
+                                  if (!isSameDay(sDate, displayDate)) return;
+                                  const [sH, sM] = slot.startTime
+                                    .split(":")
+                                    .map(Number);
+                                  if (sH === h && sM === m) isInCart = true;
+                                });
 
                                 selectedSlots.forEach((slot) => {
                                   const sDate = normalizeFromUTC(slot.date);
@@ -783,11 +860,53 @@ export function PrivateInstructionCalendar({
                                   }
                                 });
 
+                                // Check for overlap with Cart Slots
+                                if (!isOverlap) {
+                                  inCartSlots.forEach((slot) => {
+                                    const sDate = normalizeFromUTC(slot.date);
+                                    if (!isSameDay(sDate, displayDate)) return;
+
+                                    const [sH, sM] = slot.startTime
+                                      .split(":")
+                                      .map(Number);
+                                    const [sEndH, sEndM] = slot.endTime
+                                      .split(":")
+                                      .map(Number);
+
+                                    const sStartTotal = sH * 60 + sM;
+                                    const sEndTotal = sEndH * 60 + sEndM;
+
+                                    if (
+                                      currentStartTotal < sEndTotal &&
+                                      currentEndTotal > sStartTotal
+                                    ) {
+                                      isOverlap = true;
+                                    }
+                                  });
+                                }
+
                                 return (
                                   <button
                                     key={`${h}-${m}`}
                                     onClick={() => {
-                                      if (!isOverlap) {
+                                      // Check overlap or in cart
+                                      let isInCart = false;
+                                      inCartSlots.forEach((s) => {
+                                        if (
+                                          !isSameDay(
+                                            normalizeFromUTC(s.date),
+                                            displayDate,
+                                          )
+                                        )
+                                          return;
+                                        const [sH, sM] = s.startTime
+                                          .split(":")
+                                          .map(Number);
+                                        if (sH === h && sM === m)
+                                          isInCart = true;
+                                      });
+
+                                      if (!isOverlap && !isInCart) {
                                         handleSlotClick(displayDate, h, m);
                                       }
                                     }}
@@ -796,9 +915,11 @@ export function PrivateInstructionCalendar({
                                       "px-2 py-3 rounded-lg text-sm font-bold border-2 transition-all shadow-sm cursor-pointer",
                                       isSelected
                                         ? "bg-[hsl(var(--golf-green))] border-[hsl(var(--golf-green))] text-white shadow-md transform scale-105"
-                                        : isOverlap
-                                          ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"
-                                          : "bg-white border-gray-100 text-gray-700 hover:border-green-300 hover:bg-green-50 hover:shadow-md",
+                                        : isInCart
+                                          ? "bg-[hsl(var(--golf-green))]/80 border-[hsl(var(--golf-green))] text-white shadow-md cursor-default opacity-80"
+                                          : isOverlap
+                                            ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"
+                                            : "bg-white border-gray-100 text-gray-700 hover:border-green-300 hover:bg-green-50 hover:shadow-md",
                                     )}
                                   >
                                     {formatTime(h, m)}
@@ -838,9 +959,7 @@ export function PrivateInstructionCalendar({
               <p
                 className={cn(
                   "text-sm",
-                  isComplete
-                    ? "text-red-600 font-semibold"
-                    : "text-gray-500",
+                  isComplete ? "text-red-600 font-semibold" : "text-gray-500",
                 )}
               >
                 {isComplete

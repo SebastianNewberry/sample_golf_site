@@ -167,6 +167,7 @@ export const program = pgTable("program", {
   duration: text("duration").notNull(), // e.g., 'Five 1-hour range sessions'
   imageUrl: text("image_url"),
   features: text("features").array(), // array of feature strings
+  isActive: boolean("is_active").default(true).notNull(),
   // Boolean fields for equipment and fees
   equipmentIncluded: boolean("equipment_included").default(false).notNull(),
   practiceBallsIncluded: boolean("practice_balls_included")
@@ -230,6 +231,7 @@ export const programSession = pgTable(
     capacity: integer("capacity").notNull(),
     enrolledCount: integer("enrolled_count").default(0).notNull(),
     isActive: boolean("is_active").default(true).notNull(),
+    uniqueIdentifier: text("unique_identifier").notNull().default("TEMP_ID"),
 
     // Google Calendar integration
     googleCalendarEventId: text("google_calendar_event_id"), // Google Calendar event ID
@@ -278,7 +280,9 @@ export const adultRegistration = pgTable(
     stripeCustomerId: text("stripe_customer_id"), // Stripe customer ID
     paymentStatus: text("payment_status").notNull().default("pending"), // 'pending', 'paid', 'failed', 'cancelled'
     paymentAmount: decimal("payment_amount", { precision: 10, scale: 2 }), // Amount paid
-    expiresAt: timestamp("expires_at"), // For pending holds
+    paidAt: timestamp("paid_at"), // When payment was completed
+    refundedAt: timestamp("refunded_at"), // When refund was processed
+    refundAmount: decimal("refund_amount", { precision: 10, scale: 2 }), // Amount refunded
 
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
@@ -354,7 +358,9 @@ export const juniorProgramRegistration = pgTable(
     stripeCustomerId: text("stripe_customer_id"), // Stripe customer ID
     paymentStatus: text("payment_status").notNull().default("pending"), // 'pending', 'paid', 'failed', 'cancelled'
     paymentAmount: decimal("payment_amount", { precision: 10, scale: 2 }), // Amount paid
-    expiresAt: timestamp("expires_at"), // For pending holds
+    paidAt: timestamp("paid_at"), // When payment was completed
+    refundedAt: timestamp("refunded_at"), // When refund was processed
+    refundAmount: decimal("refund_amount", { precision: 10, scale: 2 }), // Amount refunded
 
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
@@ -464,8 +470,6 @@ export const cart = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
-    // Cart expires after 30 days of inactivity
-    expiresAt: timestamp("expires_at").notNull(),
   },
   (table) => [
     index("cart_session_id_idx").on(table.sessionId),
@@ -526,7 +530,6 @@ export const checkoutSession = pgTable(
     totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
     status: text("status").notNull().default("pending"), // 'pending', 'completed', 'expired'
     createdAt: timestamp("created_at").defaultNow().notNull(),
-    expiresAt: timestamp("expires_at").notNull(), // Expire after 1 hour
   },
   (table) => [
     index("checkout_session_checkout_id_idx").on(table.checkoutId),
@@ -605,7 +608,6 @@ export const booking = pgTable(
     endTime: timestamp("end_time").notNull(),
     type: text("type").notNull(), // 'adult' | 'junior'
     status: text("status").notNull().default("confirmed"), // 'confirmed', 'cancelled', 'pending_payment'
-    expiresAt: timestamp("expires_at"), // For pending holds
     notes: text("notes"),
 
     // Google Calendar integration

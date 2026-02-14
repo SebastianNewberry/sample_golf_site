@@ -81,7 +81,7 @@ export function SessionCalendar({ schedule }: SessionCalendarProps) {
         Session Schedule
       </h3>
 
-      <div className="grid grid-cols-3 gap-2 overflow-visible">
+      <div className="grid grid-cols-3 md:grid-cols-2 gap-2 overflow-visible">
         {months.map((monthDate, monthIndex) => {
           const year = monthDate.getFullYear();
           const month = monthDate.getMonth();
@@ -196,10 +196,11 @@ export function SessionCalendar({ schedule }: SessionCalendarProps) {
                       <Tooltip delayDuration={0}>
                         <TooltipTrigger asChild>
                           <div
-                            className={`aspect-square flex items-center justify-center text-[10px] rounded-sm transition-all relative group ${isSessionDate
-                              ? "bg-green-500 text-white font-semibold cursor-pointer hover:bg-green-600"
-                              : "bg-white text-gray-700"
-                              }`}
+                            className={`aspect-square flex items-center justify-center text-[10px] rounded-sm transition-all relative group ${
+                              isSessionDate
+                                ? "bg-green-500 text-white font-semibold cursor-pointer hover:bg-green-600"
+                                : "bg-white text-gray-700"
+                            }`}
                           >
                             {day.getDate()}
                           </div>

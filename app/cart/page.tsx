@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "@/app/components/cart/CartContext";
@@ -17,6 +17,9 @@ import {
   Clock,
 } from "lucide-react";
 import { parseSchedule, formatTime12h } from "@/lib/session-schedule";
+import { validateCartAvailability } from "@/app/actions/validation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { AlertCircle } from "lucide-react";
 
 // Mapping of program IDs to their corresponding images
 // Used as fallback when imageUrl is not available from database
@@ -45,6 +48,47 @@ const PRIVATE_INSTRUCTION_IDS = [
 export default function CartPage() {
   const { items, total, isLoading, removeItem, updateQuantity, clearCart } =
     useCart();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [validationErrors, setValidationErrors] = React.useState<
+    Record<string, string>
+  >({});
+  const [isValidating, setIsValidating] = React.useState(false);
+
+  const validateCart = React.useCallback(async () => {
+    setIsValidating(true);
+    setValidationErrors({});
+    try {
+      const result = await validateCartAvailability(items);
+      if (!result.valid && result.errors) {
+        setValidationErrors(result.errors);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } else if (result.valid && searchParams.get("validate") === "true") {
+        // If valid and we were asked to validate (likely from checkout redirect),
+        // but now it's valid? Maybe race condition resolved or logic error.
+        // We can stay here or push back to checkout?
+        // Safest to stay here and let user click proceed again.
+      }
+      return result.valid;
+    } catch (error) {
+      console.error("Validation error:", error);
+      return false;
+    } finally {
+      setIsValidating(false);
+    }
+  }, [items, searchParams]);
+
+  useEffect(() => {
+    if (searchParams.get("validate") === "true" && items.length > 0) {
+      validateCart();
+    }
+  }, [searchParams, items.length, validateCart]);
+
+  const handleProceedToCheckout = async () => {
+    if (await validateCart()) {
+      router.push("/checkout");
+    }
+  };
 
   // Helper function to format session dates for display using Eastern Time
   const formatSessionSchedule = (scheduleJson: unknown) => {
@@ -87,58 +131,57 @@ export default function CartPage() {
     // Format date range
     const dateRange = `${formatDateInEastern(sortedSchedule[0].date)} - ${formatDateInEastern(sortedSchedule[sortedSchedule.length - 1].date)}`;
 
-    // Get unique days of week from the schedule in Eastern Time
-    const daysOfWeek = sortedSchedule.map((s) => getDayOfWeekInEastern(s.date));
+    // Group recurring sessions
+    const groups: Record<string, { day: string; time: string; dates: Date[] }> =
+      {};
 
-    // Get unique days and count occurrences
-    const uniqueDaysWithCounts = daysOfWeek.reduce(
-      (acc, day) => {
-        acc[day] = (acc[day] || 0) + 1;
-        return acc;
-      },
-      {} as Record<string, number>,
-    );
+    sortedSchedule.forEach((s) => {
+      const date = parseDate(s.date);
+      const dayName = getDayOfWeekInEastern(s.date);
+      const timeRange = `${formatTime12h(s.startTime)} - ${formatTime12h(s.endTime)}`;
+      const key = `${dayName}-${timeRange}`;
 
-    const uniqueDays = Object.keys(uniqueDaysWithCounts).sort((a, b) => {
-      const dayOrder = [
-        "Sunday",
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
-      ];
-      return dayOrder.indexOf(a) - dayOrder.indexOf(b);
+      if (!groups[key]) {
+        groups[key] = {
+          day: dayName,
+          time: timeRange,
+          dates: [],
+        };
+      }
+      groups[key].dates.push(date);
     });
 
-    // Format days of week
-    let daysDisplay: string;
-    if (uniqueDays.length === 1) {
-      daysDisplay = uniqueDays[0] + "s";
-    } else if (uniqueDays.length === 2) {
-      daysDisplay = uniqueDays[0] + "s & " + uniqueDays[1] + "s";
-    } else {
-      const lastDay = uniqueDays.pop();
-      daysDisplay =
-        uniqueDays.map((d) => d + "s").join(", ") + " & " + lastDay + "s";
-    }
+    const groupedSchedule = Object.values(groups).map((group) => {
+      group.dates.sort((a, b) => a.getTime() - b.getTime());
+      const firstDate = group.dates[0];
+      const lastDate = group.dates[group.dates.length - 1];
 
-    // Check if all sessions are at the same time
-    const allSameTime = sortedSchedule.every(
-      (s) =>
-        s.startTime === sortedSchedule[0].startTime &&
-        s.endTime === sortedSchedule[0].endTime,
-    );
+      const formatDateShort = (d: Date) =>
+        d.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
+
+      const dateRangeStr =
+        group.dates.length > 1
+          ? `${formatDateShort(firstDate)} - ${formatDateShort(lastDate)}`
+          : formatDateShort(firstDate);
+
+      // Pluralize day if multiple
+      const dayLabel = group.dates.length > 1 ? group.day + "s" : group.day;
+
+      return {
+        dayLabel,
+        timeRange: group.time,
+        dateRange: dateRangeStr,
+        count: group.dates.length,
+      };
+    });
 
     return {
       sessionCount: schedule.length,
       dateRange,
-      daysOfWeek: daysDisplay,
-      timeRange: allSameTime
-        ? `${formatTime12h(sortedSchedule[0].startTime)} - ${formatTime12h(sortedSchedule[0].endTime)}`
-        : null,
+      groupedSchedule,
     };
   };
 
@@ -199,14 +242,14 @@ export default function CartPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/adult-programs/get-golf-ready-level-1">
-                <Button className="bg-orange-500 hover:bg-orange-600 text-white py-3 px-8 text-lg cursor-pointer transition-transform hover:scale-105">
+                <Button className="bg-orange-500 enabled:hover:bg-orange-600 text-white py-3 px-8 text-lg cursor-pointer transition-transform enabled:hover:scale-105">
                   Browse Adult Programs
                 </Button>
               </Link>
               <Link href="/junior-programs/beginner-series">
                 <Button
                   variant="outline"
-                  className="py-3 px-8 text-lg cursor-pointer transition-transform hover:scale-105 border-green-600 text-green-700 hover:bg-green-50 hover:text-green-800"
+                  className="py-3 px-8 text-lg cursor-pointer transition-transform enabled:hover:scale-105 border-green-600 text-green-700 enabled:hover:bg-green-50 enabled:hover:text-green-800"
                 >
                   Browse Junior Programs
                 </Button>
@@ -227,7 +270,7 @@ export default function CartPage() {
             <h1 className="text-4xl font-bold text-gray-800">Shopping Cart</h1>
             <Button
               variant="ghost"
-              className="text-gray-500 hover:text-red-600 hover:bg-red-50 text-base cursor-pointer"
+              className="text-gray-500 enabled:hover:text-red-600 enabled:hover:bg-red-50 text-base cursor-pointer"
               onClick={() => clearCart()}
               type="button"
             >
@@ -257,9 +300,37 @@ export default function CartPage() {
                 const programImage =
                   item.program?.imageUrl || PROGRAM_IMAGE_MAP[item.programId];
 
+                // Calculate availability
+                let maxQuantity = Infinity;
+                let isSoldOut = false;
+                let hasInsufficientQuantity = false;
+
+                if (item.session) {
+                  const enrolled = item.session.enrolledCount ?? 0;
+                  maxQuantity = Math.max(0, item.session.capacity - enrolled);
+                  isSoldOut = maxQuantity === 0;
+                  hasInsufficientQuantity = item.quantity > maxQuantity;
+                }
+
+                // Check for new availability property
+                if (item.availability && !item.availability.isAvailable) {
+                  isSoldOut = true;
+                }
+
+                const hasError =
+                  validationErrors[item.id] ||
+                  hasInsufficientQuantity ||
+                  isSoldOut;
+
                 return (
                   <div key={item.id}>
-                    <Card className="p-8 bg-white shadow-md">
+                    <Card
+                      className={`p-8 bg-white shadow-md transition-all ${
+                        hasError
+                          ? "border-2 border-red-500 ring-4 ring-red-50 bg-red-50/10"
+                          : ""
+                      }`}
+                    >
                       <div className="flex gap-6">
                         {/* Program Image */}
                         <div className="w-32 h-32 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center shrink-0 relative">
@@ -302,39 +373,41 @@ export default function CartPage() {
                                     />
                                     <span className="font-semibold">
                                       {item.session.name}
+                                      {scheduleInfo &&
+                                        ` - ${scheduleInfo.sessionCount} Sessions`}
                                     </span>
                                   </div>
                                   {scheduleInfo && (
-                                    <>
-                                      <div className="flex items-center gap-2 text-sm text-gray-700 ml-6">
-                                        <Calendar
-                                          size={16}
-                                          className="text-orange-500"
-                                        />
-                                        <span>{scheduleInfo.dateRange}</span>
+                                    <div className="mt-4 space-y-3">
+                                      <div className="pl-1 space-y-3">
+                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                          Schedule:
+                                        </p>
+                                        {scheduleInfo.groupedSchedule.map(
+                                          (group: any, idx: number) => (
+                                            <div
+                                              key={idx}
+                                              className="border-l-2 border-green-200 pl-3 py-1"
+                                            >
+                                              <div className="flex items-baseline justify-between gap-4">
+                                                <span className="font-bold text-gray-800 text-sm">
+                                                  {group.dayLabel} at{" "}
+                                                  {group.timeRange}
+                                                </span>
+                                              </div>
+                                              <div className="text-xs text-gray-600 mt-1">
+                                                {group.dateRange}
+                                                {group.count > 1 && (
+                                                  <span className="text-gray-400 ml-1">
+                                                    ({group.count} sessions)
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </div>
+                                          ),
+                                        )}
                                       </div>
-                                      <div className="flex items-center gap-2 text-sm text-gray-700 ml-6">
-                                        <Calendar
-                                          size={16}
-                                          className="text-green-600"
-                                        />
-                                        <span>{scheduleInfo.daysOfWeek}</span>
-                                      </div>
-                                      <div className="flex items-center gap-2 text-sm text-gray-700 ml-6">
-                                        <Clock
-                                          size={16}
-                                          className="text-orange-500"
-                                        />
-                                        <span>
-                                          {scheduleInfo.sessionCount}{" "}
-                                          {scheduleInfo.sessionCount === 1
-                                            ? "session"
-                                            : "sessions"}
-                                          {scheduleInfo.timeRange &&
-                                            ` • ${scheduleInfo.timeRange}`}
-                                        </span>
-                                      </div>
-                                    </>
+                                    </div>
                                   )}
                                 </div>
                               )}
@@ -379,9 +452,7 @@ export default function CartPage() {
                                               at
                                             </span>
                                             <span className="text-gray-600 font-medium">
-                                              {formatTime12h(
-                                                slot.time.split(" - ")[0],
-                                              )}
+                                              {slot.time}
                                             </span>
                                           </div>
                                         </div>
@@ -393,7 +464,7 @@ export default function CartPage() {
                             </div>
                             <button
                               onClick={() => removeItem(item.id)}
-                              className="text-gray-400 hover:text-red-600 transition-colors p-1 flex-shrink-0 cursor-pointer"
+                              className="text-gray-400 enabled:hover:text-red-600 transition-colors p-1 flex-shrink-0 cursor-pointer"
                               aria-label="Remove item"
                             >
                               <Trash2 size={20} />
@@ -411,7 +482,7 @@ export default function CartPage() {
                                 className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 ${
                                   item.quantity <= 1 || isPrivate
                                     ? "border-gray-200 text-gray-300 cursor-not-allowed"
-                                    : "border-gray-300 hover:bg-gray-100 cursor-pointer"
+                                    : "border-gray-300 enabled:hover:bg-gray-100 cursor-pointer"
                                 }`}
                                 aria-label="Decrease quantity"
                               >
@@ -423,16 +494,59 @@ export default function CartPage() {
                                 </span>
                               </div>
                               <button
-                                onClick={() =>
-                                  updateQuantity(item.id, item.quantity + 1)
-                                }
-                                disabled={isPrivate}
+                                onClick={() => {
+                                  // Capacity Check
+                                  if (item.session) {
+                                    const enrolled =
+                                      item.session.enrolledCount ?? 0;
+                                    const maxAvailable =
+                                      item.session.capacity - enrolled;
+                                    if (item.quantity + 1 > maxAvailable) {
+                                      return;
+                                    }
+                                  }
+                                  updateQuantity(item.id, item.quantity + 1);
+                                }}
+                                disabled={(() => {
+                                  if (isPrivate) return true;
+                                  if (item.session) {
+                                    const enrolled =
+                                      item.session.enrolledCount ?? 0;
+                                    const maxAvailable =
+                                      item.session.capacity - enrolled;
+                                    return item.quantity >= maxAvailable;
+                                  }
+                                  return false;
+                                })()}
                                 className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 ${
-                                  isPrivate
-                                    ? "border-gray-100 text-gray-100 cursor-not-allowed"
-                                    : "border-gray-300 hover:bg-gray-100 cursor-pointer"
+                                  (() => {
+                                    if (isPrivate) return true;
+                                    if (item.session) {
+                                      const enrolled =
+                                        item.session.enrolledCount ?? 0;
+                                      const maxAvailable =
+                                        item.session.capacity - enrolled;
+                                      return item.quantity >= maxAvailable;
+                                    }
+                                    return false;
+                                  })()
+                                    ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                                    : "border-gray-300 enabled:hover:bg-gray-100 cursor-pointer"
                                 }`}
                                 aria-label="Increase quantity"
+                                title={(() => {
+                                  if (isPrivate)
+                                    return "Cannot change quantity for private instruction";
+                                  if (item.session) {
+                                    const enrolled =
+                                      item.session.enrolledCount ?? 0;
+                                    const maxAvailable =
+                                      item.session.capacity - enrolled;
+                                    if (item.quantity >= maxAvailable)
+                                      return "Session capacity reached";
+                                  }
+                                  return "Add another";
+                                })()}
                               >
                                 <Plus size={16} />
                               </button>
@@ -455,6 +569,27 @@ export default function CartPage() {
                           </div>
                         </div>
                       </div>
+                      {(validationErrors[item.id] ||
+                        hasInsufficientQuantity ||
+                        isSoldOut) && (
+                        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md flex items-start gap-3 text-red-700 animate-in fade-in slide-in-from-top-2">
+                          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                          <div>
+                            <p className="font-bold">
+                              {isSoldOut
+                                ? "Item Unavailable"
+                                : "Item Unavailable"}
+                            </p>
+                            <p className="text-sm mt-1">
+                              {item.availability?.error ||
+                                validationErrors[item.id] ||
+                                (isSoldOut
+                                  ? "This item is sold out or unavailable."
+                                  : `Only ${maxQuantity} spot${maxQuantity === 1 ? "" : "s"} available.`)}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                     </Card>
                   </div>
                 );
@@ -486,12 +621,23 @@ export default function CartPage() {
                   </div>
                 </div>
 
-                <Link href="/checkout" className="cursor-pointer block">
-                  <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-4 text-lg font-semibold cursor-pointer shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
-                    Proceed to Checkout
-                    <ArrowRight className="ml-2 w-5 h-5" />
-                  </Button>
-                </Link>
+                <Button
+                  onClick={handleProceedToCheckout}
+                  disabled={isValidating}
+                  className="w-full bg-orange-500 enabled:hover:bg-orange-600 text-white py-4 text-lg font-semibold cursor-pointer shadow-lg enabled:hover:shadow-xl transition-all enabled:hover:-translate-y-1 disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isValidating ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Checking Availability...
+                    </>
+                  ) : (
+                    <>
+                      Proceed to Checkout
+                      <ArrowRight className="ml-2 w-5 h-5" />
+                    </>
+                  )}
+                </Button>
 
                 <p className="text-sm text-gray-500 text-center mt-6">
                   You&apos;ll complete registration forms for each program at

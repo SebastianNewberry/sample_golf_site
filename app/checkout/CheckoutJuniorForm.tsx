@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -61,6 +64,8 @@ interface CheckoutJuniorFormProps {
   isLast: boolean;
   isProcessing: boolean;
   primaryFormData?: JuniorFormData | null;
+  storageKey: string;
+  onGoToCart: () => void;
 }
 
 export function CheckoutJuniorForm({
@@ -71,7 +76,10 @@ export function CheckoutJuniorForm({
   isLast,
   isProcessing,
   primaryFormData,
+  storageKey,
+  onGoToCart,
 }: CheckoutJuniorFormProps) {
+  const router = useRouter();
   const form = useForm<JuniorFormData>({
     resolver: zodResolver(juniorCheckoutSchema),
     defaultValues: initialData || {
@@ -90,6 +98,45 @@ export function CheckoutJuniorForm({
       additionalComments: "",
     },
   });
+
+  // Load draft from localStorage on mount (if no initial data)
+  useEffect(() => {
+    if (!initialData && storageKey) {
+      try {
+        const allDataString = localStorage.getItem("checkout_form_data");
+        if (allDataString) {
+          const allData = JSON.parse(allDataString);
+          const draftData = allData[storageKey];
+          if (draftData) {
+            // Reset form with draft data
+            // We need to be careful with types here, looping keys is safest
+            Object.keys(draftData).forEach((key) => {
+              form.setValue(key as any, draftData[key]);
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load draft", e);
+      }
+    }
+  }, [initialData, storageKey, form]);
+
+  // Save changes to localStorage
+  useEffect(() => {
+    const subscription = form.watch((value) => {
+      if (storageKey) {
+        try {
+          const allDataString = localStorage.getItem("checkout_form_data");
+          let allData = allDataString ? JSON.parse(allDataString) : {};
+          allData[storageKey] = { ...allData[storageKey], ...value };
+          localStorage.setItem("checkout_form_data", JSON.stringify(allData));
+        } catch (e) {
+          console.error("Failed to save draft", e);
+        }
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form.watch, storageKey]);
 
   const handleSubmit = (data: JuniorFormData) => {
     onSubmit(data);
@@ -133,12 +180,13 @@ export function CheckoutJuniorForm({
         {primaryFormData && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-5 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h4 className="text-green-900 font-semibold mb-1">
+              <h4 className="text-green-900 font-semibold mb-1 text-xs">
                 Repeat details from previous registration?
               </h4>
-              <p className="text-sm text-green-700">
-                Registering another child with the same parent/guardian? You can
-                reuse the contact details.
+              <p className="text-xs text-green-700">
+                Registering for another person? You can reuse previous details
+                from a previous registration if you don&apos;t have their
+                information yet.
               </p>
             </div>
             <Button
@@ -146,9 +194,9 @@ export function CheckoutJuniorForm({
               variant="outline"
               size="sm"
               onClick={handleCopyParentInfo}
-              className="bg-white text-green-700 border-green-300 hover:bg-green-50 hover:text-green-800 hover:border-green-400 whitespace-nowrap shrink-0"
+              className="bg-white text-green-700 border-green-300 enabled:hover:bg-green-50 enabled:hover:text-green-800 enabled:hover:border-green-400 whitespace-nowrap shrink-0"
             >
-              Copy Parent & Contact Info
+              Copy Previous Details
             </Button>
           </div>
         )}
@@ -492,7 +540,7 @@ export function CheckoutJuniorForm({
               variant="outline"
               onClick={onBack}
               disabled={isProcessing}
-              className="flex-1 border-green-600 text-green-700 hover:bg-green-50 hover:text-green-800 cursor-pointer"
+              className="flex-1 border-green-600 text-green-700 enabled:hover:bg-green-50 enabled:hover:text-green-800 cursor-pointer"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
@@ -500,7 +548,7 @@ export function CheckoutJuniorForm({
             <Button
               type="submit"
               disabled={isProcessing}
-              className="flex-1 bg-orange-500 hover:bg-orange-600 text-white cursor-pointer"
+              className="flex-1 bg-green-700 enabled:hover:bg-green-800 text-white cursor-pointer"
             >
               {isProcessing ? (
                 <>
@@ -520,6 +568,15 @@ export function CheckoutJuniorForm({
               )}
             </Button>
           </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onGoToCart}
+            className="w-full text-green-700 hover:text-green-800 hover:bg-green-50 mt-1 enabled:hover:text-green-800"
+          >
+            Back to Review Cart
+          </Button>
         </div>
       </form>
     </Form>

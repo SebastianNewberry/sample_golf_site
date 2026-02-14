@@ -1,0 +1,1 @@
+ALTER TABLE "program_session" ADD COLUMN "unique_identifier" text DEFAULT 'TEMP_ID' NOT NULL;

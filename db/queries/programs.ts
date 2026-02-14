@@ -8,7 +8,7 @@ import {
   adultRegistration,
   juniorProgramRegistration,
 } from "@/db/schema";
-import { eq, or, like, and, gt, count } from "drizzle-orm";
+import { eq, or, like, and, gt, count, not } from "drizzle-orm";
 
 // Get all programs with their sessions
 export async function getProgramsWithSessions(type: "adult" | "junior") {
@@ -176,7 +176,10 @@ export async function getInstructorAvailability(type: "adult" | "junior") {
     .where(eq(instructorAvailability.type, type));
 }
 // Check availability for a program session including pending holds
-export async function checkProgramSessionCapacity(sessionId: string) {
+export async function checkProgramSessionCapacity(
+  sessionId: string,
+  excludeCheckoutId?: string,
+) {
   const session = await db.query.programSession.findFirst({
     where: eq(programSession.id, sessionId),
     with: {
@@ -191,13 +194,6 @@ export async function checkProgramSessionCapacity(sessionId: string) {
   const now = new Date();
   let currentCount = 0;
 
-  // Logic: Count confirmed (paid) OR (pending AND not expired)
-  const activeHoldRule = (table: any) =>
-    or(
-      eq(table.paymentStatus, "paid"),
-      and(eq(table.paymentStatus, "pending"), gt(table.expiresAt, now)),
-    );
-
   if (session.program.type === "adult") {
     const [result] = await db
       .select({ count: count() })
@@ -205,7 +201,7 @@ export async function checkProgramSessionCapacity(sessionId: string) {
       .where(
         and(
           eq(adultRegistration.programSessionId, sessionId),
-          activeHoldRule(adultRegistration),
+          eq(adultRegistration.paymentStatus, "paid"),
         ),
       );
     currentCount = result.count;
@@ -216,7 +212,7 @@ export async function checkProgramSessionCapacity(sessionId: string) {
       .where(
         and(
           eq(juniorProgramRegistration.programSessionId, sessionId),
-          activeHoldRule(juniorProgramRegistration),
+          eq(juniorProgramRegistration.paymentStatus, "paid"),
         ),
       );
     currentCount = result.count;
@@ -225,5 +221,9 @@ export async function checkProgramSessionCapacity(sessionId: string) {
   return {
     available: currentCount < session.capacity,
     remaining: session.capacity - currentCount,
+    breakdown: {
+      confirmed: 0, // We can refine this later if needed, but total count is enough for IsFull check
+      pending: 0,
+    },
   };
 }
