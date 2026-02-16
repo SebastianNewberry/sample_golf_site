@@ -261,18 +261,28 @@ export const adultRegistration = pgTable(
       .notNull()
       .references(() => regularUser.id, { onDelete: "cascade" }),
     programId: uuid("program_id")
-      .notNull()
       .references(() => program.id, { onDelete: "cascade" }),
     programSessionId: uuid("program_session_id").references(
       () => programSession.id,
       { onDelete: "set null" },
     ),
+    bookingId: uuid("booking_id").references(() => booking.id, {
+      onDelete: "cascade",
+    }),
 
     // Form Data Snapshot
     firstName: text("first_name").notNull(),
     lastName: text("last_name").notNull(),
     email: text("email").notNull(),
     phoneNumber: text("phone_number").notNull(),
+
+    // Additional contact info (consistent with Junior)
+    phoneType: text("phone_type"), // 'mobile', 'home', 'work'
+    preferredContactMethod: text("preferred_contact_method"), // 'text', 'email'
+
+    // Golf specific
+    hasOwnClubs: boolean("has_own_clubs").default(false),
+
     additionalComments: text("additional_comments"), // Optional additional comments from user
 
     // Payment fields
@@ -296,6 +306,7 @@ export const adultRegistration = pgTable(
     index("adult_registration_payment_intent_idx").on(
       table.stripePaymentIntentId,
     ),
+    index("adult_registration_booking_id_idx").on(table.bookingId),
   ],
 );
 
@@ -307,6 +318,10 @@ export const juniorRegistration = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => regularUser.id, { onDelete: "cascade" }),
+
+    bookingId: uuid("booking_id").references(() => booking.id, {
+      onDelete: "cascade",
+    }),
 
     // Parent/Guardian Contact Information (Snapshot)
     primaryContactFirstName: text("primary_contact_first_name").notNull(),
@@ -333,7 +348,10 @@ export const juniorRegistration = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index("junior_registration_user_id_idx").on(table.userId)],
+  (table) => [
+    index("junior_registration_user_id_idx").on(table.userId),
+    index("junior_registration_booking_id_idx").on(table.bookingId)
+  ],
 );
 
 // Link junior registrations to specific programs
@@ -414,6 +432,10 @@ export const adultRegistrationRelations = relations(
       fields: [adultRegistration.programSessionId],
       references: [programSession.id],
     }),
+    booking: one(booking, {
+      fields: [adultRegistration.bookingId],
+      references: [booking.id],
+    }),
   }),
 );
 
@@ -425,6 +447,10 @@ export const juniorRegistrationRelations = relations(
       references: [regularUser.id],
     }),
     programRegistrations: many(juniorProgramRegistration),
+    booking: one(booking, {
+      fields: [juniorRegistration.bookingId],
+      references: [booking.id],
+    }),
   }),
 );
 
@@ -585,6 +611,7 @@ export const contactSubmission = pgTable(
     email: text("email").notNull(),
     subject: text("subject").notNull(),
     message: text("message").notNull(),
+    status: text("status").default("pending").notNull(), // 'pending', 'resolved'
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
@@ -631,51 +658,9 @@ export const bookingRelations = relations(booking, ({ one, many }) => ({
     fields: [booking.userId],
     references: [regularUser.id],
   }),
-  participants: many(bookingParticipant),
+  adultRegistrations: many(adultRegistration),
+  juniorRegistrations: many(juniorRegistration),
 }));
-
-export const bookingParticipant = pgTable(
-  "booking_participant",
-  {
-    id: uuid("id").defaultRandom().primaryKey(),
-    bookingId: uuid("booking_id")
-      .notNull()
-      .references(() => booking.id, { onDelete: "cascade" }),
-
-    // Participant Details
-    name: text("name").notNull(),
-    email: text("email"),
-    phone: text("phone"),
-    type: text("type").notNull(), // 'adult' | 'junior'
-
-    // Explicit fields for Juniors
-    parentName: text("parent_name"),
-    parentEmail: text("parent_email"),
-    parentPhone: text("parent_phone"),
-    childAge: integer("child_age"),
-    childExperience: text("child_experience"),
-
-    // JSON details for any extra future data
-    details: json("details"),
-
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
-  },
-  (table) => [index("booking_participant_booking_id_idx").on(table.bookingId)],
-);
-
-export const bookingParticipantRelations = relations(
-  bookingParticipant,
-  ({ one }) => ({
-    booking: one(booking, {
-      fields: [bookingParticipant.bookingId],
-      references: [booking.id],
-    }),
-  }),
-);
 
 // Type exports
 export type User = typeof user.$inferSelect;
@@ -711,5 +696,3 @@ export type NewInstructorAvailability =
   typeof instructorAvailability.$inferInsert;
 export type Booking = typeof booking.$inferSelect;
 export type NewBooking = typeof booking.$inferInsert;
-export type BookingParticipant = typeof bookingParticipant.$inferSelect;
-export type NewBookingParticipant = typeof bookingParticipant.$inferInsert;

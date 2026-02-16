@@ -182,7 +182,7 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
               return (
                 <div
                   key={item.id}
-                  className={`p-3 border-b flex gap-3 last:border-0 hover:bg-gray-50 transition-colors group relative ${hasInsufficientQuantity || isSoldOut
+                  className={`p-3 border-b flex gap-3 last:border-0 transition-colors group relative ${hasInsufficientQuantity || isSoldOut
                     }`}
                 >
                   <button

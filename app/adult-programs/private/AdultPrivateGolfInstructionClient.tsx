@@ -64,12 +64,35 @@ export function AdultPrivateGolfInstructionClient({
       });
   }, [items, program.id]);
 
+  // Helper to get current EST time
+  const getNowEST = () => {
+    const d = new Date();
+    const estString = d.toLocaleString("en-US", { timeZone: "America/New_York" });
+    return new Date(estString);
+  };
+
+  // Helper to normalize date from UTC string/Date to comparison date
+  const normalizeFromUTC = (date: Date | string) => {
+    const d = typeof date === "string" ? new Date(date) : date;
+    return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  };
+
   // Use the pre-calculated available slots passed from server
   const availableSlots = useMemo(() => {
-    return initialAvailableSlots.map((slot) => ({
-      ...slot,
-      date: new Date(slot.date), // Ensure date object
-    }));
+    const nowEST = getNowEST();
+
+    return initialAvailableSlots
+      .map((slot) => ({
+        ...slot,
+        date: new Date(slot.date), // Ensure date object
+      }))
+      .filter((slot) => {
+        // Filter out past slots
+        const slotDate = normalizeFromUTC(slot.date);
+        const [h, m] = slot.startTime.split(":").map(Number);
+        slotDate.setHours(h, m, 0, 0);
+        return slotDate > nowEST;
+      });
   }, [initialAvailableSlots]);
 
   // Determine Max Slots based on package
@@ -156,7 +179,7 @@ export function AdultPrivateGolfInstructionClient({
       duration: selectedDuration,
       totalHours,
       slots: selectedSlots.map((s) => ({
-        date: s.date,
+        date: format(s.date, "yyyy-MM-dd"),
         startTime: s.startTime,
         endTime: s.endTime,
       })),
@@ -237,7 +260,7 @@ export function AdultPrivateGolfInstructionClient({
       duration: selectedDuration,
       totalHours,
       slots: selectedSlots.map((s) => ({
-        date: s.date,
+        date: format(s.date, "yyyy-MM-dd"),
         startTime: s.startTime,
         endTime: s.endTime,
       })),
@@ -432,13 +455,13 @@ export function AdultPrivateGolfInstructionClient({
                         },
                         {
                           name: "5 Lessons Package",
-                          label: "5 Lessons",
+                          label: "5 1-Hour Lessons",
                           price: 425,
                           sub: "Save $25",
                         },
                         {
                           name: "10 Lessons Package",
-                          label: "10 Lessons",
+                          label: "10 1-Hour Lessons",
                           price: 700,
                           sub: "Save $200",
                         },
@@ -498,7 +521,7 @@ export function AdultPrivateGolfInstructionClient({
                           className={`p-5 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between
                             ${selectedDuration === pkg.name
                               ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))]"
-                              : "bg-white border-gray-200 hover:border-green-200 hover:bg-white shadow-sm"
+                              : "bg-white border-gray-200 hover:border-green-200 hover:bg-green-50 shadow-sm"
                             }`}
                         >
                           <div className="text-left">
@@ -601,7 +624,7 @@ export function AdultPrivateGolfInstructionClient({
                               isAddingToCart
                             }
                             onClick={handleAddToCart}
-                            className="w-full py-3 font-bold text-sm border-2 rounded-xl transition-all flex items-center justify-center gap-2 bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 border-green-600 disabled:bg-gray-50 disabled:border-gray-100 disabled:text-gray-300 cursor-pointer"
+                            className="w-full py-3 font-bold text-sm border-2 rounded-xl transition-all flex items-center justify-center gap-2 bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 border-green-600 disabled:bg-gray-50 disabled:border-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed cursor-pointer"
                           >
                             <AnimatePresence mode="wait">
                               {isAddingToCart ? (

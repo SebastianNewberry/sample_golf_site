@@ -6,4 +6,4 @@ import { Resend } from "resend";
 export const resend = new Resend(process.env.EMAIL_API_KEY);
 
 // Default sender email address for all outgoing emails
-export const DEFAULT_FROM_EMAIL = "sebasn327@gmail.com";
+export const DEFAULT_FROM_EMAIL = "onboarding@resend.dev";

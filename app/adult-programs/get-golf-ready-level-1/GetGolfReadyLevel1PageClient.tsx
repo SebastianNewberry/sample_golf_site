@@ -54,7 +54,11 @@ export function GetGolfReadyLevel1PageClient({
             programId={programId}
             programPrice={programPrice}
             duration={duration}
-            sessions={sessions.map((s) => ({ id: s.id, name: s.name }))}
+            sessions={sessions.map((s) => {
+              const schedule = s.schedule ? parseSchedule(s.schedule) : null;
+              const startDate = schedule && schedule.length > 0 ? schedule[0].date : undefined;
+              return { id: s.id, name: s.name, startDate };
+            })}
             selectedSessionId={selectedSessionId}
             onSessionChange={onSessionChange}
           />

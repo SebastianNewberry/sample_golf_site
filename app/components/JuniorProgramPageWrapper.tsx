@@ -33,15 +33,61 @@ export function JuniorProgramPageWrapper({
   children,
   initialSessionId,
 }: JuniorProgramPageWrapperProps) {
-  const [selectedSessionId, setSelectedSessionId] = useState<string>(
+  // Separate state for Accordion expansion and Purchase selection
+  const [expandedSessionId, setExpandedSessionId] = useState<string>(
+    initialSessionId || "",
+  );
+  const [purchaseSessionId, setPurchaseSessionId] = useState<string>(
     initialSessionId || "",
   );
 
-  // Get selected session's schedule
-  const selectedSession = sessions.find((s) => s.id === selectedSessionId);
-  const schedule = selectedSession?.schedule
-    ? parseSchedule(selectedSession.schedule)
-    : null;
+  // Initialize checks on mount/updates if initialSessionId is provided
+  useEffect(() => {
+    if (initialSessionId) {
+      const session = sessions.find((s) => s.id === initialSessionId);
+      if (session) {
+        const schedule = session.schedule
+          ? parseSchedule(session.schedule)
+          : null;
+        const startDate =
+          schedule && schedule.length > 0 ? new Date(schedule[0].date) : null;
+        const isStarted = startDate ? new Date() > startDate : false;
+
+        if (isStarted) {
+          setPurchaseSessionId(""); // Don't select if started
+        }
+      }
+    }
+  }, [initialSessionId, sessions]);
+
+  const handleAccordionChange = (val: string) => {
+    setExpandedSessionId(val);
+
+    // If expanding a section (val is not empty)
+    if (val) {
+      const session = sessions.find((s) => s.id === val);
+      if (session) {
+        const schedule = session.schedule
+          ? parseSchedule(session.schedule)
+          : null;
+        const startDate =
+          schedule && schedule.length > 0 ? new Date(schedule[0].date) : null;
+        const isStarted = startDate ? new Date() > startDate : false;
+
+        if (!isStarted) {
+          setPurchaseSessionId(val);
+        } else {
+          // If started, do not select for purchase
+          setPurchaseSessionId("");
+        }
+      }
+    }
+  };
+
+  const handlePurchaseChange = (val: string) => {
+    setPurchaseSessionId(val);
+    setExpandedSessionId(val); // Sync accordion expansion
+  };
 
   // Check if children is a function (render prop)
   const isRenderFunction = typeof children === "function";
@@ -73,24 +119,6 @@ export function JuniorProgramPageWrapper({
           JUNIOR DEVELOPMENTAL SERIES
         </Link>
         <Link
-          href="/junior-programs/golf-camp"
-          className={`block px-4 py-3 text-sm ${currentPage === "golf-camp"
-            ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-            : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-            }`}
-        >
-          JUNIOR GOLF CAMP
-        </Link>
-        <Link
-          href="/junior-programs/developmental-camp"
-          className={`block px-4 py-3 text-sm ${currentPage === "developmental-camp"
-            ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-            : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-            }`}
-        >
-          JUNIOR DEVELOPMENTAL GOLF CAMP
-        </Link>
-        <Link
           href="/junior-programs/private-instruction"
           className={`block px-4 py-3 text-sm ${currentPage === "private-instruction"
             ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
@@ -111,32 +139,35 @@ export function JuniorProgramPageWrapper({
                 <Accordion
                   type="single"
                   collapsible
-                  value={selectedSessionId}
-                  onValueChange={setSelectedSessionId}
+                  value={expandedSessionId}
+                  onValueChange={handleAccordionChange}
                   className="w-full"
                 >
-                  {sessions.map((session) => (
-                    <AccordionItem
-                      key={session.id}
-                      value={session.id}
-                      className="border-b last:border-0 px-4"
-                    >
-                      <AccordionTrigger className="text-left hover:no-underline py-3">
-                        <span className="font-medium text-sm">
-                          {session.name ? session.name : "Session Details"}
-                        </span>
-                      </AccordionTrigger>
-                      <AccordionContent className="pb-4">
-                        <SessionCalendar
-                          schedule={
-                            session.schedule
-                              ? parseSchedule(session.schedule)
-                              : null
-                          }
-                        />
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
+                  {sessions.map((session) => {
+                    const schedule = session.schedule ? parseSchedule(session.schedule) : null;
+                    const startDate = schedule && schedule.length > 0 ? new Date(schedule[0].date) : null;
+                    const isStarted = startDate ? new Date() > startDate : false;
+
+                    return (
+                      <AccordionItem
+                        key={session.id}
+                        value={session.id}
+                        className="border-b last:border-0 px-4"
+                      >
+                        <AccordionTrigger className="text-left hover:no-underline py-3">
+                          <span className="font-medium text-sm">
+                            {session.name ? session.name : "Session Details"}
+                            {isStarted && <span className="text-red-600 ml-1">(Started)</span>}
+                          </span>
+                        </AccordionTrigger>
+                        <AccordionContent className="pb-4">
+                          <SessionCalendar
+                            schedule={schedule}
+                          />
+                        </AccordionContent>
+                      </AccordionItem>
+                    )
+                  })}
                 </Accordion>
               ) : (
                 <div className="p-6 text-center text-gray-500 text-sm font-medium">
@@ -145,6 +176,9 @@ export function JuniorProgramPageWrapper({
               )}
             </CardContent>
           </Card>
+          <p className="text-xs text-red-500 mt-2 font-medium">
+            * Call to inquire about past sessions that have already started
+          </p>
         </div>
       </div>
 
@@ -152,8 +186,8 @@ export function JuniorProgramPageWrapper({
       <div className="lg:col-span-6">
         {isRenderFunction
           ? (children as (props: RenderProps) => ReactElement)({
-            selectedSessionId,
-            onSessionChange: setSelectedSessionId,
+            selectedSessionId: purchaseSessionId,
+            onSessionChange: handlePurchaseChange,
           })
           : children}
       </div>

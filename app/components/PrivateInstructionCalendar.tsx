@@ -141,11 +141,29 @@ export function PrivateInstructionCalendar({
     return Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
   }, [currentWeekStart]);
 
+  // Filter available slots to exclude past times in EST
+  const filteredAvailableSlots = useMemo(() => {
+    const nowEST = getNowEST();
+
+    return availableSlots.filter((slot) => {
+      // 1. Normalize Date
+      const slotDate = normalizeFromUTC(slot.date);
+
+      // 2. set Hours/Minutes from slot string (HH:mm)
+      const [h, m] = slot.startTime.split(":").map(Number);
+      slotDate.setHours(h, m, 0, 0);
+
+      // 3. Compare with nowEST
+      // We want slots that are AFTER now
+      return slotDate > nowEST;
+    });
+  }, [availableSlots]);
+
   // Map of Available Intervals per Day (Merged)
   const dailyIntervalsMap = useMemo(() => {
     const map = new Map<string, Array<{ start: number; end: number }>>();
 
-    availableSlots.forEach((slot) => {
+    filteredAvailableSlots.forEach((slot) => {
       // Use the same date format as lookups (which use weekDays local dates)
       // We still normalize to handle UTC dates from server
       const normalizedDate = normalizeFromUTC(slot.date);
@@ -183,12 +201,12 @@ export function PrivateInstructionCalendar({
     });
 
     return map;
-  }, [availableSlots]);
+  }, [filteredAvailableSlots]);
 
   // Keep strict ID set for simple existence checks (rendering white boxes)
   const availableSlotIds = useMemo(() => {
     const ids = new Set<string>();
-    availableSlots.forEach((slot) => {
+    filteredAvailableSlots.forEach((slot) => {
       const date = normalizeFromUTC(slot.date);
       const [startH, startM] = slot.startTime.split(":").map(Number);
       const [endH, endM] = slot.endTime.split(":").map(Number);
@@ -203,7 +221,7 @@ export function PrivateInstructionCalendar({
       }
     });
     return ids;
-  }, [availableSlots]);
+  }, [filteredAvailableSlots]);
 
   // --- List View Logic ---
   const sortedAvailableDates = useMemo(() => {
@@ -314,13 +332,19 @@ export function PrivateInstructionCalendar({
 
     // Check if we are at max slots - if so, REPLACE the last selected slot
     if (selectedSlots.length >= maxSlots) {
+      // PREVIOUS LOGIC (Commented out as per user request):
       // For single-slot packages, replace the existing selection
       // For multi-slot packages, replace the most recent selection
+      /*
       const slotToRemove = selectedSlots[selectedSlots.length - 1];
       if (slotToRemove && onRemoveSlot) {
         onRemoveSlot(slotToRemove);
       }
-      // Continue to add the new slot below
+      */
+      // NEW LOGIC: Just return?
+      // Actually, if we disable the buttons in UI, we shouldn't even get here except maybe race condition.
+      // But to be safe: do nothing if max reached (unless removing, which is handled above).
+      return;
     }
 
     // Create the booking slot
@@ -343,6 +367,7 @@ export function PrivateInstructionCalendar({
 
   const isComplete =
     selectedSlots.length >= maxSlots || (!!selectedSlot && maxSlots === 1);
+  const isMaxReached = selectedSlots.length >= maxSlots;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -441,7 +466,7 @@ export function PrivateInstructionCalendar({
                 <div
                   className={cn(
                     "bg-white rounded-xl border shadow-sm overflow-hidden min-w-[800px] transition-all duration-300",
-                    isComplete ? "border-red-500 ring-4 ring-red-50" : "",
+                    isComplete ? "border-green-500 ring-4 ring-green-50" : "",
                   )}
                 >
                   {/* Week Header */}
@@ -531,7 +556,7 @@ export function PrivateInstructionCalendar({
                             const intervals =
                               dailyIntervalsMap.get(dateKey) || [];
 
-                            // Check if it fits in any interval
+                            // Check if fits in any interval
                             const isFits = intervals.some(
                               (iv) =>
                                 startTotal >= iv.start && endTotal <= iv.end,
@@ -543,11 +568,8 @@ export function PrivateInstructionCalendar({
                           }
 
                           // Check for overlap with other selected slots
-                          // But we DO want to disable it if it overlaps but isn't part of the intentionally selected block
-                          // (Wait, isTimeSelected handles "part of selected block").
-                          // So we strictly check "Does this NEW potential selection overlap an EXISTING selection?"
-                          // If it overlaps, and it is NOT part of the currently selected blocks, then block it.
                           let isOverlap = false;
+
                           if (
                             isAvailable &&
                             !isInsufficient &&
@@ -643,11 +665,17 @@ export function PrivateInstructionCalendar({
                           }
 
                           const allow =
-                            isAvailable && !isInsufficient && !isOverlap;
-                          // Determine if this slot is blocked (insufficient OR overlapping)
-                          // Note: capacity blocking is handled by replacement logic, so we don't block for that.
+                            isAvailable &&
+                            !isInsufficient &&
+                            !isOverlap &&
+                            (!isMaxReached || isPartOfSelection); // Disable if max reached AND not part of selection
+
+                          // Determine if this slot is blocked (insufficient OR overlapping OR max reached)
                           const isBlocked =
-                            isAvailable && (isInsufficient || isOverlap);
+                            isAvailable &&
+                            (isInsufficient ||
+                              isOverlap ||
+                              (isMaxReached && !isPartOfSelection));
 
                           return (
                             <div
@@ -671,16 +699,21 @@ export function PrivateInstructionCalendar({
                                 const sTime = formatTime24(hour, minute);
 
                                 if (isAvailable && isBlocked) {
-                                  // Show red hover for blocked slots
-                                  setBlockedHoverSlot({
-                                    date: day,
-                                    startTime: sTime,
-                                    endTime: "",
-                                  });
-                                  setHoveredSlot(null);
+                                  // Show red hover OR nothing for blocked slots
+                                  // If max reached, maybe don't show red hover? just don't show green.
+                                  if (isMaxReached && !isPartOfSelection) {
+                                    setHoveredSlot(null);
+                                    setBlockedHoverSlot(null);
+                                  } else {
+                                    setBlockedHoverSlot({
+                                      date: day,
+                                      startTime: sTime,
+                                      endTime: "",
+                                    });
+                                    setHoveredSlot(null);
+                                  }
                                 } else if (allow && !isPartOfSelection) {
                                   // Show green hover for valid slots
-                                  // Don't show hover over existing selection
                                   setHoveredSlot({
                                     date: day,
                                     startTime: sTime,
@@ -704,8 +737,16 @@ export function PrivateInstructionCalendar({
                                   ? "bg-gray-100 cursor-not-allowed opacity-60"
                                   : "",
 
+                                // Blocked styling (max reached) - OVERRIDE other styles
+                                isAvailable &&
+                                  isMaxReached &&
+                                  !isPartOfSelection
+                                  ? "bg-gray-50 opacity-40 cursor-not-allowed text-gray-300"
+                                  : "",
+
                                 // Blocked hover styling (red for entire duration span)
-                                isBlockedHovered
+                                isBlockedHovered &&
+                                  (!isMaxReached || isPartOfSelection)
                                   ? "bg-red-100 cursor-not-allowed"
                                   : "",
 
@@ -768,7 +809,6 @@ export function PrivateInstructionCalendar({
                       const intervals = dailyIntervalsMap.get(dateKey) || [];
 
                       // Iterate through all 30-min slots in the day
-                      // We can reuse getDailySlotTimes or just loop
                       for (
                         let t = START_HOUR * 60;
                         t < END_HOUR * 60;
@@ -906,19 +946,39 @@ export function PrivateInstructionCalendar({
                                           isInCart = true;
                                       });
 
-                                      if (!isOverlap && !isInCart) {
+                                      // NEW: Check if max reached
+                                      const limitReached =
+                                        selectedSlots.length >= maxSlots;
+                                      // If max reached, only allow clicking if it IS already select (to toggle off/remove)
+                                      // But wait, the remove logic for list view is... actually this button doesn't handle remove directly?
+                                      // Let's check handleSlotClick. It DOES handle remove.
+                                      // So if isSelected, we allow click.
+                                      // If !isSelected and limitReached, we disable.
+
+                                      if (
+                                        !isOverlap &&
+                                        !isInCart &&
+                                        (!limitReached || isSelected)
+                                      ) {
                                         handleSlotClick(displayDate, h, m);
                                       }
                                     }}
-                                    disabled={isOverlap}
+                                    disabled={
+                                      isOverlap ||
+                                      (selectedSlots.length >= maxSlots &&
+                                        !isSelected)
+                                    }
                                     className={cn(
                                       "px-2 py-3 rounded-lg text-sm font-bold border-2 transition-all shadow-sm cursor-pointer",
                                       isSelected
                                         ? "bg-[hsl(var(--golf-green))] border-[hsl(var(--golf-green))] text-white shadow-md transform scale-105"
                                         : isInCart
                                           ? "bg-[hsl(var(--golf-green))]/80 border-[hsl(var(--golf-green))] text-white shadow-md cursor-default opacity-80"
-                                          : isOverlap
-                                            ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed"
+                                          : isOverlap ||
+                                            (selectedSlots.length >=
+                                              maxSlots &&
+                                              !isSelected)
+                                            ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed" // Disabled style
                                             : "bg-white border-gray-100 text-gray-700 hover:border-green-300 hover:bg-green-50 hover:shadow-md",
                                     )}
                                   >

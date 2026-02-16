@@ -227,3 +227,12 @@ export async function checkProgramSessionCapacity(
     },
   };
 }
+
+// Get a program session by ID
+export async function getProgramSessionById(id: string) {
+  const result = await db
+    .select()
+    .from(programSession)
+    .where(eq(programSession.id, id));
+  return result[0] || null;
+}

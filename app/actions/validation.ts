@@ -2,6 +2,8 @@
 
 import { checkTimeSlotAvailability } from "@/db/queries/bookings";
 import { checkProgramSessionCapacity } from "@/db/queries/programs";
+import { fromZonedTime } from "date-fns-tz";
+import { formatTime12h } from "@/lib/session-schedule";
 
 export interface ValidationResult {
   valid: boolean;
@@ -27,15 +29,15 @@ export async function validateCartAvailability(
         const slots = slotData.slots || (slotData.date ? [slotData] : []);
 
         for (const slot of slots) {
-          const baseDate = new Date(slot.date);
-          const [startH, startM] = slot.startTime.split(":").map(Number);
-          const [endH, endM] = slot.endTime.split(":").map(Number);
-
-          const startDate = new Date(baseDate);
-          startDate.setHours(startH, startM, 0, 0);
-
-          const endDate = new Date(baseDate);
-          endDate.setHours(endH, endM, 0, 0);
+          // Construct explicit EST time using date-fns-tz
+          const startDate = fromZonedTime(
+            `${slot.date} ${slot.startTime}`,
+            "America/New_York",
+          );
+          const endDate = fromZonedTime(
+            `${slot.date} ${slot.endTime}`,
+            "America/New_York",
+          );
 
           // Check DB for overlapping confirmed bookings
           const availability = await checkTimeSlotAvailability(
@@ -47,7 +49,7 @@ export async function validateCartAvailability(
 
           if (!availability.available) {
             isValid = false;
-            const timeStr = `${slot.date} at ${slot.startTime}`;
+            const timeStr = `${slot.date} at ${formatTime12h(slot.startTime)}`;
 
             if (availability.reason === "hold_active") {
               errors[item.id] =

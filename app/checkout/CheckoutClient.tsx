@@ -115,16 +115,11 @@ export function CheckoutClient() {
   const [formDataList, setFormDataList] = useState<CartItemFormData[]>([]);
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string>("");
-  const [isSuccess, setIsSuccess] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paymentTotal, setPaymentTotal] = useState(0);
 
   // Check for success redirect
-  useEffect(() => {
-    if (searchParams.get("success") === "true") {
-      setIsSuccess(true);
-    }
-  }, [searchParams]);
+  const isSuccess = searchParams.get("success") === "true";
 
   // Scroll to top when step changes
   useEffect(() => {
@@ -232,7 +227,7 @@ export function CheckoutClient() {
               let savedData: Record<string, any> = {};
               try {
                 savedData = JSON.parse(savedDataJson || "{}");
-              } catch {}
+              } catch { }
 
               newFormDataList.push({
                 cartItemId: item.id,
@@ -376,31 +371,28 @@ export function CheckoutClient() {
             <React.Fragment key={step.id}>
               <div className="flex flex-col items-center">
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                    index < currentStep
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${index < currentStep
                       ? "bg-green-600 text-white"
                       : index === currentStep
                         ? "bg-green-600 text-white"
                         : "bg-gray-200 text-gray-500"
-                  }`}
+                    }`}
                 >
                   {index < currentStep ? <CheckCircle2 size={20} /> : step.icon}
                 </div>
                 <span
-                  className={`text-xs mt-2 ${
-                    index <= currentStep
+                  className={`text-xs mt-2 ${index <= currentStep
                       ? "text-gray-800 font-medium"
                       : "text-gray-400"
-                  }`}
+                    }`}
                 >
                   {step.label}
                 </span>
               </div>
               {index < steps.length - 1 && (
                 <div
-                  className={`w-16 h-0.5 mx-2 ${
-                    index < currentStep ? "bg-green-600" : "bg-gray-200"
-                  }`}
+                  className={`w-16 h-0.5 mx-2 ${index < currentStep ? "bg-green-600" : "bg-gray-200"
+                    }`}
                 />
               )}
             </React.Fragment>
@@ -493,9 +485,9 @@ export function CheckoutClient() {
 
                       {/* Check if all forms are complete */}
                       {items.length > 0 &&
-                      formDataList.length ===
+                        formDataList.length ===
                         items.reduce((sum, i) => sum + i.quantity, 0) &&
-                      formDataList.every((f) => f.formData !== null) ? (
+                        formDataList.every((f) => f.formData !== null) ? (
                         <>
                           <Button
                             variant="outline"
@@ -548,14 +540,14 @@ export function CheckoutClient() {
                       </h2>
                       <p className="text-gray-600">
                         {formDataList[currentFormIndex]?.registrationType ===
-                        "junior"
+                          "junior"
                           ? "Complete the junior registration form below"
                           : "Complete the registration form below"}
                       </p>
                     </div>
 
                     {formDataList[currentFormIndex]?.registrationType ===
-                    "junior" ? (
+                      "junior" ? (
                       <CheckoutJuniorForm
                         programId={formDataList[currentFormIndex].programId}
                         programName={

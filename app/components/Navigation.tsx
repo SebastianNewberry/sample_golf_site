@@ -78,16 +78,6 @@ const juniorPrograms = [
     href: "/junior-programs/developmental-series",
   },
   {
-    title: "Junior Golf Camp",
-    desc: "Fun week-long camp for ages 8-12. Learn fundamentals and build confidence in a supportive environment.",
-    href: "/junior-programs/golf-camp",
-  },
-  {
-    title: "Junior Developmental Golf Camp",
-    desc: "Advanced camp for ages 9-17. Includes daily 9-hole play, video analysis, and professional coaching.",
-    href: "/junior-programs/developmental-camp",
-  },
-  {
     title: "Junior Private Golf Instruction",
     desc: "Individual instruction with PGA Professional. Private lessons and on-course coaching available.",
     href: "/junior-programs/private-instruction",
@@ -172,9 +162,8 @@ export default function Navigation() {
           <div className="hidden items-center gap-2 md:flex">
             <Link
               href="/"
-              className={`hover:bg-gray-300 rounded-md px-4 py-2 text-sm font-bold ${
-                isHomeActive ? "text-orange-600" : "text-gray-800"
-              }`}
+              className={`hover:bg-gray-300 rounded-md px-4 py-2 text-sm font-bold ${isHomeActive ? "text-orange-600" : "text-gray-800"
+                }`}
             >
               HOME
             </Link>
@@ -184,9 +173,8 @@ export default function Navigation() {
               <button
                 onMouseEnter={() => setJuniorProgramsOpen(true)}
                 onMouseLeave={() => setJuniorProgramsOpen(false)}
-                className={`inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-bold cursor-pointer ${
-                  isJuniorProgramsActive ? "text-orange-600" : "text-gray-800"
-                } ${juniorProgramsOpen ? "bg-gray-300" : "hover:bg-gray-300"}`}
+                className={`inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-bold cursor-pointer ${isJuniorProgramsActive ? "text-orange-600" : "text-gray-800"
+                  } ${juniorProgramsOpen ? "bg-gray-300" : "hover:bg-gray-300"}`}
               >
                 JUNIOR PROGRAMS <ChevronDown size={16} />
               </button>
@@ -304,16 +292,14 @@ export default function Navigation() {
                             <Link
                               key={program.title}
                               href={program.href || ""}
-                              className={`hover:bg-gray-300 block rounded-md p-2 ${
-                                pathname === program.href ? "bg-gray-300" : ""
-                              }`}
+                              className={`hover:bg-gray-300 block rounded-md p-2 ${pathname === program.href ? "bg-gray-300" : ""
+                                }`}
                             >
                               <p
-                                className={`text-sm font-bold ${
-                                  pathname === program.href
+                                className={`text-sm font-bold ${pathname === program.href
                                     ? "text-orange-600"
                                     : "text-gray-800"
-                                }`}
+                                  }`}
                               >
                                 {program.title}
                               </p>
@@ -334,9 +320,8 @@ export default function Navigation() {
               <button
                 onMouseEnter={() => setAdultProgramsOpen(true)}
                 onMouseLeave={() => setAdultProgramsOpen(false)}
-                className={`inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-bold cursor-pointer ${
-                  isAdultProgramsActive ? "text-orange-600" : "text-gray-800"
-                } ${adultProgramsOpen ? "bg-gray-300" : "hover:bg-gray-300"}`}
+                className={`inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-bold cursor-pointer ${isAdultProgramsActive ? "text-orange-600" : "text-gray-800"
+                  } ${adultProgramsOpen ? "bg-gray-300" : "hover:bg-gray-300"}`}
               >
                 ADULT PROGRAMS <ChevronDown size={16} />
               </button>
@@ -367,16 +352,14 @@ export default function Navigation() {
                         <li key={program.title}>
                           <Link
                             href={program.href || "/"}
-                            className={`hover:bg-gray-300 block rounded-md p-2 ${
-                              pathname === program.href ? "bg-gray-300" : ""
-                            }`}
+                            className={`hover:bg-gray-300 block rounded-md p-2 ${pathname === program.href ? "bg-gray-300" : ""
+                              }`}
                           >
                             <p
-                              className={`text-sm font-bold ${
-                                pathname === program.href
+                              className={`text-sm font-bold ${pathname === program.href
                                   ? "text-orange-600"
                                   : "text-gray-800"
-                              }`}
+                                }`}
                             >
                               {program.title}
                             </p>
@@ -394,18 +377,16 @@ export default function Navigation() {
 
             <Link
               href="/contact"
-              className={`hover:bg-gray-300 rounded-md px-4 py-2 text-sm font-bold ${
-                isContactActive ? "text-orange-600" : "text-gray-800"
-              }`}
+              className={`hover:bg-gray-300 rounded-md px-4 py-2 text-sm font-bold ${isContactActive ? "text-orange-600" : "text-gray-800"
+                }`}
             >
               CONNECT WITH US
             </Link>
 
             <Link
               href="/calendar"
-              className={`hover:bg-gray-300 rounded-md px-4 py-2 text-sm font-bold ${
-                pathname === "/calendar" ? "text-orange-600" : "text-gray-800"
-              }`}
+              className={`hover:bg-gray-300 rounded-md px-4 py-2 text-sm font-bold ${pathname === "/calendar" ? "text-orange-600" : "text-gray-800"
+                }`}
             >
               CALENDAR
             </Link>
@@ -436,9 +417,8 @@ export default function Navigation() {
             >
               <details ref={juniorDetailsRef} className="px-3">
                 <summary
-                  className={`hover:bg-gray-300 flex cursor-pointer list-none items-center justify-between rounded-md px-0 py-2 text-sm font-bold ${
-                    isJuniorProgramsActive ? "text-orange-600" : "text-gray-800"
-                  }`}
+                  className={`hover:bg-gray-300 flex cursor-pointer list-none items-center justify-between rounded-md px-0 py-2 text-sm font-bold ${isJuniorProgramsActive ? "text-orange-600" : "text-gray-800"
+                    }`}
                 >
                   <span>JUNIOR PROGRAMS</span>
                   <ChevronDown size={16} />
@@ -531,17 +511,15 @@ export default function Navigation() {
                             <Link
                               href={program.href || "/"}
                               onClick={handleLinkClick}
-                              className={`hover:bg-gray-300 flex flex-col rounded-md px-2 py-2 text-sm ${
-                                pathname === program.href ? "bg-gray-300" : ""
-                              }`}
+                              className={`hover:bg-gray-300 flex flex-col rounded-md px-2 py-2 text-sm ${pathname === program.href ? "bg-gray-300" : ""
+                                }`}
                             >
                               <div className="min-w-0">
                                 <p
-                                  className={`font-bold ${
-                                    pathname === program.href
+                                  className={`font-bold ${pathname === program.href
                                       ? "text-orange-600"
                                       : "text-gray-800"
-                                  }`}
+                                    }`}
                                 >
                                   {program.title}
                                 </p>
@@ -559,9 +537,8 @@ export default function Navigation() {
 
               <details ref={adultDetailsRef} className="px-3">
                 <summary
-                  className={`hover:bg-gray-300 flex cursor-pointer list-none items-center justify-between rounded-md px-0 py-2 text-sm font-bold ${
-                    isAdultProgramsActive ? "text-orange-600" : "text-gray-800"
-                  }`}
+                  className={`hover:bg-gray-300 flex cursor-pointer list-none items-center justify-between rounded-md px-0 py-2 text-sm font-bold ${isAdultProgramsActive ? "text-orange-600" : "text-gray-800"
+                    }`}
                 >
                   <span>ADULT PROGRAMS</span>
                   <ChevronDown size={16} />
@@ -573,17 +550,15 @@ export default function Navigation() {
                         <Link
                           href={program.href || "/"}
                           onClick={handleLinkClick}
-                          className={`hover:bg-gray-300 flex flex-col rounded-md px-2 py-2 text-sm ${
-                            pathname === program.href ? "bg-gray-300" : ""
-                          }`}
+                          className={`hover:bg-gray-300 flex flex-col rounded-md px-2 py-2 text-sm ${pathname === program.href ? "bg-gray-300" : ""
+                            }`}
                         >
                           <div className="min-w-0">
                             <p
-                              className={`font-bold ${
-                                pathname === program.href
+                              className={`font-bold ${pathname === program.href
                                   ? "text-orange-600"
                                   : "text-gray-800"
-                              }`}
+                                }`}
                             >
                               {program.title}
                             </p>
@@ -601,9 +576,8 @@ export default function Navigation() {
               <Link
                 href="/"
                 onClick={handleLinkClick}
-                className={`hover:bg-gray-300 flex items-center justify-between rounded-md px-3 py-2 text-sm font-bold ${
-                  isHomeActive ? "text-orange-600" : "text-gray-800"
-                }`}
+                className={`hover:bg-gray-300 flex items-center justify-between rounded-md px-3 py-2 text-sm font-bold ${isHomeActive ? "text-orange-600" : "text-gray-800"
+                  }`}
               >
                 <span>HOME</span>
                 <ChevronRight
@@ -615,9 +589,8 @@ export default function Navigation() {
               <Link
                 href="/contact"
                 onClick={handleLinkClick}
-                className={`hover:bg-gray-300 flex items-center justify-between rounded-md px-3 py-2 text-sm font-bold ${
-                  isContactActive ? "text-orange-600" : "text-gray-800"
-                }`}
+                className={`hover:bg-gray-300 flex items-center justify-between rounded-md px-3 py-2 text-sm font-bold ${isContactActive ? "text-orange-600" : "text-gray-800"
+                  }`}
               >
                 <span>CONNECT WITH US</span>
                 <ChevronRight
@@ -629,9 +602,8 @@ export default function Navigation() {
               <Link
                 href="/calendar"
                 onClick={handleLinkClick}
-                className={`hover:bg-gray-300 flex items-center justify-between rounded-md px-3 py-2 text-sm font-bold ${
-                  isCalendarActive ? "text-orange-600" : "text-gray-800"
-                }`}
+                className={`hover:bg-gray-300 flex items-center justify-between rounded-md px-3 py-2 text-sm font-bold ${isCalendarActive ? "text-orange-600" : "text-gray-800"
+                  }`}
               >
                 <span>CALENDAR</span>
                 <ChevronRight

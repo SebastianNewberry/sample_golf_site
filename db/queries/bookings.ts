@@ -4,19 +4,20 @@ import { db } from "@/db";
 import {
   booking,
   NewBooking,
-  bookingParticipant,
-  NewBookingParticipant,
+  adultRegistration,
+  juniorRegistration,
+  NewAdultRegistration,
+  NewJuniorRegistration,
 } from "@/db/schema";
 import { eq, and, lt, gt, or, not, like } from "drizzle-orm";
 
-// Get ALL bookings (including cancelled/expired) - keeping properly named for clarity if needed elsewhere
+// Get ALL bookings (including cancelled/expired)
 export async function getBookingsByType(type: "adult" | "junior") {
   return await db.select().from(booking).where(eq(booking.type, type));
 }
 
 // Get only ACTIVE bookings (Confirmed + Valid Holds)
 export async function getActiveBookingsByType(type: "adult" | "junior") {
-  const now = new Date();
   return await db.select().from(booking).where(eq(booking.status, "confirmed"));
 }
 
@@ -28,10 +29,7 @@ export async function getAllBookings() {
 // We use manual consistency handling here.
 export async function createBooking(
   data: NewBooking,
-  participants: Omit<
-    NewBookingParticipant,
-    "bookingId" | "id" | "createdAt" | "updatedAt"
-  >[],
+  participants: any[], // Type loose here as we handle specific tables inside
 ) {
   // 1. Create the booking record
   const [newBooking] = await db.insert(booking).values(data).returning();
@@ -43,12 +41,60 @@ export async function createBooking(
 
   // 3. Try to add participants
   try {
-    await db.insert(bookingParticipant).values(
-      participants.map((p) => ({
-        ...p,
+    const type = data.type;
+
+    if (type === 'adult') {
+      const adultParticipants = participants.map(p => ({
         bookingId: newBooking.id,
-      })),
-    );
+        firstName: p.firstName,
+        lastName: p.lastName,
+        email: p.email,
+        phoneNumber: p.phoneNumber,
+        phoneType: p.phoneType || null,
+        preferredContactMethod: p.preferredContactMethod || null,
+        hasOwnClubs: p.hasOwnClubs || false,
+        additionalComments: p.additionalComments || null,
+        userId: data.userId || p.userId, // fallback
+      }));
+
+      const validAdults = adultParticipants.map(p => ({
+        ...p,
+        userId: p.userId || newBooking.userId, // Use booking owner if no specific user
+      })).filter(p => p.userId);
+
+      if (validAdults.length > 0) {
+        await db.insert(adultRegistration).values(validAdults as any);
+      }
+    } else {
+      const juniorParticipants = participants.map(p => ({
+        bookingId: newBooking.id,
+        // Junior fields
+        primaryContactFirstName: p.primaryContactFirstName,
+        primaryContactLastName: p.primaryContactLastName,
+        primaryContactEmail: p.primaryContactEmail,
+        primaryContactPhone: p.primaryContactPhone,
+        childFirstName: p.childFirstName,
+        childLastName: p.childLastName,
+        childAge: p.childAge,
+        childExperienceLevel: p.childExperienceLevel,
+        phoneType: p.phoneType,
+        preferredContactMethod: p.preferredContactMethod,
+        hasOwnClubs: p.hasOwnClubs,
+        friendsToGroupWith: p.friendsToGroupWith || null,
+        additionalComments: p.additionalComments || null,
+        userId: data.userId || p.userId,
+      }));
+
+      const validJuniors = juniorParticipants.map(p => ({
+        ...p,
+        userId: p.userId || newBooking.userId,
+      })).filter(p => p.userId);
+
+      if (validJuniors.length > 0) {
+        await db.insert(juniorRegistration).values(validJuniors as any);
+      }
+    }
+
   } catch (error) {
     // 4. If participant insertion fails, ROLLBACK manually
     console.error("Failed to add participants, rolling back booking:", error);
@@ -69,7 +115,7 @@ export async function createBooking(
 export async function checkTimeSlotAvailability(
   startTime: Date,
   endTime: Date,
-  excludeBookingId?: string, // existing parameter, maybe unused or used differently?
+  excludeBookingId?: string,
   excludeCheckoutId?: string,
 ) {
   // Find any booking that overlaps with the requested time slot
@@ -82,8 +128,6 @@ export async function checkTimeSlotAvailability(
 
   // A slot is taken if:
   // 1. Status is "confirmed"
-  // 2. OR Status is "pending_payment" (logic simplified, expirations handled elsewhere/removed)
-
   const statusRule = eq(booking.status, "confirmed");
 
   const conflictingBookings = await db
@@ -95,7 +139,6 @@ export async function checkTimeSlotAvailability(
     return { available: true };
   }
 
-  // Determine reason
   const hasConfirmed = conflictingBookings.some(
     (b) => b.status === "confirmed",
   );
@@ -116,30 +159,75 @@ export async function updateBookingStatus(
     .where(eq(booking.id, bookingId));
 }
 
+export async function updateBooking(
+  id: string,
+  data: Partial<typeof booking.$inferInsert>,
+) {
+  return await db
+    .update(booking)
+    .set(data)
+    .where(eq(booking.id, id));
+}
+
 export async function getBookingById(id: string) {
   return await db.query.booking.findFirst({
     where: eq(booking.id, id),
     with: {
-      participants: true,
+      adultRegistrations: true,
+      juniorRegistrations: true,
     },
   });
 }
 
 export async function addBookingParticipants(
   bookingId: string,
-  participants: Omit<
-    NewBookingParticipant,
-    "bookingId" | "id" | "createdAt" | "updatedAt"
-  >[],
+  participants: any[],
 ) {
   if (participants.length === 0) return;
 
-  await db.insert(bookingParticipant).values(
-    participants.map((p) => ({
-      ...p,
-      bookingId,
-    })),
-  );
+  // We need to know the type for sure.
+  // Assuming callers might pass mixed array or we check first element?
+  // But safest is to key off 'type' prop if present.
+
+  const adults = participants.filter(p => p.type === 'adult').map(p => ({
+    bookingId,
+    firstName: p.firstName,
+    lastName: p.lastName,
+    email: p.email,
+    phoneNumber: p.phoneNumber,
+    phoneType: p.phoneType || null,
+    preferredContactMethod: p.preferredContactMethod || null,
+    hasOwnClubs: p.hasOwnClubs || false,
+    additionalComments: p.additionalComments || null,
+    userId: p.userId,
+  })).filter(p => p.userId); // userId required
+
+  const juniors = participants.filter(p => p.type === 'junior').map(p => ({
+    bookingId,
+    // Junior fields
+    primaryContactFirstName: p.primaryContactFirstName,
+    primaryContactLastName: p.primaryContactLastName,
+    primaryContactEmail: p.primaryContactEmail,
+    primaryContactPhone: p.primaryContactPhone,
+    childFirstName: p.childFirstName,
+    childLastName: p.childLastName,
+    childAge: p.childAge,
+    childExperienceLevel: p.childExperienceLevel,
+    phoneType: p.phoneType,
+    preferredContactMethod: p.preferredContactMethod,
+    hasOwnClubs: p.hasOwnClubs,
+    friendsToGroupWith: p.friendsToGroupWith || null,
+    additionalComments: p.additionalComments || null,
+    userId: p.userId,
+  })).filter(p => p.userId);
+
+  if (adults.length > 0) {
+    await db.insert(adultRegistration).values(adults as any);
+  }
+
+  if (juniors.length > 0) {
+    await db.insert(juniorRegistration).values(juniors as any);
+  }
 }
 
 export async function deleteBooking(id: string) {

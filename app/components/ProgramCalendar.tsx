@@ -148,9 +148,8 @@ export function ProgramCalendar({
           return (
             <div
               key={index}
-              className={`bg-white p-1 transition-all duration-300 ${
-                !day ? "bg-gray-50" : ""
-              } ${isExpanded ? "min-h-[200px]" : "min-h-[80px]"}`}
+              className={`bg-white p-1 transition-all duration-300 ${!day ? "bg-gray-50" : ""
+                } ${isExpanded ? "min-h-[200px]" : "min-h-[120px]"}`}
             >
               {day && (
                 <>
@@ -169,8 +168,24 @@ export function ProgramCalendar({
                             setHoveredEvent(event);
                             const rect =
                               e.currentTarget.getBoundingClientRect();
+
+                            // Calculate optimized X position
+                            // Tooltip width is w-80 (20rem = 320px)
+                            const tooltipWidth = 320;
+                            const padding = 16; // Safety padding from screen edge
+
+                            // Default to aligning left with the event
+                            let x = rect.left;
+
+                            // If it overflows the right side of the viewport
+                            if (x + tooltipWidth > window.innerWidth) {
+                              // Try to align with the right side of the event (or just shift left to fit)
+                              // Math.min guarantees we don't push it off the left side either
+                              x = Math.max(padding, window.innerWidth - tooltipWidth - padding);
+                            }
+
                             setTooltipPosition({
-                              x: rect.left,
+                              x: x,
                               y: rect.bottom + 8,
                             });
                           }}
@@ -227,14 +242,26 @@ export function ProgramCalendar({
       {/* Legend */}
       <div className="border-t border-gray-200 p-4 bg-gray-50">
         <h4 className="text-sm font-bold text-gray-800 mb-2">Legend</h4>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-blue-500" />
+            <div className="w-4 h-4 rounded bg-[#f97316]" />
             <span className="text-xs text-gray-700">Adult Programs</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-green-500" />
+            <div className="w-4 h-4 rounded bg-[#ea580c]" />
+            <span className="text-xs text-gray-700">
+              Adult Private Instruction
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-[#22c55e]" />
             <span className="text-xs text-gray-700">Junior Programs</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 rounded bg-[#15803d]" />
+            <span className="text-xs text-gray-700">
+              Junior Private Instruction
+            </span>
           </div>
         </div>
       </div>

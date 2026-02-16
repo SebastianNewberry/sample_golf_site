@@ -14,7 +14,7 @@ interface ProgramCardProps {
   programId: string;
   programPrice: number;
   duration: string;
-  sessions: Array<{ id: string; name: string }>;
+  sessions: Array<{ id: string; name: string; startDate?: string | Date }>;
   registrationType: "adult" | "junior";
   selectedSessionId?: string;
   onSessionChange?: (sessionId: string) => void;
@@ -60,9 +60,8 @@ export function ProgramCard({
         {description.map((paragraph, index) => (
           <p
             key={index}
-            className={`${
-              index === 0 ? "text-gray-700" : "text-gray-600"
-            } text-sm leading-relaxed mb-2`}
+            className={`${index === 0 ? "text-gray-700" : "text-gray-600"
+              } text-sm leading-relaxed mb-2`}
           >
             <SafeHTML html={paragraph} />
           </p>

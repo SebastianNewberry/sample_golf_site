@@ -10,7 +10,7 @@ interface GetGolfReadyLevel2ClientProps {
   programId: string;
   programPrice: number;
   duration: string;
-  sessions: Array<{ id: string; name: string }>;
+  sessions: Array<{ id: string; name: string; startDate?: string | Date }>;
   selectedSessionId: string;
   onSessionChange: (sessionId: string) => void;
 }

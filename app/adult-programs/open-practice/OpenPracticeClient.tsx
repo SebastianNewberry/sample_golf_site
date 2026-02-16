@@ -11,7 +11,7 @@ interface OpenPracticeClientProps {
   programId: string;
   programPrice: number;
   duration: string;
-  sessions: Array<{ id: string; name: string }>;
+  sessions: Array<{ id: string; name: string; startDate?: string | Date }>;
   selectedSessionId: string;
   onSessionChange: (sessionId: string) => void;
 }
@@ -31,11 +31,11 @@ export function OpenPracticeClient({
   const actualSessions = sessions.length > 0
     ? sessions
     : [
-        {
-          id: "saturday",
-          name: "Saturday 11:00 AM - Call to Reserve",
-        },
-      ];
+      {
+        id: "saturday",
+        name: "Saturday 11:00 AM - Call to Reserve",
+      },
+    ];
 
   return (
     <ProgramCard

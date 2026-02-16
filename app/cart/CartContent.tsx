@@ -79,6 +79,13 @@ export default function CartContent() {
     }, [items, searchParams]);
 
     useEffect(() => {
+        // Always validate on mount if there are items
+        if (items.length > 0) {
+            validateCart();
+        }
+    }, [items.length, validateCart]);
+
+    useEffect(() => {
         if (searchParams.get("validate") === "true" && items.length > 0) {
             validateCart();
         }
@@ -194,10 +201,28 @@ export default function CartContent() {
 
             // Parse dates from metadata slots
             const formattedSlots = metadata.slots.map((slot: any) => {
-                const date = new Date(slot.date);
+                // Parse date string (YYYY-MM-DD) to Local Date object to avoid UTC shifts
+                const [year, month, day] = slot.date.split("-").map(Number);
+                const date = new Date(year, month - 1, day);
+
                 return {
                     date: date.toLocaleDateString("en-US", {
-                        timeZone: "America/New_York",
+                        // We use the date object which represents 00:00 local time on that day
+                        // Displaying it with a timezone might shift it if the local machine is not in that timezone
+                        // BUT since we manually constructed it as local 00:00, toLocaleDateString without timezone IANA 
+                        // might use browser's timezone.
+                        // Ideally we want to just format it as the date string says.
+                        // However, to be consistent with existing styling we use these options.
+                        // Specifying 'America/New_York' on a manually constructed local date (which effectively usually means local to user)
+                        // might shift it if user is NOT in EST?
+                        // Actually, if we just want "Feb 18, 2026", and we have "2026-02-18",
+                        // we can strictly format the string parts.
+                        // But let's stick to the Date object method but ensure it doesn't shift.
+                        // Simple fix: Add 12 hours to be in the middle of the day.
+
+                        // Revised approach:
+                        // Just use the parsing logic which creates a local date.
+                        // format options -> "short" month, numeric day.
                         month: "short",
                         day: "numeric",
                         year: "numeric",
@@ -326,8 +351,8 @@ export default function CartContent() {
                                     <div key={item.id}>
                                         <Card
                                             className={`p-8 bg-white shadow-md transition-all ${hasError
-                                                    ? "border-2 border-red-500 ring-4 ring-red-50 bg-red-50/10"
-                                                    : ""
+                                                ? "border-2 border-red-500 ring-4 ring-red-50"
+                                                : ""
                                                 }`}
                                         >
                                             <div className="flex gap-6">
@@ -479,8 +504,8 @@ export default function CartContent() {
                                                                 }
                                                                 disabled={item.quantity <= 1 || isPrivate}
                                                                 className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 ${item.quantity <= 1 || isPrivate
-                                                                        ? "border-gray-200 text-gray-300 cursor-not-allowed"
-                                                                        : "border-gray-300 enabled:hover:bg-gray-100 cursor-pointer"
+                                                                    ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                                                                    : "border-gray-300 enabled:hover:bg-gray-100 cursor-pointer"
                                                                     }`}
                                                                 aria-label="Decrease quantity"
                                                             >
@@ -517,18 +542,18 @@ export default function CartContent() {
                                                                     return false;
                                                                 })()}
                                                                 className={`w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 ${(() => {
-                                                                        if (isPrivate) return true;
-                                                                        if (item.session) {
-                                                                            const enrolled =
-                                                                                item.session.enrolledCount ?? 0;
-                                                                            const maxAvailable =
-                                                                                item.session.capacity - enrolled;
-                                                                            return item.quantity >= maxAvailable;
-                                                                        }
-                                                                        return false;
-                                                                    })()
-                                                                        ? "border-gray-200 text-gray-300 cursor-not-allowed"
-                                                                        : "border-gray-300 enabled:hover:bg-gray-100 cursor-pointer"
+                                                                    if (isPrivate) return true;
+                                                                    if (item.session) {
+                                                                        const enrolled =
+                                                                            item.session.enrolledCount ?? 0;
+                                                                        const maxAvailable =
+                                                                            item.session.capacity - enrolled;
+                                                                        return item.quantity >= maxAvailable;
+                                                                    }
+                                                                    return false;
+                                                                })()
+                                                                    ? "border-gray-200 text-gray-300 cursor-not-allowed"
+                                                                    : "border-gray-300 enabled:hover:bg-gray-100 cursor-pointer"
                                                                     }`}
                                                                 aria-label="Increase quantity"
                                                                 title={(() => {
