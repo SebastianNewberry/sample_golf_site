@@ -7,6 +7,12 @@ import { useCart } from "./CartContext";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Trash2, ShoppingCart, ArrowRight } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Re-using the program image map (simplified for popup)
 const PROGRAM_IMAGE_MAP: Record<string, string> = {
@@ -119,196 +125,238 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
   };
 
   return (
-    <AnimatePresence>
-      {isVisible && itemCount > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 10, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 10, scale: 0.95 }}
-          transition={{ duration: 0.2 }}
-          className="absolute top-0 w-96 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden md:-translate-x-1/2"
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
-        >
-          {/* Items List */}
-          <div className="max-h-[300px] overflow-y-auto pt-2">
-            {recentItems.map((item) => {
-              const programImage =
-                item.program?.imageUrl || PROGRAM_IMAGE_MAP[item.programId];
+    <TooltipProvider delayDuration={300}>
+      <AnimatePresence>
+        {isVisible && itemCount > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
+            className="absolute top-0 w-96 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden md:-translate-x-1/2"
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
+          >
+            {/* Items List */}
+            <div className="max-h-[300px] overflow-y-auto pt-2">
+              {recentItems.map((item) => {
+                const programImage =
+                  item.program?.imageUrl || PROGRAM_IMAGE_MAP[item.programId];
 
-              // Compact session info
-              let sessionInfo = "";
-              if (item.session) {
-                try {
-                  if (item.session.name) {
-                    sessionInfo = item.session.name;
+                // Compact session info
+                let sessionInfo = "";
+                if (item.session) {
+                  try {
+                    if (item.session.name) {
+                      sessionInfo = item.session.name;
+                    }
+                  } catch (e) {
+                    sessionInfo = "Session Selected";
                   }
-                } catch (e) {
-                  sessionInfo = "Session Selected";
-                }
-              } else if (item.metadata) {
-                try {
-                  const meta = JSON.parse(item.metadata);
-                  if (meta.slots?.length > 0) {
-                    sessionInfo = `${meta.slots.length} Session${meta.slots.length > 1 ? "s" : ""}`;
+                } else if (item.metadata) {
+                  try {
+                    const meta = JSON.parse(item.metadata);
+                    if (meta.slots?.length > 0) {
+                      sessionInfo = `${meta.slots.length} Session${meta.slots.length > 1 ? "s" : ""}`;
+                    }
+                  } catch (e) {
+                    sessionInfo = "Private Instruction";
                   }
-                } catch (e) {
-                  sessionInfo = "Private Instruction";
                 }
-              }
 
-              // Check if item is Private Instruction (should not allow quantity changes)
-              const isPrivateInstruction =
-                item.program?.name?.toLowerCase().includes("private") ||
-                (item.metadata && !item.session);
+                // Check if item is Private Instruction (should not allow quantity changes)
+                const isPrivateInstruction =
+                  item.program?.name?.toLowerCase().includes("private") ||
+                  (item.metadata && !item.session);
 
-              // Calculate max quantity if session exists
-              let maxQuantity = Infinity;
-              let isSoldOut = false;
-              let hasInsufficientQuantity = false;
+                // Calculate max quantity if session exists
+                let maxQuantity = Infinity;
+                let isSoldOut = false;
+                let hasInsufficientQuantity = false;
 
-              if (item.session) {
-                const enrolled = item.session.enrolledCount ?? 0;
-                maxQuantity = Math.max(0, item.session.capacity - enrolled);
-                isSoldOut = maxQuantity === 0;
-                hasInsufficientQuantity = item.quantity > maxQuantity;
-              }
+                if (item.session) {
+                  const enrolled = item.session.enrolledCount ?? 0;
+                  maxQuantity = Math.max(0, item.session.capacity - enrolled);
+                  isSoldOut = maxQuantity === 0;
+                  hasInsufficientQuantity = item.quantity > maxQuantity;
+                }
 
-              // Check for new availability property
-              if (item.availability && !item.availability.isAvailable) {
-                isSoldOut = true; // Treat as sold out/unavailable for styling
-              }
+                // Check for new availability property
+                if (item.availability && !item.availability.isAvailable) {
+                  isSoldOut = true; // Treat as sold out/unavailable for styling
+                }
 
-              return (
-                <div
-                  key={item.id}
-                  className={`p-3 border-b flex gap-3 last:border-0 transition-colors group relative ${hasInsufficientQuantity || isSoldOut
-                    }`}
-                >
-                  <button
-                    onClick={(e) => handleRemoveItem(e, item.id)}
-                    className="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
-                    title="Remove Item"
+                return (
+                  <div
+                    key={item.id}
+                    className={`p-3 border-b flex gap-3 last:border-0 transition-colors group relative ${hasInsufficientQuantity || isSoldOut
+                      }`}
                   >
-                    <Trash2 size={14} />
-                  </button>
-                  <div className="relative w-16 h-16 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden">
-                    <Image
-                      src={programImage || "/placeholder.png"}
-                      alt={item.program?.name || "Program"}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start gap-2">
-                      <div>
-                        <p className="font-bold text-gray-900 text-sm truncate pr-4">
-                          {item.program?.name}
-                        </p>
-                        <p className="text-xs text-gray-500 truncate">
-                          {sessionInfo}
-                        </p>
-                        {(hasInsufficientQuantity || isSoldOut) && (
-                          <p className="text-xs text-red-600 font-bold mt-1">
-                            {item.availability?.error ||
-                              (isSoldOut
-                                ? "Sold Out (0 available)"
-                                : `Only ${maxQuantity} available`)}
+                    <button
+                      onClick={(e) => handleRemoveItem(e, item.id)}
+                      className="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
+                      title="Remove Item"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                    <div className="relative w-16 h-16 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden">
+                      <Image
+                        src={programImage || "/placeholder.png"}
+                        alt={item.program?.name || "Program"}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start gap-2">
+                        <div>
+                          <p className="font-bold text-gray-900 text-sm truncate pr-4">
+                            {item.program?.name}
                           </p>
-                        )}
+                          <p className="text-xs text-gray-500 truncate">
+                            {sessionInfo}
+                          </p>
+                          {(hasInsufficientQuantity || isSoldOut) && (
+                            <p className="text-xs text-red-600 font-bold mt-1">
+                              {item.availability?.error ||
+                                (isSoldOut
+                                  ? "Sold Out (0 available)"
+                                  : `Only ${maxQuantity} available`)}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 mr-6">
+                          <span className="text-sm font-bold text-gray-800">
+                            $
+                            {(
+                              parseFloat(item.priceAtAdd) * item.quantity
+                            ).toFixed(2)}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 mr-6">
-                        <span className="text-sm font-bold text-gray-800">
-                          $
-                          {(
-                            parseFloat(item.priceAtAdd) * item.quantity
-                          ).toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
 
-                    <div className="flex items-center gap-3 mt-3">
-                      <div className="flex items-center gap-2 border border-gray-200 rounded-md bg-white">
-                        <button
-                          onClick={(e) =>
-                            handleUpdateQuantity(e, item.id, item.quantity - 1)
-                          }
-                          disabled={item.quantity <= 1 || isPrivateInstruction}
-                          className="w-6 h-6 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                        >
-                          -
-                        </button>
-                        <span className="text-xs font-medium w-4 text-center">
-                          {item.quantity}
-                        </span>
-                        <button
-                          onClick={(e) =>
-                            handleUpdateQuantity(e, item.id, item.quantity + 1)
-                          }
-                          disabled={
-                            item.quantity >= maxQuantity || isPrivateInstruction
-                          }
-                          className="w-6 h-6 flex items-center justify-center text-gray-500 hover:bg-gray-100 disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
-                          title={
-                            isPrivateInstruction
-                              ? "Cannot change quantity for private instruction"
-                              : item.quantity >= maxQuantity
-                                ? "Session capacity reached"
-                                : "Add another"
-                          }
-                        >
-                          +
-                        </button>
+                      <div className="flex items-center gap-3 mt-3">
+                        <div className="flex items-center gap-2 border border-gray-200 rounded-md bg-white">
+                          {item.quantity <= 1 || isPrivateInstruction ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span tabIndex={0} className="inline-flex cursor-not-allowed">
+                                  <button
+                                    onClick={(e) =>
+                                      handleUpdateQuantity(e, item.id, item.quantity - 1)
+                                    }
+                                    disabled={item.quantity <= 1 || isPrivateInstruction}
+                                    className="w-6 h-6 flex items-center justify-center text-gray-500 opacity-50 pointer-events-none"
+                                  >
+                                    -
+                                  </button>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom">
+                                <p>
+                                  {isPrivateInstruction
+                                    ? "Cannot change quantity for private instruction"
+                                    : item.quantity <= 1
+                                      ? "Minimum quantity is 1"
+                                      : "Decrease quantity"}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <button
+                              onClick={(e) =>
+                                handleUpdateQuantity(e, item.id, item.quantity - 1)
+                              }
+                              className="w-6 h-6 flex items-center justify-center text-gray-500 hover:bg-gray-100 cursor-pointer"
+                            >
+                              -
+                            </button>
+                          )}
+                          <span className="text-xs font-medium w-4 text-center">
+                            {item.quantity}
+                          </span>
+                          {item.quantity >= maxQuantity || isPrivateInstruction ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span tabIndex={0} className="inline-flex cursor-not-allowed">
+                                  <button
+                                    disabled
+                                    className="w-6 h-6 flex items-center justify-center text-gray-500 opacity-50 pointer-events-none"
+                                  >
+                                    +
+                                  </button>
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom">
+                                <p>
+                                  {isPrivateInstruction
+                                    ? "Cannot change quantity for private instruction"
+                                    : item.quantity >= maxQuantity
+                                      ? "Session capacity reached"
+                                      : "Add another"}
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            <button
+                              onClick={(e) =>
+                                handleUpdateQuantity(e, item.id, item.quantity + 1)
+                              }
+                              className="w-6 h-6 flex items-center justify-center text-gray-500 hover:bg-gray-100 cursor-pointer"
+                            >
+                              +
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Footer / Summary */}
-          <div className="p-4 bg-gray-50 border-t border-gray-100">
-            <div className="flex justify-between items-center mb-4">
-              <span className="text-sm text-gray-600">Subtotal</span>
-              <span className="text-lg font-bold text-gray-900">
-                ${total.toFixed(2)}
-              </span>
+                );
+              })}
             </div>
 
-            <div className="space-y-2">
-              <Link
-                href="/checkout"
-                className="block"
-                onClick={() => {
-                  if (setIsOpen) setIsOpen(false);
-                  else setIsVisible(false);
-                }}
-              >
-                <Button className="w-full bg-orange-500 enabled:hover:bg-orange-600 text-white shadow-sm cursor-pointer h-9 text-sm">
-                  Checkout <ArrowRight size={14} className="ml-1" />
-                </Button>
-              </Link>
-              <Link
-                href="/cart"
-                className="block"
-                onClick={() => {
-                  if (setIsOpen) setIsOpen(false);
-                  else setIsVisible(false);
-                }}
-              >
-                <Button
-                  variant="outline"
-                  className="w-full border-green-600 bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 enabled:hover:text-green-700 cursor-pointer h-9 text-sm border-2"
+            {/* Footer / Summary */}
+            <div className="p-4 bg-gray-50 border-t border-gray-100">
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-sm text-gray-600">Subtotal</span>
+                <span className="text-lg font-bold text-gray-900">
+                  ${total.toFixed(2)}
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                <Link
+                  href="/checkout"
+                  className="block"
+                  onClick={() => {
+                    if (setIsOpen) setIsOpen(false);
+                    else setIsVisible(false);
+                  }}
                 >
-                  View Cart
-                </Button>
-              </Link>
+                  <Button className="w-full bg-orange-500 enabled:hover:bg-orange-600 text-white shadow-sm cursor-pointer h-9 text-sm">
+                    Checkout <ArrowRight size={14} className="ml-1" />
+                  </Button>
+                </Link>
+                <Link
+                  href="/cart"
+                  className="block"
+                  onClick={() => {
+                    if (setIsOpen) setIsOpen(false);
+                    else setIsVisible(false);
+                  }}
+                >
+                  <Button
+                    variant="outline"
+                    className="w-full border-green-600 bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 enabled:hover:text-green-700 cursor-pointer h-9 text-sm border-2"
+                  >
+                    View Cart
+                  </Button>
+                </Link>
+              </div>
             </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </TooltipProvider>
   );
 }

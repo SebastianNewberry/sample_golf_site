@@ -250,10 +250,16 @@ export function CheckoutClient() {
   // Save to localStorage whenever formDataList updates
   useEffect(() => {
     if (formDataList.length > 0) {
-      const dataToSave: Record<string, any> = {};
-      // We need to map back to the keys: cartItemId_index
-      // We can iterate and reconstruct.
-      // Since formDataList is flat and ordered, we need to group by cartItemId to find index.
+      const existingDataString = localStorage.getItem("checkout_form_data");
+      let dataToSave: Record<string, any> = {};
+      if (existingDataString) {
+        try {
+          dataToSave = JSON.parse(existingDataString);
+        } catch (e) {
+          console.error("Failed to parse existing form data", e);
+        }
+      }
+
       const counts: Record<string, number> = {};
 
       formDataList.forEach((item) => {
@@ -291,12 +297,14 @@ export function CheckoutClient() {
 
   const getPrimaryFormData = (currentIndex: number) => {
     const currentItem = formDataList[currentIndex];
-    const primaryForm = formDataList.find(
-      (f, idx) =>
-        idx < currentIndex &&
-        f.programId === currentItem.programId &&
-        f.formData !== null,
-    );
+    let primaryForm = null;
+    for (let i = currentIndex - 1; i >= 0; i--) {
+      const f = formDataList[i];
+      if (f.programId === currentItem.programId && f.formData !== null) {
+        primaryForm = f;
+        break;
+      }
+    }
     return primaryForm?.formData || null;
   };
 
@@ -372,18 +380,18 @@ export function CheckoutClient() {
               <div className="flex flex-col items-center">
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${index < currentStep
+                    ? "bg-green-600 text-white"
+                    : index === currentStep
                       ? "bg-green-600 text-white"
-                      : index === currentStep
-                        ? "bg-green-600 text-white"
-                        : "bg-gray-200 text-gray-500"
+                      : "bg-gray-200 text-gray-500"
                     }`}
                 >
                   {index < currentStep ? <CheckCircle2 size={20} /> : step.icon}
                 </div>
                 <span
                   className={`text-xs mt-2 ${index <= currentStep
-                      ? "text-gray-800 font-medium"
-                      : "text-gray-400"
+                    ? "text-gray-800 font-medium"
+                    : "text-gray-400"
                     }`}
                 >
                   {step.label}

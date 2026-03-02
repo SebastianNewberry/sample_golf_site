@@ -297,8 +297,8 @@ export default function Navigation() {
                             >
                               <p
                                 className={`text-sm font-bold ${pathname === program.href
-                                    ? "text-orange-600"
-                                    : "text-gray-800"
+                                  ? "text-orange-600"
+                                  : "text-gray-800"
                                   }`}
                               >
                                 {program.title}
@@ -357,8 +357,8 @@ export default function Navigation() {
                           >
                             <p
                               className={`text-sm font-bold ${pathname === program.href
-                                  ? "text-orange-600"
-                                  : "text-gray-800"
+                                ? "text-orange-600"
+                                : "text-gray-800"
                                 }`}
                             >
                               {program.title}
@@ -425,6 +425,43 @@ export default function Navigation() {
                 </summary>
                 <div className="mt-2 rounded-lg p-2 bg-gray-200">
                   <div className="space-y-4">
+                    {/* Program Links */}
+                    <ul className="grid grid-cols-1 gap-1">
+                      {juniorPrograms
+                        .filter(
+                          (program) =>
+                            program.type !== "separator" &&
+                            program.type !== "section",
+                        )
+                        .map((program) => (
+                          <li key={program.title}>
+                            <Link
+                              href={program.href || "/"}
+                              onClick={handleLinkClick}
+                              className={`hover:bg-gray-300 flex flex-col rounded-md px-2 py-2 text-sm ${pathname === program.href ? "bg-gray-300" : ""
+                                }`}
+                            >
+                              <div className="min-w-0">
+                                <p
+                                  className={`font-bold ${pathname === program.href
+                                    ? "text-orange-600"
+                                    : "text-gray-800"
+                                    }`}
+                                >
+                                  {program.title}
+                                </p>
+                                <p className="text-xs text-gray-600">
+                                  {program.desc}
+                                </p>
+                              </div>
+                            </Link>
+                          </li>
+                        ))}
+                    </ul>
+
+                    {/* Separator */}
+                    <div className="border-t border-gray-300" />
+
                     {/* About Our Junior Programs */}
                     <div className="space-y-2">
                       <p className="text-base font-bold text-gray-800">
@@ -494,43 +531,6 @@ export default function Navigation() {
                         season.
                       </p>
                     </div>
-
-                    {/* Separator */}
-                    <div className="border-t border-gray-300" />
-
-                    {/* Program Links */}
-                    <ul className="grid grid-cols-1 gap-1">
-                      {juniorPrograms
-                        .filter(
-                          (program) =>
-                            program.type !== "separator" &&
-                            program.type !== "section",
-                        )
-                        .map((program) => (
-                          <li key={program.title}>
-                            <Link
-                              href={program.href || "/"}
-                              onClick={handleLinkClick}
-                              className={`hover:bg-gray-300 flex flex-col rounded-md px-2 py-2 text-sm ${pathname === program.href ? "bg-gray-300" : ""
-                                }`}
-                            >
-                              <div className="min-w-0">
-                                <p
-                                  className={`font-bold ${pathname === program.href
-                                      ? "text-orange-600"
-                                      : "text-gray-800"
-                                    }`}
-                                >
-                                  {program.title}
-                                </p>
-                                <p className="text-xs text-gray-600">
-                                  {program.desc}
-                                </p>
-                              </div>
-                            </Link>
-                          </li>
-                        ))}
-                    </ul>
                   </div>
                 </div>
               </details>
@@ -556,8 +556,8 @@ export default function Navigation() {
                           <div className="min-w-0">
                             <p
                               className={`font-bold ${pathname === program.href
-                                  ? "text-orange-600"
-                                  : "text-gray-800"
+                                ? "text-orange-600"
+                                : "text-gray-800"
                                 }`}
                             >
                               {program.title}

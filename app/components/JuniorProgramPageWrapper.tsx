@@ -132,7 +132,7 @@ export function JuniorProgramPageWrapper({
         <div className="mt-6">
           <Card>
             <CardHeader className="py-4">
-              <CardTitle className="text-lg">Available Sessions</CardTitle>
+              <CardTitle className="text-lg">Session Schedule</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {sessions.length > 0 ? (

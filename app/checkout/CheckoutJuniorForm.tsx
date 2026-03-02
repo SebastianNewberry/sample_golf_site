@@ -99,9 +99,9 @@ export function CheckoutJuniorForm({
     },
   });
 
-  // Load draft from localStorage on mount (if no initial data)
+  // Load draft from localStorage on mount
   useEffect(() => {
-    if (!initialData && storageKey) {
+    if (storageKey) {
       try {
         const allDataString = localStorage.getItem("checkout_form_data");
         if (allDataString) {
@@ -119,7 +119,7 @@ export function CheckoutJuniorForm({
         console.error("Failed to load draft", e);
       }
     }
-  }, [initialData, storageKey, form]);
+  }, [storageKey, form]);
 
   // Save changes to localStorage
   useEffect(() => {

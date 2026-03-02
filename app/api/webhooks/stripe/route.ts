@@ -392,6 +392,31 @@ async function handleCartCheckoutSuccess(paymentIntent: any) {
       // We only sync if we have a confirmed booking (either primary or new)
       const bookingIdToSync = confirmed ? primaryBookingId : null; // If we create new below, we'll sync that too.
 
+      let calendarDescription = "";
+      if (participants.length === 1) {
+        const p = participants[0];
+        const isAdult = p.type === "adult";
+        const studentName = p.name;
+        const phone = isAdult ? p.phoneNumber : p.primaryContactPhone;
+        const email = isAdult ? p.email : p.primaryContactEmail;
+
+        calendarDescription = `Student: ${studentName}\nType: ${p.type}\nNotes: ${p.additionalComments || "None"}\nPhone: ${phone || "N/A"}\nEmail: ${email || "N/A"}`;
+
+        if (p.phoneType) calendarDescription += `\nPhone Type: ${p.phoneType}`;
+        if (p.preferredContactMethod) calendarDescription += `\nContact Method: ${p.preferredContactMethod}`;
+        if (p.hasOwnClubs !== undefined) calendarDescription += `\nHas Clubs: ${p.hasOwnClubs ? "Yes" : "No"}`;
+      } else {
+        calendarDescription = `Type: group\nNotes: Multiple participants checkout\n\nParticipants:\n`;
+        participants.forEach((p, i) => {
+          const isAdult = p.type === "adult";
+          if (isAdult) {
+            calendarDescription += `${i + 1}. ${p.name} — ${p.email || "N/A"}, ${p.phoneNumber || "N/A"}\n`;
+          } else {
+            calendarDescription += `${i + 1}. ${p.childFirstName} ${p.childLastName} (Parent: ${p.primaryContactFirstName} ${p.primaryContactLastName})\n`;
+          }
+        });
+      }
+
       // 3. Fallback: Create New Booking if no valid reservation found (or failed)
       if (!confirmed) {
         // ... (Use existing fallback logic but for the GROUP)
@@ -423,8 +448,8 @@ async function handleCartCheckoutSuccess(paymentIntent: any) {
             .join("\n");
 
           // Create title with names
-          const participantNames = participants.map((p) => p.name).join(", ");
-          const title = `Private Lesson: ${participantNames}`;
+          const firstPType = firstP.type === "adult" ? "Adult" : "Junior";
+          const title = `${firstPType} Lesson (${participants.length} participant${participants.length === 1 ? "" : "s"})`;
 
           // We need to pass valid participant objects for `createBooking`.
           // `createBooking` now expects objects that match the schema for `adultRegistration` or `juniorRegistration`.
@@ -446,7 +471,7 @@ async function handleCartCheckoutSuccess(paymentIntent: any) {
           );
 
           if (status === "confirmed") {
-            await syncBookingToGoogleCalendar(newBooking.id, title, startDate, endDate, notes);
+            await syncBookingToGoogleCalendar(newBooking.id, title, startDate, endDate, calendarDescription);
           }
         }
       } else if (bookingIdToSync) {
@@ -456,12 +481,12 @@ async function handleCartCheckoutSuccess(paymentIntent: any) {
         const startDate = fromZonedTime(`${slot.date} ${slot.startTime}`, "America/New_York");
         const endDate = fromZonedTime(`${slot.date} ${slot.endTime}`, "America/New_York");
 
-        const participantNames = participants.map((p) => p.name).join(", ");
-        const title = `Private Lesson: ${participantNames}`;
+        const firstPType = participants[0].type === "adult" ? "Adult" : "Junior";
+        const title = `${firstPType} Lesson (${participants.length} participant${participants.length === 1 ? "" : "s"})`;
 
         // Update Title in DB too? Yes, ideally.
         // But for now let's just sync to Calendar.
-        await syncBookingToGoogleCalendar(bookingIdToSync, title, startDate, endDate, `Private Lesson Group (${participants.length} participants)`);
+        await syncBookingToGoogleCalendar(bookingIdToSync, title, startDate, endDate, calendarDescription);
       }
       // --- GOOGLE CALENDAR SYNC END ---
 
@@ -967,5 +992,3 @@ async function syncBookingToGoogleCalendar(
     console.error(`[Webhook] Failed to sync booking ${bookingId} to Google Calendar:`, error);
   }
 }
-
-export const runtime = "nodejs";
