@@ -86,6 +86,56 @@ export async function getProgramSessions(programId: string) {
     .where(eq(programSession.programId, programId));
 }
 
+// Get sessions with enrollment counts for display (Booked/Available)
+export async function getProgramSessionsWithEnrollment(
+  programId: string,
+  programType: "adult" | "junior",
+) {
+  const sessions = await db
+    .select()
+    .from(programSession)
+    .where(eq(programSession.programId, programId));
+
+  const sessionsWithEnrollment = await Promise.all(
+    sessions.map(async (session) => {
+      let enrollmentCount = 0;
+
+      if (programType === "adult") {
+        const [result] = await db
+          .select({ count: count() })
+          .from(adultRegistration)
+          .where(
+            and(
+              eq(adultRegistration.programSessionId, session.id),
+              eq(adultRegistration.paymentStatus, "paid"),
+            ),
+          );
+        enrollmentCount = result.count;
+      } else {
+        const [result] = await db
+          .select({ count: count() })
+          .from(juniorProgramRegistration)
+          .where(
+            and(
+              eq(juniorProgramRegistration.programSessionId, session.id),
+              eq(juniorProgramRegistration.paymentStatus, "paid"),
+            ),
+          );
+        enrollmentCount = result.count;
+      }
+
+      return {
+        ...session,
+        enrollmentCount,
+        spotsRemaining: session.capacity - enrollmentCount,
+        isBooked: enrollmentCount >= session.capacity,
+      };
+    }),
+  );
+
+  return sessionsWithEnrollment;
+}
+
 // Create a new program
 export async function createProgram(data: {
   name: string;

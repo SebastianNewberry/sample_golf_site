@@ -1,4 +1,7 @@
-import { getProgramById, getProgramSessions } from "@/db/queries/programs";
+import {
+  getProgramById,
+  getProgramSessionsWithEnrollment,
+} from "@/db/queries/programs";
 import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
 import { DevelopmentalSeriesPageWrapper } from "@/app/components/DevelopmentalSeriesPageWrapper";
 
@@ -6,9 +9,14 @@ export default async function JuniorDevelopmentalSeries(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const searchParams = await props.searchParams;
-  const sessionId = typeof searchParams.sessionId === "string" ? searchParams.sessionId : undefined;
+  const sessionId =
+    typeof searchParams.sessionId === "string"
+      ? searchParams.sessionId
+      : undefined;
   const program = await getProgramById("cc6a73ca-95fb-4acb-be01-6cee4ce44475");
-  const sessions = program ? await getProgramSessions(program.id) : [];
+  const sessions = program
+    ? await getProgramSessionsWithEnrollment(program.id, "junior")
+    : [];
 
   return (
     <>

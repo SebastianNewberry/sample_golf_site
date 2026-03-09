@@ -62,6 +62,7 @@ interface CartContextType {
     registrationType: "adult" | "junior";
     price: number;
     metadata?: string;
+    quantity?: number;
   }) => Promise<{ success: boolean; message?: string; error?: string }>;
   removeItem: (itemId: string) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
@@ -110,6 +111,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     registrationType: "adult" | "junior";
     price: number;
     metadata?: string;
+    quantity?: number;
   }) => {
     setIsAddingToCart(true);
     try {

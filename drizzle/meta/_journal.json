@@ -183,6 +183,13 @@
       "when": 1771199989345,
       "tag": "0025_fantastic_unus",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1772999893703,
+      "tag": "0026_harsh_arclight",
+      "breakpoints": true
     }
   ]
 }

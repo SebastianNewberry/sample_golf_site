@@ -22,6 +22,7 @@ export async function createJuniorRegistration(data: {
   hasOwnClubs: boolean;
   friendsToGroupWith?: string;
   additionalComments?: string;
+  bookingId?: string;
 }) {
   const result = await db.insert(juniorRegistration).values(data).returning();
 

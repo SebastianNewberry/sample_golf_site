@@ -185,6 +185,9 @@ export const program = pgTable("program", {
   // Scheduling Type: 'session' (Group Classes) or 'appointment' (Private Lessons)
   schedulingType: text("scheduling_type").notNull().default("session"),
 
+  // Dynamic pricing packages with validation rules (for Private Instruction, etc.)
+  pricingOptions: json("pricing_options"),
+
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
@@ -260,8 +263,9 @@ export const adultRegistration = pgTable(
     userId: uuid("user_id")
       .notNull()
       .references(() => regularUser.id, { onDelete: "cascade" }),
-    programId: uuid("program_id")
-      .references(() => program.id, { onDelete: "cascade" }),
+    programId: uuid("program_id").references(() => program.id, {
+      onDelete: "cascade",
+    }),
     programSessionId: uuid("program_session_id").references(
       () => programSession.id,
       { onDelete: "set null" },
@@ -350,7 +354,7 @@ export const juniorRegistration = pgTable(
   },
   (table) => [
     index("junior_registration_user_id_idx").on(table.userId),
-    index("junior_registration_booking_id_idx").on(table.bookingId)
+    index("junior_registration_booking_id_idx").on(table.bookingId),
   ],
 );
 

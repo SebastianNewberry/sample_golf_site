@@ -1,6 +1,9 @@
 import { CheckCircle2, Phone } from "lucide-react";
 import defaultImage from "@/public/adult_short_game.webp";
-import { getProgramById, getProgramSessions } from "@/db/queries/programs";
+import {
+  getProgramById,
+  getProgramSessionsWithEnrollment,
+} from "@/db/queries/programs";
 import { ProgramDetailsSection } from "@/app/components/ProgramDetailsSection";
 import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
 import { ShortGameSeriesPageClient } from "./ShortGameSeriesPageClient";
@@ -9,9 +12,14 @@ export default async function AdultShortGameSeries(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const searchParams = await props.searchParams;
-  const sessionId = typeof searchParams.sessionId === "string" ? searchParams.sessionId : undefined;
+  const sessionId =
+    typeof searchParams.sessionId === "string"
+      ? searchParams.sessionId
+      : undefined;
   const program = await getProgramById("9bc2b2b7-2774-4971-b469-4ce2a8d3a707");
-  const sessions = program ? await getProgramSessions(program.id) : [];
+  const sessions = program
+    ? await getProgramSessionsWithEnrollment(program.id, "adult")
+    : [];
 
   return (
     <>
@@ -49,7 +57,7 @@ export default async function AdultShortGameSeries(props: {
             </>
           )}
         </div>
-      </div >
+      </div>
     </>
   );
 }

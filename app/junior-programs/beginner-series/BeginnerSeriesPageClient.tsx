@@ -39,8 +39,9 @@ export function BeginnerSeriesPageClient({
 }: BeginnerSeriesPageClientProps) {
   const sessionsList = sessions.map((s) => {
     const schedule = s.schedule ? parseSchedule(s.schedule) : null;
-    const startDate = schedule && schedule.length > 0 ? schedule[0].date : undefined;
-    return { id: s.id, name: s.name, startDate };
+    const startDate =
+      schedule && schedule.length > 0 ? schedule[0].date : undefined;
+    return { id: s.id, name: s.name, startDate, isBooked: (s as any).isBooked };
   });
 
   return (

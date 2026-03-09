@@ -113,37 +113,27 @@ function getProgramSpecificContent(
         <p style="margin: 0 0 12px 0; color: #374151; font-size: 15px; line-height: 1.6;">
           Thank you for choosing Toski Golf Academy's Golf for Women Program. Our professional staff is committed to the process of inspiring you to identify and reach your full potential in golf.
         </p>
-        <p style="margin: 0 0 12px 0; color: #374151; font-size: 15px; line-height: 1.6;">
-          ${classScheduleLine} We will meet on the practice tee, which is located behind the clubhouse. Look for the black and white Titleist tent. If you have clubs bring them with you. If not, clubs are provided for you at no cost and we prefer that you don't buy clubs until after you start your class. When you're ready we will recommend the appropriate clubs to help you lower your scores and increase your enjoyment of the game.
-        </p>
-        <p style="margin: 0 0 12px 0; color: #374151; font-size: 15px; line-height: 1.6;">
-          Golf classes will be held outside, so check the weather forecast on the day of your class and dress accordingly. In the event of inclement weather, the class will be postponed and rescheduled for a later date. An Academy staff member will notify you by email or text when a class is cancelled. If you have to miss a class, we will do our best to accommodate a make-up session on another day. Just contact a member of the Academy staff and we will do our best to fulfill your request.
-        </p>
-        <p style="margin: 0 0 12px 0; color: #374151; font-size: 15px; line-height: 1.6;">
-          We encourage you to contact the Academy directly with any questions about your program or any other programs we offer. Our contact information is located below.
-        </p>
-        <p style="margin: 0 0 0 0; color: #374151; font-size: 15px; line-height: 1.6;">
-          Again, thank you for selecting our Academy and we look forward to seeing you on the golf course this season.
-        </p>
-      </div>
-    `;
-  }
-
-  // Default content for other programs — still include location
-  if (sessionInfo || (sessionDates && sessionDates.length > 0)) {
-    return `
-      <div style="margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
-        <p style="margin: 0 0 12px 0; color: #374151; font-size: 15px; line-height: 1.6;">
+        <p style="margin: 0 0 12px 0; color: #374151; font-size: 15px; line-height: 1.6; font-weight: 500;">
           ${classScheduleLine}
         </p>
-        <p style="margin: 0 0 0 0; color: #374151; font-size: 15px; line-height: 1.6;">
-          We look forward to seeing you!
-        </p>
       </div>
     `;
   }
 
-  return "";
+  // Default content for other programs — include full details like weather, clubs, etc.
+  return `
+    <div style="margin-top: 16px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
+      <p style="margin: 0 0 12px 0; color: #374151; font-size: 15px; line-height: 1.6;">
+        ${participantName},
+      </p>
+      <p style="margin: 0 0 12px 0; color: #374151; font-size: 15px; line-height: 1.6;">
+        Thank you for choosing Toski Golf Academy. Our professional staff is committed to the process of inspiring you to identify and reach your full potential in golf.
+      </p>
+      <p style="margin: 0 0 12px 0; color: #374151; font-size: 15px; line-height: 1.6; font-weight: 500;">
+        ${classScheduleLine}
+      </p>
+    </div>
+  `;
 }
 
 /**
@@ -169,6 +159,7 @@ function generateConfirmationEmailHtml(params: EmailParams): string {
       : (firstItem.formData as any)?.primaryContactFirstName;
   const greetingName = primaryFirstName || "there";
 
+  // Build program detail sections (without pricing — pricing goes in receipt at bottom)
   const itemsHtml = items
     .map((item, index) => {
       const participantName =
@@ -223,11 +214,27 @@ function generateConfirmationEmailHtml(params: EmailParams): string {
           ${sessionHtml}
           ${locationHtml}
           ${contactInfo}
-          <p style="margin: 12px 0 ${specificContent ? "12px" : "0"} 0; color: #166534; font-weight: 600; font-size: 16px;">Price: $${item.price}</p>
           ${specificContent}
         </div>
       `;
     })
+    .join("");
+
+  // Build receipt-style pricing breakdown at the bottom
+  const receiptItemsHtml = items
+    .map(
+      (item) => `
+      <tr>
+        <td style="padding: 6px 0; color: #6b7280; font-size: 13px; border-bottom: 1px solid #f3f4f6;">
+          ${item.programName}
+          <span style="color: #9ca3af; font-size: 12px; margin-left: 4px;">(${item.registrationType === "junior" ? "Junior" : "Adult"})</span>
+        </td>
+        <td style="padding: 6px 0; color: #6b7280; font-size: 13px; text-align: right; border-bottom: 1px solid #f3f4f6;">
+          $${item.price}
+        </td>
+      </tr>
+    `,
+    )
     .join("");
 
   return `
@@ -253,55 +260,89 @@ function generateConfirmationEmailHtml(params: EmailParams): string {
                 </td>
               </tr>
 
-              <!-- Success Badge -->
-              <tr>
-                <td style="padding: 30px 40px 20px 40px; text-align: center;">
-                  <div style="display: inline-block; background-color: #dcfce7; border: 2px solid #22c55e; border-radius: 50px; padding: 12px 24px;">
-                    <span style="color: #166534; font-weight: 600; font-size: 16px;">✓ Payment Successful</span>
-                  </div>
-                </td>
-              </tr>
-
               <!-- Main Content -->
               <tr>
-                <td style="padding: 0 40px 30px 40px;">
+                <td style="padding: 30px 40px 30px 40px;">
                   <p style="margin: 0 0 20px 0; color: #374151; font-size: 16px; line-height: 1.6;">
                     Hi ${greetingName},
                   </p>
                   <p style="margin: 0 0 20px 0; color: #374151; font-size: 16px; line-height: 1.6;">
-                    Thank you for your registration! Your payment has been processed successfully. Below are the details of your registration(s).
+                    Thank you for your registration with Toski Golf Academy! Please review the important academy policies below, followed by the specific details of your registration(s).
                   </p>
+
+                  <!-- Important Academy Information (Moved from individual items) -->
+                  <div style="background-color: #f0fdf4; border-radius: 8px; padding: 20px; margin-bottom: 24px; border: 1px solid #bbf7d0;">
+                    <h3 style="margin: 0 0 12px 0; color: #166534; font-size: 18px;">Important Student Information</h3>
+                    <p style="margin: 0 0 12px 0; color: #374151; font-size: 15px; line-height: 1.6;">
+                      <strong>Where to meet:</strong> We will meet on the practice tee, which is located behind the clubhouse. Look for the black and white Titleist tent.
+                    </p>
+                    <p style="margin: 0 0 12px 0; color: #374151; font-size: 15px; line-height: 1.6;">
+                      <strong>Equipment:</strong> If you have clubs bring them with you. If not, clubs are provided for you at no cost and we prefer that you don't buy clubs until after you start your class. When you're ready we will recommend the appropriate clubs to help you lower your scores and increase your enjoyment of the game.
+                    </p>
+                    <p style="margin: 0 0 12px 0; color: #374151; font-size: 15px; line-height: 1.6;">
+                      <strong>Weather Policy:</strong> Golf classes will be held outside, so check the weather forecast on the day of your class and dress accordingly. In the event of inclement weather, the class will be postponed and rescheduled for a later date. An Academy staff member will notify you by email or text when a class is cancelled.
+                    </p>
+                    <p style="margin: 0 0 12px 0; color: #374151; font-size: 15px; line-height: 1.6;">
+                      <strong>Attendance:</strong> If you have to miss a class, we will do our best to accommodate a make-up session on another day. Just contact a member of the Academy staff and we will do our best to fulfill your request. We encourage you to contact the Academy directly with any questions about your program or any other programs we offer. 
+                    </p>
+                    <p style="margin: 0 0 0 0; color: #374151; font-size: 15px; line-height: 1.6; font-weight: 500;">
+                      Again, thank you for selecting our Academy and we look forward to seeing you on the golf course this season.
+                    </p>
+                  </div>
 
                   <!-- Registration Items -->
                   <h2 style="margin: 0 0 16px 0; color: #1f2937; font-size: 20px; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px;">
                     Registration Details
                   </h2>
                   ${itemsHtml}
+                </td>
+              </tr>
 
-                  <!-- Total -->
-                  <div style="background-color: #166534; border-radius: 8px; padding: 20px; margin-top: 24px; text-align: center;">
-                    <p style="margin: 0; color: rgba(255, 255, 255, 0.9); font-size: 14px;">Total Amount Paid</p>
-                    <p style="margin: 8px 0 0 0; color: #ffffff; font-size: 28px; font-weight: 700;">$${totalAmount}</p>
+              <!-- Signature -->
+              <tr>
+                <td style="padding: 0 40px 24px 40px;">
+                  <div style="border-top: 1px solid #e5e7eb; padding-top: 20px;">
+                    <p style="margin: 0 0 2px 0; color: #374151; font-size: 14px; font-weight: 600;">Paul Toski, PGA</p>
+                    <p style="margin: 0 0 2px 0; color: #6b7280; font-size: 13px;">Member</p>
+                    <p style="margin: 0 0 2px 0; color: #6b7280; font-size: 13px;">Toski Golf Academy</p>
+                    <p style="margin: 0; color: #6b7280; font-size: 13px;">
+                      <a href="tel:+12485633561" style="color: #166534; text-decoration: none;">(248) 563-3561</a>
+                    </p>
                   </div>
-
-                  <!-- Payment Reference -->
-                  <p style="margin: 20px 0 0 0; color: #6b7280; font-size: 13px;">
-                    Payment Reference: ${paymentId}
-                  </p>
                 </td>
               </tr>
 
               <!-- Contact Section -->
               <tr>
-                <td style="padding: 0 40px 40px 40px;">
+                <td style="padding: 0 40px 20px 40px;">
                   <div style="border-top: 1px solid #e5e7eb; padding-top: 24px; text-align: center;">
                     <h3 style="margin: 0 0 12px 0; color: #374151; font-size: 16px;">Questions? Contact Us</h3>
                     <p style="margin: 0 0 4px 0; color: #6b7280; font-size: 14px;">
                       Email: <a href="mailto:info@toskigolfacademy.com" style="color: #166534; text-decoration: none;">info@toskigolfacademy.com</a>
                     </p>
                     <p style="margin: 0; color: #6b7280; font-size: 14px;">
-                      Phone: <a href="tel:+15551234567" style="color: #166534; text-decoration: none;">(555) 123-4567</a>
+                      Phone: <a href="tel:+12485633561" style="color: #166534; text-decoration: none;">(248) 563-3561</a>
                     </p>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Receipt-style pricing summary at the bottom -->
+              <tr>
+                <td style="padding: 0 40px 30px 40px;">
+                  <div style="border-top: 1px solid #e5e7eb; padding-top: 16px;">
+                    <p style="margin: 0 0 8px 0; color: #9ca3af; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Order Summary</p>
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      ${receiptItemsHtml}
+                      <tr>
+                        <td style="padding: 8px 0 0 0; color: #374151; font-size: 13px; font-weight: 600; border-top: 1px solid #e5e7eb;">
+                          Total
+                        </td>
+                        <td style="padding: 8px 0 0 0; color: #374151; font-size: 13px; font-weight: 600; text-align: right; border-top: 1px solid #e5e7eb;">
+                          $${totalAmount}
+                        </td>
+                      </tr>
+                    </table>
                   </div>
                 </td>
               </tr>
@@ -310,7 +351,7 @@ function generateConfirmationEmailHtml(params: EmailParams): string {
               <tr>
                 <td style="background-color: #f9fafb; padding: 24px 40px; border-top: 1px solid #e5e7eb;">
                   <p style="margin: 0; color: #9ca3af; font-size: 12px; text-align: center;">
-                    © ${new Date().getFullYear()} Toski Golf Academy. All rights reserved.
+                    &copy; ${new Date().getFullYear()} Toski Golf Academy. All rights reserved.
                   </p>
                   <p style="margin: 8px 0 0 0; color: #9ca3af; font-size: 11px; text-align: center;">
                     This email was sent to ${to} regarding your registration.
@@ -331,7 +372,14 @@ function generateConfirmationEmailHtml(params: EmailParams): string {
  * Generate plain text version of the confirmation email
  */
 function generateConfirmationEmailText(params: EmailParams): string {
-  const { to, items, totalAmount, paymentId } = params;
+  const { to, items, totalAmount } = params;
+
+  const firstItem = items[0];
+  const primaryFirstName =
+    firstItem?.registrationType === "adult"
+      ? firstItem.formData?.firstName
+      : firstItem.formData?.primaryContactFirstName;
+  const greetingName = primaryFirstName || "there";
 
   const itemsText = items
     .map((item, index) => {
@@ -349,13 +397,39 @@ Email: ${item.formData.primaryContactEmail}
 Phone: ${item.formData.primaryContactPhone}
 Child's Age: ${item.formData.childAge}`;
 
+      const location = getLocationByDate(item.startDate);
+
+      let classInfo = "";
+      if (item.sessionDates && item.sessionDates.length > 0) {
+        classInfo = `Your class begins on ${item.sessionDates[0].date} at ${item.sessionDates[0].time}, at ${location.full}.`;
+      } else if (item.sessionInfo) {
+        classInfo = `Your class begins on ${item.sessionInfo}, at ${location.full}.`;
+      } else {
+        classInfo = `Your class will be held at ${location.full}.`;
+      }
+
       return `
 ${index + 1}. ${item.programName} (${item.registrationType === "junior" ? "Junior Program" : "Adult Program"})
    Participant: ${participantName}
    ${item.sessionInfo ? `Session: ${item.sessionInfo}` : ""}
+   Location: ${location.name}
    ${contactInfo}
-   Price: $${item.price}`;
+
+   ${classInfo}
+
+   We will meet on the practice tee, which is located behind the clubhouse. Look for the black and white Titleist tent. If you have clubs bring them with you. If not, clubs are provided for you at no cost and we prefer that you don't buy clubs until after you start your class. When you're ready we will recommend the appropriate clubs to help you lower your scores and increase your enjoyment of the game.
+
+   Golf classes will be held outside, so check the weather forecast on the day of your class and dress accordingly. In the event of inclement weather, the class will be postponed and rescheduled for a later date. An Academy staff member will notify you by email or text when a class is cancelled. If you have to miss a class, we will do our best to accommodate a make-up session on another day. Just contact a member of the Academy staff and we will do our best to fulfill your request.
+
+   We encourage you to contact the Academy directly with any questions about your program or any other programs we offer.`;
     })
+    .join("\n");
+
+  const receiptText = items
+    .map(
+      (item) =>
+        `  ${item.programName} (${item.registrationType === "junior" ? "Junior" : "Adult"}) — $${item.price}`,
+    )
     .join("\n");
 
   return `
@@ -363,19 +437,30 @@ TOSKI GOLF ACADEMY
 Registration Confirmation
 ========================
 
-Thank you for your registration! Your payment has been processed successfully.
+Hi ${greetingName},
+
+Thank you for your registration with Toski Golf Academy!
 
 REGISTRATION DETAILS
 --------------------
 ${itemsText}
 
-TOTAL AMOUNT PAID: $${totalAmount}
-Payment Reference: ${paymentId}
+Again, thank you for selecting our Academy and we look forward to seeing you on the golf course this season.
+
+Paul Toski, PGA
+Member
+Toski Golf Academy
+(248) 563-3561
 
 QUESTIONS? CONTACT US
 ---------------------
 Email: info@toskigolfacademy.com
-Phone: (555) 123-4567
+Phone: (248) 563-3561
+
+ORDER SUMMARY
+-------------
+${receiptText}
+  Total: $${totalAmount}
 
 © ${new Date().getFullYear()} Toski Golf Academy. All rights reserved.
 This email was sent to ${to} regarding your registration.
@@ -412,7 +497,9 @@ export async function sendRegistrationConfirmationEmail(
       return { success: false, error: error.message };
     }
 
-    console.log(`Confirmation email sent successfully to ${to}. Email ID: ${data?.id}`);
+    console.log(
+      `Confirmation email sent successfully to ${to}. Email ID: ${data?.id}`,
+    );
     return { success: true };
   } catch (error) {
     console.error("Error sending confirmation email:", error);

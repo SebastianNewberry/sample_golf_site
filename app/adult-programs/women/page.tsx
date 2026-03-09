@@ -1,6 +1,9 @@
 import { CheckCircle2 } from "lucide-react";
 import defaultImage from "@/public/golf_for_women.webp";
-import { getProgramById, getProgramSessions } from "@/db/queries/programs";
+import {
+  getProgramById,
+  getProgramSessionsWithEnrollment,
+} from "@/db/queries/programs";
 import { ProgramDetailsSection } from "@/app/components/ProgramDetailsSection";
 import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
 import type { ProgramDetail } from "@/lib/program-details";
@@ -10,9 +13,14 @@ export default async function GolfForWomenProgram(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const searchParams = await props.searchParams;
-  const sessionId = typeof searchParams.sessionId === "string" ? searchParams.sessionId : undefined;
+  const sessionId =
+    typeof searchParams.sessionId === "string"
+      ? searchParams.sessionId
+      : undefined;
   const program = await getProgramById("9160a3a8-a652-4ddf-a13f-298336168e04");
-  const sessions = program ? await getProgramSessions(program.id) : [];
+  const sessions = program
+    ? await getProgramSessionsWithEnrollment(program.id, "adult")
+    : [];
 
   return (
     <>
@@ -50,7 +58,7 @@ export default async function GolfForWomenProgram(props: {
             </>
           )}
         </div>
-      </div >
+      </div>
     </>
   );
 }

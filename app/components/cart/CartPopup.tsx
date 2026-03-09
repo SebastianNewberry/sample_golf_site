@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useCart } from "./CartContext";
@@ -37,45 +37,7 @@ interface CartPopupProps {
 }
 
 export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
-  const {
-    items,
-    itemCount,
-    total,
-    cartAnimationTrigger,
-    updateQuantity,
-    removeItem,
-  } = useCart();
-  const [isVisible, setIsVisible] = useState(false);
-  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
-
-  // Sync internal visibility with external isOpen prop or animation trigger
-  useEffect(() => {
-    if (isOpen !== undefined) {
-      setIsVisible(isOpen);
-      if (isOpen && timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    }
-  }, [isOpen]);
-
-  // Show popup when cartAnimationTrigger changes (item added)
-  // But only if we are not already hovering (handled by parent usually)
-  useEffect(() => {
-    if (cartAnimationTrigger > 0) {
-      if (setIsOpen) setIsOpen(true);
-      else setIsVisible(true);
-
-      // Auto-hide after 4 seconds
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => {
-        if (setIsOpen) setIsOpen(false);
-        else setIsVisible(false);
-      }, 4000);
-    }
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, [cartAnimationTrigger, setIsOpen]);
+  const { items, itemCount, total, updateQuantity, removeItem } = useCart();
 
   // Get items in reverse order (newest first)
   const recentItems = [...items].reverse();
@@ -110,35 +72,19 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
     removeItem(itemId);
   };
 
-  // Keep visible when hovering (handled by parent's isHovered state usually, but good fallback)
-  const handleMouseEnter = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    if (setIsOpen) setIsOpen(true);
-    else setIsVisible(true);
-  };
-
-  const handleMouseLeave = () => {
-    timeoutRef.current = setTimeout(() => {
-      if (setIsOpen) setIsOpen(false);
-      else setIsVisible(false);
-    }, 1000);
-  };
-
   return (
     <TooltipProvider delayDuration={300}>
       <AnimatePresence>
-        {isVisible && itemCount > 0 && (
+        {isOpen && itemCount > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="absolute top-0 w-96 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden md:-translate-x-1/2"
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
+            className="w-[90vw] max-w-96 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden"
           >
             {/* Items List */}
-            <div className="max-h-[300px] overflow-y-auto pt-2">
+            <div className="max-h-[250px] md:max-h-[300px] overflow-y-auto pt-2">
               {recentItems.map((item) => {
                 const programImage =
                   item.program?.imageUrl || PROGRAM_IMAGE_MAP[item.programId];
@@ -189,8 +135,9 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
                 return (
                   <div
                     key={item.id}
-                    className={`p-3 border-b flex gap-3 last:border-0 transition-colors group relative ${hasInsufficientQuantity || isSoldOut
-                      }`}
+                    className={`p-3 border-b flex gap-3 last:border-0 transition-colors group relative ${
+                      hasInsufficientQuantity || isSoldOut ? "bg-red-50" : ""
+                    }`}
                   >
                     <button
                       onClick={(e) => handleRemoveItem(e, item.id)}
@@ -199,7 +146,7 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
                     >
                       <Trash2 size={14} />
                     </button>
-                    <div className="relative w-16 h-16 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden">
+                    <div className="relative w-12 h-12 md:w-16 md:h-16 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden">
                       <Image
                         src={programImage || "/placeholder.png"}
                         alt={item.program?.name || "Program"}
@@ -210,7 +157,7 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start gap-2">
                         <div>
-                          <p className="font-bold text-gray-900 text-sm truncate pr-4">
+                          <p className="font-bold text-gray-900 text-xs md:text-sm truncate pr-4">
                             {item.program?.name}
                           </p>
                           <p className="text-xs text-gray-500 truncate">
@@ -229,7 +176,11 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
                           <span className="text-sm font-bold text-gray-800">
                             $
                             {(
-                              parseFloat(item.priceAtAdd) * item.quantity
+                              Math.round(
+                                parseFloat(item.priceAtAdd) *
+                                  item.quantity *
+                                  100,
+                              ) / 100
                             ).toFixed(2)}
                           </span>
                         </div>
@@ -237,48 +188,72 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
 
                       <div className="flex items-center gap-3 mt-3">
                         <div className="flex items-center gap-2 border border-gray-200 rounded-md bg-white">
-                          {item.quantity <= 1 || isPrivateInstruction ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span tabIndex={0} className="inline-flex cursor-not-allowed">
-                                  <button
-                                    onClick={(e) =>
-                                      handleUpdateQuantity(e, item.id, item.quantity - 1)
-                                    }
-                                    disabled={item.quantity <= 1 || isPrivateInstruction}
-                                    className="w-6 h-6 flex items-center justify-center text-gray-500 opacity-50 pointer-events-none"
+                          {(() => {
+                            // For private instructions, get the base player count from metadata
+                            let minQuantity = 1;
+                            if (isPrivateInstruction && item.metadata) {
+                              try {
+                                const meta = JSON.parse(item.metadata);
+                                if (
+                                  meta.playersCount &&
+                                  meta.playersCount > 0
+                                ) {
+                                  minQuantity = meta.playersCount;
+                                }
+                              } catch {}
+                            }
+                            const isAtMinimum = item.quantity <= minQuantity;
+
+                            return isAtMinimum ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span
+                                    tabIndex={0}
+                                    className="inline-flex cursor-not-allowed"
                                   >
-                                    -
-                                  </button>
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent side="bottom">
-                                <p>
-                                  {isPrivateInstruction
-                                    ? "Cannot change quantity for private instruction"
-                                    : item.quantity <= 1
-                                      ? "Minimum quantity is 1"
-                                      : "Decrease quantity"}
-                                </p>
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            <button
-                              onClick={(e) =>
-                                handleUpdateQuantity(e, item.id, item.quantity - 1)
-                              }
-                              className="w-6 h-6 flex items-center justify-center text-gray-500 hover:bg-gray-100 cursor-pointer"
-                            >
-                              -
-                            </button>
-                          )}
-                          <span className="text-xs font-medium w-4 text-center">
-                            {item.quantity}
+                                    <button
+                                      disabled
+                                      className="w-6 h-6 flex items-center justify-center text-gray-500 opacity-50 pointer-events-none"
+                                    >
+                                      -
+                                    </button>
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom">
+                                  <p>
+                                    {isPrivateInstruction
+                                      ? `Minimum ${minQuantity} player${minQuantity !== 1 ? "s" : ""} for this package`
+                                      : "Minimum quantity is 1"}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <button
+                                onClick={(e) =>
+                                  handleUpdateQuantity(
+                                    e,
+                                    item.id,
+                                    item.quantity - 1,
+                                  )
+                                }
+                                className="w-6 h-6 flex items-center justify-center text-gray-500 hover:bg-gray-100 cursor-pointer"
+                              >
+                                -
+                              </button>
+                            );
+                          })()}
+                          <span className="text-xs font-medium min-w-[3rem] text-center whitespace-nowrap px-2">
+                            {item.quantity} Player
+                            {item.quantity !== 1 ? "s" : ""}
                           </span>
-                          {item.quantity >= maxQuantity || isPrivateInstruction ? (
+                          {item.quantity >= maxQuantity &&
+                          !isPrivateInstruction ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <span tabIndex={0} className="inline-flex cursor-not-allowed">
+                                <span
+                                  tabIndex={0}
+                                  className="inline-flex cursor-not-allowed"
+                                >
                                   <button
                                     disabled
                                     className="w-6 h-6 flex items-center justify-center text-gray-500 opacity-50 pointer-events-none"
@@ -288,19 +263,17 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent side="bottom">
-                                <p>
-                                  {isPrivateInstruction
-                                    ? "Cannot change quantity for private instruction"
-                                    : item.quantity >= maxQuantity
-                                      ? "Session capacity reached"
-                                      : "Add another"}
-                                </p>
+                                <p>Session capacity reached</p>
                               </TooltipContent>
                             </Tooltip>
                           ) : (
                             <button
                               onClick={(e) =>
-                                handleUpdateQuantity(e, item.id, item.quantity + 1)
+                                handleUpdateQuantity(
+                                  e,
+                                  item.id,
+                                  item.quantity + 1,
+                                )
                               }
                               className="w-6 h-6 flex items-center justify-center text-gray-500 hover:bg-gray-100 cursor-pointer"
                             >
@@ -328,26 +301,20 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
                 <Link
                   href="/checkout"
                   className="block"
-                  onClick={() => {
-                    if (setIsOpen) setIsOpen(false);
-                    else setIsVisible(false);
-                  }}
+                  onClick={() => setIsOpen && setIsOpen(false)}
                 >
-                  <Button className="w-full bg-orange-500 enabled:hover:bg-orange-600 text-white shadow-sm cursor-pointer h-9 text-sm">
+                  <Button className="w-full bg-orange-500 enabled:hover:bg-orange-600 text-white shadow-sm cursor-pointer h-8 md:h-9 text-xs md:text-sm">
                     Checkout <ArrowRight size={14} className="ml-1" />
                   </Button>
                 </Link>
                 <Link
                   href="/cart"
                   className="block"
-                  onClick={() => {
-                    if (setIsOpen) setIsOpen(false);
-                    else setIsVisible(false);
-                  }}
+                  onClick={() => setIsOpen && setIsOpen(false)}
                 >
                   <Button
                     variant="outline"
-                    className="w-full border-green-600 bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 enabled:hover:text-green-700 cursor-pointer h-9 text-sm border-2"
+                    className="w-full border-green-600 bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 enabled:hover:text-green-700 cursor-pointer h-8 md:h-9 text-xs md:text-sm border-2"
                   >
                     View Cart
                   </Button>

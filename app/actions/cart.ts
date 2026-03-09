@@ -11,6 +11,7 @@ import {
   getCartItemCount,
   getCartTotal,
 } from "@/db/queries/cart";
+import { getProgramById } from "@/db/queries/programs";
 
 const CART_SESSION_COOKIE = "cart_session_id";
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
@@ -62,10 +63,163 @@ export async function addToCart(data: {
   registrationType: "adult" | "junior";
   price: number;
   metadata?: string;
+  quantity?: number;
 }) {
   try {
     const sessionId = await getOrCreateSessionId();
     const cart = await getOrCreateCart(sessionId);
+
+    // Fetch the program to validate price and rules
+    const programData = await getProgramById(data.programId);
+    if (!programData) {
+      return { success: false, error: "Program not found" };
+    }
+
+    let finalPrice = data.price; // Start with frontend price
+    let validated = false;
+
+    console.log("PROGRAM DATA IS", programData);
+
+    // Determine if this is a Private Instruction / Appointment
+    const isPrivateInstruction =
+      programData.schedulingType === "appointment" ||
+      programData.type === "private" ||
+      programData.type === "junior_private" ||
+      programData.id === "f89b62ee-ffda-421d-a525-8bd2a580f24e" || // Adult Private ID
+      programData.id === "754bf4be-0ef6-4123-b5ff-b107e03c2f10"; // Junior Private ID
+
+    // Secure Validation logic for Private Instructions (Appointments)
+    if (isPrivateInstruction) {
+      if (!programData.pricingOptions) {
+        // Fallback to base program price if no options exist but it's an appointment
+        if (data.price !== Number(programData.price)) {
+          return {
+            success: false,
+            error: "Invalid base price for appointment.",
+          };
+        }
+        finalPrice = Number(programData.price);
+        validated = true;
+      } else {
+        // Handle JSON pricing options
+        let options: any[] = [];
+        try {
+          options =
+            typeof programData.pricingOptions === "string"
+              ? JSON.parse(programData.pricingOptions)
+              : programData.pricingOptions;
+        } catch (e) {
+          console.error("Error parsing pricing options", e);
+        }
+
+        // We need the frontend to send the packageId in metadata
+        // For now, if we don't have packageId, we try to match by price and sessionCount...
+        // But the best is extracting it from metadata if they sent it
+        let metadataObj: any = {};
+        if (data.metadata) {
+          try {
+            metadataObj = JSON.parse(data.metadata);
+          } catch (e) {}
+        }
+
+        const packageId = metadataObj.packageId;
+        let matchedOption = null;
+
+        if (packageId) {
+          matchedOption = options.find((o) => o.id === packageId);
+        } else {
+          // Fallback matching logic (if frontend hasn't been updated to send packageId yet)
+          // We look for an option with matching price.
+          matchedOption = options.find(
+            (o) => Number(o.price) === Number(data.price),
+          );
+        }
+
+        if (!matchedOption) {
+          return { success: false, error: "Invalid pricing package selected." };
+        }
+
+        // Strict validation!
+        console.log("DEBUG ADD TO CART VALIDATION:", {
+          frontendPrice: data.price,
+          packageId,
+          matchedOptionPrice: matchedOption.price,
+          frontendPriceType: typeof data.price,
+          matchedOptionPriceType: typeof matchedOption.price,
+        });
+
+        // Round to nearest penny to avoid JS floating point comparison errors
+        const clientPrice = Math.round(Number(data.price) * 100);
+        const serverPrice = Math.round(Number(matchedOption.price) * 100);
+
+        if (clientPrice !== serverPrice) {
+          return {
+            success: false,
+            error: "Price mismatch. Security validation failed.",
+          };
+        }
+
+        // Validate session count
+        const numSlots = Array.isArray(metadataObj.slots)
+          ? metadataObj.slots.length
+          : metadataObj.date
+            ? 1
+            : 0;
+        if (numSlots !== Number(matchedOption.sessionCount)) {
+          return {
+            success: false,
+            error: `This package requires exactly ${matchedOption.sessionCount} sessions.`,
+          };
+        }
+
+        finalPrice = Number(matchedOption.price);
+        validated = true;
+
+        // For private instructions: store per-player price and quantity = total players
+        // This allows adding/removing individual players in the cart
+        const basePlayersCount = Number(matchedOption.playersCount) || 1;
+        const perPlayerPrice =
+          Math.round((finalPrice / basePlayersCount) * 100) / 100;
+        const totalPlayers = data.quantity || basePlayersCount;
+
+        // Validate that requested players >= base players
+        if (totalPlayers < basePlayersCount) {
+          return {
+            success: false,
+            error: `This package requires at least ${basePlayersCount} players.`,
+          };
+        }
+
+        const item = await addItemToCart({
+          cartId: cart.id,
+          programId: data.programId,
+          programSessionId: data.programSessionId,
+          registrationType: data.registrationType,
+          priceAtAdd: perPlayerPrice.toFixed(2),
+          metadata: data.metadata,
+          quantity: totalPlayers,
+        });
+
+        return {
+          success: true,
+          item,
+          message: "Added to cart!",
+        };
+      }
+    } else {
+      // Standard programs (Group sessions)
+      const clientPrice = Math.round(Number(data.price) * 100);
+      const serverPrice = Math.round(Number(programData.price) * 100);
+
+      if (clientPrice !== serverPrice) {
+        return {
+          success: false,
+          error: "Price mismatch. Security validation failed.",
+        };
+      }
+      finalPrice = Number(programData.price);
+      validated = true;
+    }
 
     // Capacity validation for sessions
     if (data.programSessionId) {
@@ -96,8 +250,9 @@ export async function addToCart(data: {
       programId: data.programId,
       programSessionId: data.programSessionId,
       registrationType: data.registrationType,
-      priceAtAdd: data.price.toFixed(2),
+      priceAtAdd: finalPrice.toFixed(2), // Use strictly backend validated price
       metadata: data.metadata,
+      quantity: data.quantity || 1,
     });
 
     return {

@@ -1,6 +1,9 @@
 import { CheckCircle2, Phone } from "lucide-react";
 import defaultImage from "@/public/adult_open_practice.webp";
-import { getProgramById, getProgramSessions } from "@/db/queries/programs";
+import {
+  getProgramById,
+  getProgramSessionsWithEnrollment,
+} from "@/db/queries/programs";
 import { ProgramDetailsSection } from "@/app/components/ProgramDetailsSection";
 import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
 import type { ProgramDetail } from "@/lib/program-details";
@@ -10,9 +13,14 @@ export default async function AdultOpenPractice(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const searchParams = await props.searchParams;
-  const sessionId = typeof searchParams.sessionId === "string" ? searchParams.sessionId : undefined;
+  const sessionId =
+    typeof searchParams.sessionId === "string"
+      ? searchParams.sessionId
+      : undefined;
   const program = await getProgramById("0dc3ac70-8346-44c4-9ef6-b638ccbb9082");
-  const sessions = program ? await getProgramSessions(program.id) : [];
+  const sessions = program
+    ? await getProgramSessionsWithEnrollment(program.id, "adult")
+    : [];
 
   return (
     <>
@@ -50,7 +58,7 @@ export default async function AdultOpenPractice(props: {
             </>
           )}
         </div>
-      </div >
+      </div>
     </>
   );
 }

@@ -44,9 +44,16 @@ const juniorCheckoutSchema = z.object({
   childFirstName: z.string().min(1, "Child first name is required"),
   childLastName: z.string().min(1, "Child last name is required"),
   childAge: z
-    .number()
-    .min(5, "Child must be at least 5 years old")
-    .max(18, "Child must be under 19 years old"),
+    .string()
+    .refine((val) => val === "" || !isNaN(Number(val)), {
+      message: "Must be a valid number",
+    })
+    .refine((val) => val === "" || Number(val) >= 4, {
+      message: "Child must be at least 4 years old",
+    })
+    .refine((val) => val === "" || Number(val) <= 18, {
+      message: "Child must be under 19 years old",
+    }),
   childExperienceLevel: z.string().min(1, "Experience level is required"),
   hasOwnClubs: z.boolean(),
   friendsToGroupWith: z.string().optional(),
@@ -91,7 +98,7 @@ export function CheckoutJuniorForm({
       preferredContactMethod: "email",
       childFirstName: "",
       childLastName: "",
-      childAge: 0,
+      childAge: "", // Default to empty string
       childExperienceLevel: "",
       hasOwnClubs: false,
       friendsToGroupWith: "",
@@ -139,7 +146,13 @@ export function CheckoutJuniorForm({
   }, [form.watch, storageKey]);
 
   const handleSubmit = (data: JuniorFormData) => {
-    onSubmit(data);
+    // Parse childAge to number and format phone number before submission
+    const formattedData = {
+      ...data,
+      childAge: parseInt(data.childAge as string, 10),
+      primaryContactPhone: data.primaryContactPhone.replace(/\D/g, ""),
+    };
+    onSubmit(formattedData as any); // Cast to any to bypass TS error as parent component handles it
   };
 
   const handleCopyParentInfo = () => {
@@ -163,7 +176,13 @@ export function CheckoutJuniorForm({
       // Copy Child Info
       form.setValue("childFirstName", primaryFormData.childFirstName);
       form.setValue("childLastName", primaryFormData.childLastName);
-      form.setValue("childAge", primaryFormData.childAge);
+      // Ensure childAge is set as a string in the form
+      form.setValue(
+        "childAge",
+        Number(primaryFormData.childAge) === 0
+          ? ""
+          : String(primaryFormData.childAge),
+      );
       form.setValue(
         "childExperienceLevel",
         primaryFormData.childExperienceLevel,
@@ -207,7 +226,7 @@ export function CheckoutJuniorForm({
             Parent/Guardian Information
           </h3>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="primaryContactFirstName"
@@ -277,7 +296,7 @@ export function CheckoutJuniorForm({
             )}
           />
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="phoneType"
@@ -288,7 +307,7 @@ export function CheckoutJuniorForm({
                     <RadioGroup
                       onValueChange={field.onChange}
                       value={field.value}
-                      className="flex gap-4"
+                      className="flex flex-wrap gap-4"
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="mobile" id="mobile" />
@@ -334,7 +353,7 @@ export function CheckoutJuniorForm({
                     <RadioGroup
                       onValueChange={field.onChange}
                       defaultValue={field.value}
-                      className="flex gap-4"
+                      className="flex flex-wrap gap-4"
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="text" id="text" />
@@ -369,7 +388,7 @@ export function CheckoutJuniorForm({
             Child Information
           </h3>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="childFirstName"
@@ -399,7 +418,7 @@ export function CheckoutJuniorForm({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="childAge"
@@ -409,12 +428,13 @@ export function CheckoutJuniorForm({
                   <FormControl>
                     <Input
                       type="number"
-                      min="5"
+                      min="4"
                       max="18"
+                      placeholder=""
+                      className="h-12 bg-white"
                       {...field}
-                      onChange={(e) =>
-                        field.onChange(parseInt(e.target.value) || 0)
-                      }
+                      value={field.value} // childAge is now a string, so no need for || ""
+                      onChange={(e) => field.onChange(e.target.value)} // Keep it as a string in the form state
                     />
                   </FormControl>
                   <FormMessage />
@@ -466,7 +486,7 @@ export function CheckoutJuniorForm({
                   <RadioGroup
                     onValueChange={(value) => field.onChange(value === "true")}
                     value={field.value ? "true" : "false"}
-                    className="flex gap-6"
+                    className="flex flex-wrap gap-4 sm:gap-6"
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="true" id="has-clubs" />

@@ -1,5 +1,8 @@
 import defaultImage from "@/public/junior_golf_camp.webp";
-import { getProgramById, getProgramSessions } from "@/db/queries/programs";
+import {
+  getProgramById,
+  getProgramSessionsWithEnrollment,
+} from "@/db/queries/programs";
 import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
 import { DevelopmentalCampPageClient } from "./DevelopmentalCampPageClient";
 
@@ -7,9 +10,14 @@ export default async function JuniorDevelopmentalGolfCamp(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const searchParams = await props.searchParams;
-  const sessionId = typeof searchParams.sessionId === "string" ? searchParams.sessionId : undefined;
+  const sessionId =
+    typeof searchParams.sessionId === "string"
+      ? searchParams.sessionId
+      : undefined;
   const program = await getProgramById("8102629d-9ec3-4034-beca-16683db482f2");
-  const sessions = program ? await getProgramSessions(program.id) : [];
+  const sessions = program
+    ? await getProgramSessionsWithEnrollment(program.id, "junior")
+    : [];
 
   return (
     <>
@@ -46,7 +54,7 @@ export default async function JuniorDevelopmentalGolfCamp(props: {
             </>
           )}
         </div>
-      </div >
+      </div>
     </>
   );
 }

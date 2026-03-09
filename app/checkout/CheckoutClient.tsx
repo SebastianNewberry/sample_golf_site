@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
   CheckCircle2,
+  XCircle,
   Loader2,
   ArrowLeft,
   ArrowRight,
@@ -28,6 +29,7 @@ import { CheckoutJuniorForm } from "./CheckoutJuniorForm";
 import { createCheckoutPaymentIntent } from "@/app/actions/checkout";
 import { validateCartAvailability } from "@/app/actions/validation";
 import { EmbeddedPaymentForm } from "@/app/components/checkout/EmbeddedPaymentForm";
+import { verifyPaymentStatus } from "@/app/actions/verify-payment";
 
 // Initialize Stripe
 const stripePromise = loadStripe(
@@ -60,17 +62,99 @@ interface CartItemFormData {
   storageKey: string;
 }
 
-// Success component
+// Success component — verifies payment server-side before showing success
 function CheckoutSuccess() {
   const { clearCart } = useCart();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [verificationState, setVerificationState] = useState<
+    "verifying" | "verified" | "failed"
+  >("verifying");
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    clearCart();
+    // Immediately clear local cart state and localStorage
     clearCart();
     localStorage.removeItem("checkout_form_data");
     localStorage.removeItem("pending_checkout_id");
   }, [clearCart]);
+
+  useEffect(() => {
+    const verify = async () => {
+      const paymentIntentId = searchParams.get("payment_intent");
+
+      if (!paymentIntentId) {
+        // No payment_intent in URL — likely a direct navigation
+        // Still show success since Stripe already redirected here
+        setVerificationState("verified");
+        return;
+      }
+
+      try {
+        const result = await verifyPaymentStatus(paymentIntentId);
+        if (result.verified) {
+          setVerificationState("verified");
+        } else {
+          setVerificationState("failed");
+          setErrorMessage(result.error || "Payment could not be verified.");
+        }
+      } catch {
+        // If verification call itself fails, still show success
+        // (the webhook will handle the actual processing)
+        setVerificationState("verified");
+      }
+    };
+
+    verify();
+  }, [searchParams]);
+
+  if (verificationState === "verifying") {
+    return (
+      <div className="text-center py-12">
+        <Loader2 className="h-10 w-10 animate-spin text-green-600 mx-auto mb-4" />
+        <h2 className="text-xl font-semibold text-gray-700">
+          Verifying your payment...
+        </h2>
+        <p className="text-gray-500 mt-2">This will only take a moment.</p>
+      </div>
+    );
+  }
+
+  if (verificationState === "failed") {
+    return (
+      <div className="text-center py-12">
+        <div className="inline-flex items-center justify-center w-20 h-20 bg-red-100 rounded-full mb-6">
+          <XCircle className="w-10 h-10 text-red-600" />
+        </div>
+        <h2 className="text-3xl font-bold text-gray-900 mb-4">Payment Issue</h2>
+        <p className="text-lg text-gray-600 mb-8">{errorMessage}</p>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto mb-8">
+          <p className="text-red-700 text-sm">
+            Your payment may not have been processed. Please contact us at{" "}
+            <a href="tel:+12485633561" className="font-medium underline">
+              (248) 563-3561
+            </a>{" "}
+            or try again.
+          </p>
+        </div>
+        <div className="flex gap-4 justify-center">
+          <Button
+            variant="outline"
+            onClick={() => router.push("/cart")}
+            className="border-gray-300"
+          >
+            Return to Cart
+          </Button>
+          <Button
+            onClick={() => router.push("/")}
+            className="bg-green-600 enabled:hover:bg-green-700"
+          >
+            Return to Home
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="text-center py-12">
@@ -81,7 +165,7 @@ function CheckoutSuccess() {
         Registration Complete!
       </h2>
       <p className="text-lg text-gray-600 mb-8">
-        Payment successful! You will receive a confirmation email shortly.
+        You will receive a confirmation email shortly with all the details.
       </p>
       <div className="bg-green-50 border border-green-200 rounded-lg p-6 max-w-md mx-auto mb-8">
         <h3 className="font-semibold text-green-800 mb-2">
@@ -164,16 +248,6 @@ export function CheckoutClient() {
 
       items.forEach((item) => {
         for (let i = 0; i < item.quantity; i++) {
-          // Try to find saved data for this specific item type/id
-          // We can key by cartItemId since specific items are distinct in cart
-          // If multiple quantities of same item, they have same cartItemId in DB?
-          // No, usually cart items are unique rows.
-          // Wait, if quantity > 1, are they unique rows?
-          // In the cart query: "items" seems to be rows.
-          // "quantity" field suggests one row per program+session combo.
-          // So if quantity is 2, we have one item with qty=2.
-          // This loop expands them to individual forms.
-          // to uniquely identify the *nth* form of a cart item, we need index.
           const key = `${item.id}_${i}`;
 
           newFormDataList.push({
@@ -220,14 +294,13 @@ export function CheckoutClient() {
           ).length;
           if (currentFormsCheck < item.quantity) {
             for (let i = 0; i < item.quantity - currentFormsCheck; i++) {
-              // Try to load saved data for this new instance too?
               const formIndex = currentFormsCheck + i;
               const key = `${item.id}_${formIndex}`;
               const savedDataJson = localStorage.getItem("checkout_form_data");
               let savedData: Record<string, any> = {};
               try {
                 savedData = JSON.parse(savedDataJson || "{}");
-              } catch { }
+              } catch {}
 
               newFormDataList.push({
                 cartItemId: item.id,
@@ -368,10 +441,12 @@ export function CheckoutClient() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8 px-4">
-      <div className="container mx-auto max-w-4xl">
+    <div className="min-h-screen bg-gray-100 py-6 md:py-8 px-0">
+      <div className="w-[92%] max-w-4xl mx-auto">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Checkout</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
+            Checkout
+          </h1>
         </div>
 
         <div className="flex items-center justify-center mb-8">
@@ -379,28 +454,31 @@ export function CheckoutClient() {
             <React.Fragment key={step.id}>
               <div className="flex flex-col items-center">
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${index < currentStep
-                    ? "bg-green-600 text-white"
-                    : index === currentStep
+                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                    index < currentStep
                       ? "bg-green-600 text-white"
-                      : "bg-gray-200 text-gray-500"
-                    }`}
+                      : index === currentStep
+                        ? "bg-green-600 text-white"
+                        : "bg-gray-200 text-gray-500"
+                  }`}
                 >
                   {index < currentStep ? <CheckCircle2 size={20} /> : step.icon}
                 </div>
                 <span
-                  className={`text-xs mt-2 ${index <= currentStep
-                    ? "text-gray-800 font-medium"
-                    : "text-gray-400"
-                    }`}
+                  className={`text-xs mt-2 ${
+                    index <= currentStep
+                      ? "text-gray-800 font-medium"
+                      : "text-gray-400"
+                  }`}
                 >
                   {step.label}
                 </span>
               </div>
               {index < steps.length - 1 && (
                 <div
-                  className={`w-16 h-0.5 mx-2 ${index < currentStep ? "bg-green-600" : "bg-gray-200"
-                    }`}
+                  className={`w-16 h-0.5 mx-2 ${
+                    index < currentStep ? "bg-green-600" : "bg-gray-200"
+                  }`}
                 />
               )}
             </React.Fragment>
@@ -415,7 +493,7 @@ export function CheckoutClient() {
 
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
-            <Card className="p-8 bg-white shadow-lg">
+            <Card className="p-4 md:p-8 bg-white shadow-lg">
               <AnimatePresence mode="wait">
                 {currentStep === 0 && (
                   <motion.div
@@ -437,7 +515,7 @@ export function CheckoutClient() {
                         return (
                           <div
                             key={item.id}
-                            className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg"
+                            className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 p-3 sm:p-4 bg-gray-50 rounded-lg"
                           >
                             <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden shrink-0 relative">
                               {programImage ? (
@@ -481,7 +559,7 @@ export function CheckoutClient() {
                       })}
                     </div>
 
-                    <div className="flex gap-4">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                       <Button
                         variant="outline"
                         onClick={() => router.push("/cart")}
@@ -493,9 +571,9 @@ export function CheckoutClient() {
 
                       {/* Check if all forms are complete */}
                       {items.length > 0 &&
-                        formDataList.length ===
+                      formDataList.length ===
                         items.reduce((sum, i) => sum + i.quantity, 0) &&
-                        formDataList.every((f) => f.formData !== null) ? (
+                      formDataList.every((f) => f.formData !== null) ? (
                         <>
                           <Button
                             variant="outline"
@@ -548,14 +626,14 @@ export function CheckoutClient() {
                       </h2>
                       <p className="text-gray-600">
                         {formDataList[currentFormIndex]?.registrationType ===
-                          "junior"
+                        "junior"
                           ? "Complete the junior registration form below"
                           : "Complete the registration form below"}
                       </p>
                     </div>
 
                     {formDataList[currentFormIndex]?.registrationType ===
-                      "junior" ? (
+                    "junior" ? (
                       <CheckoutJuniorForm
                         programId={formDataList[currentFormIndex].programId}
                         programName={

@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { CheckCircle2, Phone, CalendarClock } from "lucide-react";
+import {
+  CheckCircle2,
+  Phone,
+  CalendarClock,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Users,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -35,8 +43,14 @@ export function JuniorPrivateGolfInstructionClient({
   // State
   const [selectedDuration, setSelectedDuration] = useState<string>("");
   const [selectedPrice, setSelectedPrice] = useState<number>(0);
+  const [selectedPackageId, setSelectedPackageId] = useState<string>("");
+  const [selectedSessionCount, setSelectedSessionCount] = useState<number>(1);
+  const [selectedDurationMinutes, setSelectedDurationMinutes] =
+    useState<number>(60);
+  const [selectedPlayersCount, setSelectedPlayersCount] = useState<number>(1);
   const [selectedSlots, setSelectedSlots] = useState<any[]>([]); // Array of slots
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [showNav, setShowNav] = useState(false);
 
   const { items } = useCart();
 
@@ -67,7 +81,9 @@ export function JuniorPrivateGolfInstructionClient({
   // Helper to get current EST time
   const getNowEST = () => {
     const d = new Date();
-    const estString = d.toLocaleString("en-US", { timeZone: "America/New_York" });
+    const estString = d.toLocaleString("en-US", {
+      timeZone: "America/New_York",
+    });
     return new Date(estString);
   };
 
@@ -95,17 +111,31 @@ export function JuniorPrivateGolfInstructionClient({
       });
   }, [initialAvailableSlots]);
 
-  // Determine Max Slots based on package
-  const maxSlots = useMemo(() => {
-    if (selectedDuration.includes("5 Lessons")) return 5;
-    if (selectedDuration.includes("10 Lessons")) return 10;
-    return 1;
-  }, [selectedDuration]);
+  // Parse DB Pricing Options
+  const pricingOptions = useMemo(() => {
+    if (!program?.pricingOptions) return [];
+    try {
+      if (typeof program.pricingOptions === "string") {
+        return JSON.parse(program.pricingOptions);
+      }
+      return program.pricingOptions;
+    } catch (e) {
+      console.error("Error parsing program pricing options", e);
+      return [];
+    }
+  }, [program?.pricingOptions]);
+
+  // Determine Max Slots based on selected package
+  const maxSlots = selectedSessionCount || 1;
 
   // Invalidate selected slot if duration changes
-  const handlePriceSelect = (duration: string, price: number) => {
-    setSelectedDuration(duration);
-    setSelectedPrice(price);
+  const handlePriceSelect = (pkg: any) => {
+    setSelectedDuration(pkg.title);
+    setSelectedPrice(Number(pkg.price));
+    setSelectedPackageId(pkg.id);
+    setSelectedSessionCount(Number(pkg.sessionCount) || 1);
+    setSelectedDurationMinutes(Number(pkg.durationMinutes) || 60);
+    setSelectedPlayersCount(Number(pkg.playersCount) || 1);
     setSelectedSlots([]); // Reset date selection
   };
 
@@ -173,10 +203,11 @@ export function JuniorPrivateGolfInstructionClient({
     }
 
     // Calculate total hours
-    const totalHours = (durationMinutes * selectedSlots.length) / 60;
+    const totalHours = (selectedDurationMinutes * selectedSlots.length) / 60;
 
     // Serialize slot details into metadata
     const metadata = JSON.stringify({
+      packageId: selectedPackageId,
       duration: selectedDuration,
       totalHours,
       slots: selectedSlots.map((s) => ({
@@ -189,37 +220,18 @@ export function JuniorPrivateGolfInstructionClient({
       startTime: selectedSlots[0].startTime,
       endTime: selectedSlots[0].endTime,
       count: selectedSlots.length,
+      playersCount: selectedPlayersCount,
     });
 
     const result = await addItem({
       programId: program.id,
       registrationType: "junior",
-      price:
-        selectedPrice /
-        (selectedDuration.match(/(\d+) Players?/)
-          ? parseInt(selectedDuration.match(/(\d+) Players?/)[1])
-          : 1),
+      price: selectedPrice,
       metadata,
+      quantity: selectedPlayersCount,
     });
 
     if (result.success) {
-      // If we need to add more items (for multi-player packages), do it here
-      // Detect player count
-      const playerMatch = selectedDuration.match(/(\d+) Players?/);
-      const playerCount = playerMatch ? parseInt(playerMatch[1]) : 1;
-
-      if (playerCount > 1) {
-        // Add remaining items
-        for (let i = 1; i < playerCount; i++) {
-          await addItem({
-            programId: program.id,
-            registrationType: "junior",
-            price: selectedPrice / playerCount, // Price per player
-            metadata,
-          });
-        }
-      }
-
       setShowSuccess(true);
       setSelectedSlots([]); // Clear selection
       setTimeout(() => setShowSuccess(false), 2000);
@@ -254,10 +266,11 @@ export function JuniorPrivateGolfInstructionClient({
     setIsBuyNowLoading(true);
 
     // Calculate total hours
-    const totalHours = (durationMinutes * selectedSlots.length) / 60;
+    const totalHours = (selectedDurationMinutes * selectedSlots.length) / 60;
 
     // Serialize slot details into metadata
     const metadata = JSON.stringify({
+      packageId: selectedPackageId,
       duration: selectedDuration,
       totalHours,
       slots: selectedSlots.map((s) => ({
@@ -270,37 +283,18 @@ export function JuniorPrivateGolfInstructionClient({
       startTime: selectedSlots[0].startTime,
       endTime: selectedSlots[0].endTime,
       count: selectedSlots.length,
+      playersCount: selectedPlayersCount,
     });
 
     const result = await addToCart({
       programId: program.id,
       registrationType: "junior",
-      price:
-        selectedPrice /
-        (selectedDuration.match(/(\d+) Players?/)
-          ? parseInt(selectedDuration.match(/(\d+) Players?/)[1])
-          : 1),
+      price: selectedPrice,
       metadata,
+      quantity: selectedPlayersCount,
     });
 
     if (result.success) {
-      // If we need to add more items (for multi-player packages), do it here
-      // Detect player count
-      const playerMatch = selectedDuration.match(/(\d+) Players?/);
-      const playerCount = playerMatch ? parseInt(playerMatch[1]) : 1;
-
-      if (playerCount > 1) {
-        // Add remaining items
-        for (let i = 1; i < playerCount; i++) {
-          await addToCart({
-            programId: program.id,
-            registrationType: "junior",
-            price: selectedPrice / playerCount, // Price per player
-            metadata,
-          });
-        }
-      }
-
       await refreshCart();
       router.push("/checkout");
     } else {
@@ -308,16 +302,6 @@ export function JuniorPrivateGolfInstructionClient({
       // Optional: handle error
     }
   };
-
-  // Calculate duration in minutes
-  const durationMinutes = useMemo(() => {
-    if (selectedDuration.includes("1/2 Hour")) return 30;
-    if (selectedDuration.includes("1 Hour")) return 60;
-    // Packages usually booked as 1 hour sessions
-    if (selectedDuration.includes("Package")) return 60;
-    if (selectedDuration.includes("On-Course")) return 180; // 3 Hours
-    return 60; // Default
-  }, [selectedDuration]);
 
   return (
     <>
@@ -331,7 +315,7 @@ export function JuniorPrivateGolfInstructionClient({
         maxSlots={maxSlots}
         inCartSlots={cartSlots}
         programName="Junior Private Instruction"
-        durationMinutes={durationMinutes}
+        durationMinutes={selectedDurationMinutes}
       />
 
       {/* Main Content Grid - Centered */}
@@ -340,36 +324,88 @@ export function JuniorPrivateGolfInstructionClient({
           {/* Left Sidebar - Program Links + Calendar */}
           <div className="lg:col-span-3 space-y-2">
             {/* Header with program name */}
-            <h1 className="text-2xl font-bold text-gray-800 mb-4">
-              Junior Private Golf Instruction
-            </h1>
-            <Link
-              href="/junior-programs/beginner-series"
-              className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              JUNIOR BEGINNER SERIES
-            </Link>
-            <Link
-              href="/junior-programs/developmental-series"
-              className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              JUNIOR DEVELOPMENTAL SERIES
-            </Link>
-            <Link
-              href="/junior-programs/private-instruction"
-              className="block bg-white border-l-4 border-orange-500 px-4 py-3 text-sm font-bold text-gray-800"
-            >
-              JUNIOR PRIVATE GOLF INSTRUCTION
-            </Link>
+            <div className="flex items-center justify-between mb-4">
+              <h1 className="text-2xl font-bold text-gray-800">
+                Junior Private Golf Instruction
+              </h1>
+              <button
+                onClick={() => setShowNav(!showNav)}
+                className="lg:hidden flex items-center gap-1 text-[10px] font-semibold text-gray-500 hover:text-gray-700 transition-colors px-2 py-1 rounded-md hover:bg-gray-100 cursor-pointer whitespace-nowrap"
+              >
+                {showNav ? "Hide Programs" : "Show Programs"}
+                {showNav ? (
+                  <ChevronUp className="w-4 h-4" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+              </button>
+            </div>
+
+            {/* Desktop nav links */}
+            <div className="hidden lg:block space-y-0">
+              <Link
+                href="/junior-programs/beginner-series"
+                className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                JUNIOR BEGINNER SERIES
+              </Link>
+              <Link
+                href="/junior-programs/developmental-series"
+                className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                JUNIOR DEVELOPMENTAL SERIES
+              </Link>
+              <Link
+                href="/junior-programs/private-instruction"
+                className="block bg-white border-l-4 border-orange-500 px-4 py-3 text-sm font-bold text-gray-800"
+              >
+                JUNIOR PRIVATE GOLF INSTRUCTION
+              </Link>
+            </div>
+
+            {/* Mobile animated nav */}
+            <AnimatePresence>
+              {showNav && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: "auto" }}
+                  exit={{ opacity: 0, y: -10, height: 0 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  className="lg:hidden overflow-hidden space-y-0 mb-2"
+                >
+                  <Link
+                    href="/junior-programs/beginner-series"
+                    className="block bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    JUNIOR BEGINNER SERIES
+                  </Link>
+                  <Link
+                    href="/junior-programs/developmental-series"
+                    className="block bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    JUNIOR DEVELOPMENTAL SERIES
+                  </Link>
+                  <Link
+                    href="/junior-programs/private-instruction"
+                    className="block bg-white border-l-4 border-orange-500 px-4 py-2.5 text-sm font-bold text-gray-800"
+                  >
+                    JUNIOR PRIVATE GOLF INSTRUCTION
+                  </Link>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Session Calendar - Summary of Availability */}
             <div className="mt-6">
               <SessionCalendar
                 schedule={availableSlots.map((s) => ({
-                  date: s.date.toLocaleDateString("en-CA", { timeZone: "America/New_York" }),
+                  date: s.date.toLocaleDateString("en-CA", {
+                    timeZone: "America/New_York",
+                  }),
                   startTime: s.startTime,
                   endTime: s.endTime,
                 }))}
+                hideSessionCount
               />
               <p className="text-xs text-gray-500 mt-2 px-1">
                 * Dates above are available dates, but you only sign up for
@@ -427,125 +463,100 @@ export function JuniorPrivateGolfInstructionClient({
                       </span>
                       Select Private Instruction Package
                     </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {[
-                        {
-                          name: "1/2 Hour Session",
-                          label: "1/2 Hour",
-                          price: 60,
-                          sub: "Single Session",
-                        },
-                        {
-                          name: "1 Hour Session",
-                          label: "1 Hour",
-                          price: 90,
-                          sub: "Single Session",
-                        },
-                        {
-                          name: "5 Lessons Package",
-                          label: "5 1-Hour Lessons",
-                          price: 400,
-                          sub: "Save $50",
-                        },
-                        {
-                          name: "10 Lessons Package",
-                          label: "10 1-Hour Lessons",
-                          price: 700,
-                          sub: "Save $200",
-                        },
-                      ].map((pkg) => (
-                        <div
-                          key={pkg.name}
-                          onClick={() => handlePriceSelect(pkg.name, pkg.price)}
-                          className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-1 h-32
-                            ${selectedDuration === pkg.name
-                              ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))]"
-                              : "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
-                            }`}
-                        >
-                          <p className="text-gray-600 font-medium">
-                            {pkg.label}
-                          </p>
-                          <p
-                            className={`text-2xl font-bold ${selectedDuration === pkg.name ? "text-[hsl(var(--golf-orange))]" : "text-green-700"}`}
-                          >
-                            ${pkg.price}
-                          </p>
-                          {pkg.sub && (
-                            <p className="text-xs text-gray-400">{pkg.sub}</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
 
-                  {/* On-Course Coaching Section */}
-                  <div className="mb-10 p-6 bg-gray-50 rounded-2xl border border-gray-100">
-                    <h3 className="text-base font-bold text-gray-800 mb-2">
-                      On-Course Coaching (9 Hole Lesson)
-                    </h3>
-                    <p className="text-sm text-gray-600 mb-6 leading-relaxed max-w-4xl">
-                      Our <strong>on-course coaching session</strong> teaches
-                      your child how to take their game from the practice area
-                      to the golf course. They will learn under real playing
-                      conditions and receive invaluable instruction on all
-                      aspects of their game. Includes 30-minute evaluation,
-                      improvement plan, green fees, cart, and practice balls.
-                      <strong> Approx. 3 Hours.</strong>
-                    </p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {[
-                        {
-                          name: "On-Course Session (1 Player)",
-                          label: "1 Player",
-                          price: 250,
-                          desc: "Private Session",
-                        },
-                        {
-                          name: "On-Course Session (2 Players)",
-                          label: "2 Players",
-                          price: 300,
-                          desc: "$150 / person",
-                        },
-                        {
-                          name: "On-Course Session (3 Players)",
-                          label: "3 Players",
-                          price: 475,
-                          desc: "~$158 / person (2 Coaches)",
-                        },
-                        {
-                          name: "On-Course Session (4 Players)",
-                          label: "4 Players",
-                          price: 600,
-                          desc: "$150 / person (2 Coaches)",
-                        },
-                      ].map((pkg) => (
-                        <div
-                          key={pkg.name}
-                          onClick={() => handlePriceSelect(pkg.name, pkg.price)}
-                          className={`p-5 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between
-                            ${selectedDuration === pkg.name
-                              ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))]"
-                              : "bg-white border-gray-200 hover:border-green-200 hover:bg-green-50 shadow-sm"
-                            }`}
-                        >
-                          <div className="text-left">
-                            <p className="text-lg font-bold text-gray-800">
-                              {pkg.label}
-                            </p>
-                            <p className="text-xs text-gray-500">{pkg.desc}</p>
-                          </div>
-                          <div className="text-right">
-                            <p
-                              className={`text-2xl font-bold ${selectedDuration === pkg.name ? "text-[hsl(var(--golf-orange))]" : "text-green-700"}`}
-                            >
-                              ${pkg.price}
-                            </p>
-                          </div>
+                    {pricingOptions.filter((p: any) => !p.isOnCourse).length >
+                      0 && (
+                      <div className="mb-8">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                          {pricingOptions
+                            .filter((p: any) => !p.isOnCourse)
+                            .map((pkg: any) => (
+                              <div
+                                key={pkg.id}
+                                onClick={() => handlePriceSelect(pkg)}
+                                className={`p-2 rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-1 min-h-[8rem]
+                                  ${
+                                    selectedPackageId === pkg.id
+                                      ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))] shadow-sm"
+                                      : "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
+                                  }`}
+                              >
+                                <p className="text-gray-600 font-medium">
+                                  {pkg.title}
+                                </p>
+                                <p
+                                  className={`text-2xl font-bold my-1 ${selectedPackageId === pkg.id ? "text-[hsl(var(--golf-orange))]" : "text-[hsl(var(--golf-green))]"}`}
+                                >
+                                  ${pkg.price}
+                                </p>
+                                <p className="text-xs text-gray-400">
+                                  {pkg.sessionCount === 1
+                                    ? "Single Session"
+                                    : `${pkg.sessionCount} Sessions`}
+                                </p>
+                              </div>
+                            ))}
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    )}
+
+                    {pricingOptions.filter((p: any) => p.isOnCourse).length >
+                      0 && (
+                      <div className="bg-gray-50/80 rounded-2xl p-6 lg:p-8 border border-gray-100 mt-8 mb-4">
+                        <h4 className="text-lg font-bold text-gray-900 mb-3">
+                          On-Course Coaching (9 Hole Lesson)
+                        </h4>
+                        <p className="text-sm text-gray-600 leading-relaxed mb-6">
+                          Our <strong>on-course coaching session</strong>{" "}
+                          teaches your child how to take their game from the
+                          practice area to the golf course. They will learn
+                          under real playing conditions and receive invaluable
+                          instruction on all aspects of their game. Includes
+                          30-minute evaluation, improvement plan, green fees,
+                          cart, and practice balls.{" "}
+                          <strong>Approx. 3 Hours.</strong>
+                        </p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {pricingOptions
+                            .filter((p: any) => p.isOnCourse)
+                            .map((pkg: any) => (
+                              <div
+                                key={pkg.id}
+                                onClick={() => handlePriceSelect(pkg)}
+                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between
+                                  ${
+                                    selectedPackageId === pkg.id
+                                      ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))] shadow-sm"
+                                      : "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
+                                  }`}
+                              >
+                                <div>
+                                  <p className="text-gray-900 font-bold text-lg">
+                                    {pkg.title}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {pkg.playersCount === 1
+                                      ? "Private Session"
+                                      : `$${Math.round(pkg.price / pkg.playersCount)} / person`}
+                                  </p>
+                                </div>
+                                <p
+                                  className={`text-2xl font-bold ${selectedPackageId === pkg.id ? "text-[hsl(var(--golf-orange))]" : "text-[hsl(var(--golf-green))]"}`}
+                                >
+                                  ${pkg.price}
+                                </p>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {pricingOptions.length === 0 && (
+                      <p className="text-sm text-gray-500 italic col-span-full">
+                        No pricing options are currently available for this
+                        program.
+                      </p>
+                    )}
                   </div>
 
                   {/* Scheduling & Checkout Actions */}

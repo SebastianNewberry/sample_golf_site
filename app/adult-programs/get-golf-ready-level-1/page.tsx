@@ -1,6 +1,9 @@
 import { CheckCircle2 } from "lucide-react";
 import defaultImage from "@/public/golf_ready_level1.webp";
-import { getProgramById, getProgramSessions } from "@/db/queries/programs";
+import {
+  getProgramById,
+  getProgramSessionsWithEnrollment,
+} from "@/db/queries/programs";
 import { ProgramDetailsSection } from "@/app/components/ProgramDetailsSection";
 import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
 import { GetGolfReadyLevel1PageClient } from "./GetGolfReadyLevel1PageClient";
@@ -9,9 +12,14 @@ export default async function GetGolfReadyLevel1(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const searchParams = await props.searchParams;
-  const sessionId = typeof searchParams.sessionId === "string" ? searchParams.sessionId : undefined;
+  const sessionId =
+    typeof searchParams.sessionId === "string"
+      ? searchParams.sessionId
+      : undefined;
   const program = await getProgramById("583078c5-6e1f-40fc-a1a0-8c1cc88a6d7b");
-  const sessions = program ? await getProgramSessions(program.id) : [];
+  const sessions = program
+    ? await getProgramSessionsWithEnrollment(program.id, "adult")
+    : [];
 
   return (
     <>
@@ -49,7 +57,7 @@ export default async function GetGolfReadyLevel1(props: {
             </>
           )}
         </div>
-      </div >
+      </div>
     </>
   );
 }

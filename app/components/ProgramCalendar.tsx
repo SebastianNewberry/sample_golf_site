@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import Link from "next/link";
 import {
   ChevronLeft,
   ChevronRight,
@@ -33,9 +32,15 @@ export function ProgramCalendar({
   maxHeight = "400px",
 }: ProgramCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
+    null,
+  );
   const [hoveredEvent, setHoveredEvent] = useState<CalendarEvent | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
+
+  // The event to display in the tooltip (only on hover for desktop)
+  const tooltipEvent = hoveredEvent;
 
   // Get days in month
   const daysInMonth = useMemo(() => {
@@ -102,8 +107,55 @@ export function ProgramCalendar({
     calendarDays.push(i);
   }
 
+  // Get all events for this month grouped by day (for mobile list view)
+  const monthEvents = useMemo(() => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const grouped: { day: number; events: CalendarEvent[] }[] = [];
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dayEvents = getEventsForDate(d);
+      if (dayEvents.length > 0) {
+        grouped.push({ day: d, events: dayEvents });
+      }
+    }
+    return grouped;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentDate, daysInMonth, events]);
+
+  // Handle event click/tap — toggle tooltip
+  const handleEventInteraction = (
+    event: CalendarEvent,
+    e: React.MouseEvent | React.TouchEvent,
+  ) => {
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const tooltipWidth = 320;
+    const padding = 16;
+
+    let x = rect.left;
+    if (x + tooltipWidth > window.innerWidth) {
+      x = Math.max(padding, window.innerWidth - tooltipWidth - padding);
+    }
+
+    // If same event is already selected, deselect
+    if (selectedEvent?.id === event.id) {
+      setSelectedEvent(null);
+    } else {
+      setSelectedEvent(event);
+      setTooltipPosition({ x, y: rect.bottom + 8 });
+    }
+  };
+
   return (
-    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+    <div
+      className="bg-white rounded-xl shadow-sm overflow-hidden"
+      onClick={(e) => {
+        // Clear selection when clicking outside of events
+        if (!(e.target as HTMLElement).closest("[data-calendar-event]")) {
+          setSelectedEvent(null);
+        }
+      }}
+    >
       {/* Calendar Header */}
       <div className="bg-green-600 text-white px-4 py-3 flex items-center justify-between">
         <button
@@ -123,8 +175,8 @@ export function ProgramCalendar({
         </button>
       </div>
 
-      {/* Days of week header */}
-      <div className="grid grid-cols-7 bg-gray-100">
+      {/* Days of week header — hidden on mobile */}
+      <div className="hidden md:grid grid-cols-7 bg-gray-100">
         {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
           <div
             key={day}
@@ -135,9 +187,9 @@ export function ProgramCalendar({
         ))}
       </div>
 
-      {/* Calendar grid */}
+      {/* Desktop: Calendar grid (hidden on mobile) */}
       <div
-        className="grid grid-cols-7 gap-px bg-gray-200 overflow-auto"
+        className="hidden md:grid grid-cols-7 gap-px bg-gray-200 overflow-auto"
         style={{ maxHeight }}
       >
         {calendarDays.map((day, index) => {
@@ -148,8 +200,9 @@ export function ProgramCalendar({
           return (
             <div
               key={index}
-              className={`bg-white p-1 transition-all duration-300 ${!day ? "bg-gray-50" : ""
-                } ${isExpanded ? "min-h-[200px]" : "min-h-[120px]"}`}
+              className={`bg-white p-1 transition-all duration-300 ${
+                !day ? "bg-gray-50" : ""
+              } ${isExpanded ? "min-h-[200px]" : "min-h-[120px]"}`}
             >
               {day && (
                 <>
@@ -159,50 +212,37 @@ export function ProgramCalendar({
                   <div
                     className={`${isExpanded ? "overflow-y-auto max-h-[160px]" : "space-y-1"}`}
                   >
-                    {visibleEvents.map((event) => {
-                      const EventContent = (
-                        <div
-                          className={`text-[10px] px-1 py-0.5 rounded text-white truncate cursor-pointer hover:opacity-80 transition-all hover:shadow-md relative mb-1`}
-                          style={{ backgroundColor: event.color }}
-                          onMouseEnter={(e) => {
-                            setHoveredEvent(event);
-                            const rect =
-                              e.currentTarget.getBoundingClientRect();
-
-                            // Calculate optimized X position
-                            // Tooltip width is w-80 (20rem = 320px)
-                            const tooltipWidth = 320;
-                            const padding = 16; // Safety padding from screen edge
-
-                            // Default to aligning left with the event
-                            let x = rect.left;
-
-                            // If it overflows the right side of the viewport
-                            if (x + tooltipWidth > window.innerWidth) {
-                              // Try to align with the right side of the event (or just shift left to fit)
-                              // Math.min guarantees we don't push it off the left side either
-                              x = Math.max(padding, window.innerWidth - tooltipWidth - padding);
-                            }
-
-                            setTooltipPosition({
-                              x: x,
-                              y: rect.bottom + 8,
-                            });
-                          }}
-                          onMouseLeave={() => setHoveredEvent(null)}
-                        >
-                          {event.title}
-                        </div>
-                      );
-
-                      return event.url ? (
-                        <Link key={event.id} href={event.url} className="block">
-                          {EventContent}
-                        </Link>
-                      ) : (
-                        <div key={event.id}>{EventContent}</div>
-                      );
-                    })}
+                    {visibleEvents.map((event) => (
+                      <div
+                        key={event.id}
+                        data-calendar-event
+                        className="text-[10px] px-1 py-0.5 rounded text-white truncate cursor-pointer hover:opacity-80 transition-all hover:shadow-md relative mb-1"
+                        style={{ backgroundColor: event.color }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEventInteraction(event, e);
+                        }}
+                        onMouseEnter={(e) => {
+                          setHoveredEvent(event);
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const tooltipWidth = 320;
+                          const padding = 16;
+                          let x = rect.left;
+                          if (x + tooltipWidth > window.innerWidth) {
+                            x = Math.max(
+                              padding,
+                              window.innerWidth - tooltipWidth - padding,
+                            );
+                          }
+                          setTooltipPosition({ x, y: rect.bottom + 8 });
+                        }}
+                        onMouseLeave={() => {
+                          setHoveredEvent(null);
+                        }}
+                      >
+                        {event.title}
+                      </div>
+                    ))}
                     {!isExpanded && dayEvents.length > 3 && (
                       <button
                         onClick={() => {
@@ -239,6 +279,91 @@ export function ProgramCalendar({
         })}
       </div>
 
+      {/* Mobile: List view (hidden on desktop) */}
+      <div className="md:hidden overflow-auto" style={{ maxHeight }}>
+        {monthEvents.length === 0 ? (
+          <div className="p-6 text-center text-gray-500 text-sm">
+            No events this month.
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {monthEvents.map(({ day, events: dayEvents }) => {
+              const date = new Date(
+                currentDate.getFullYear(),
+                currentDate.getMonth(),
+                day,
+              );
+              const dayName = date.toLocaleDateString("en-US", {
+                weekday: "short",
+              });
+              const monthDay = date.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              });
+
+              return (
+                <div key={day} className="p-3">
+                  <div className="text-xs font-bold text-gray-500 uppercase mb-2">
+                    {dayName}, {monthDay}
+                  </div>
+                  <div className="space-y-1.5">
+                    {dayEvents.map((event) => (
+                      <div
+                        key={event.id}
+                        data-calendar-event
+                        className="flex items-start gap-2 p-2 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Toggle inline detail on mobile
+                          if (selectedEvent?.id === event.id) {
+                            setSelectedEvent(null);
+                          } else {
+                            setSelectedEvent(event);
+                          }
+                        }}
+                      >
+                        <div
+                          className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1"
+                          style={{ backgroundColor: event.color }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-gray-800 truncate">
+                            {event.title}
+                          </p>
+                          {event.startTime && event.endTime && (
+                            <p className="text-xs text-gray-500">
+                              {event.startTime} - {event.endTime}
+                            </p>
+                          )}
+                          {event.sessionName && (
+                            <p className="text-xs text-gray-400">
+                              {event.sessionName}
+                            </p>
+                          )}
+                          {/* Inline detail for mobile */}
+                          {selectedEvent?.id === event.id && (
+                            <div className="mt-2 p-2 bg-gray-50 rounded-md border border-gray-100 text-xs text-gray-600 space-y-1">
+                              <p className="capitalize font-medium">
+                                {event.programType} Program
+                              </p>
+                              {event.programDescription && (
+                                <p className="line-clamp-3 leading-relaxed">
+                                  {event.programDescription}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Legend */}
       <div className="border-t border-gray-200 p-4 bg-gray-50">
         <h4 className="text-sm font-bold text-gray-800 mb-2">Legend</h4>
@@ -266,46 +391,46 @@ export function ProgramCalendar({
         </div>
       </div>
 
-      {/* Tooltip */}
-      {hoveredEvent && (
+      {/* Desktop Tooltip (hidden on mobile — mobile uses inline details) */}
+      {tooltipEvent && (
         <div
-          className="fixed z-50 bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-80 pointer-events-none"
+          className="fixed z-50 bg-white rounded-lg shadow-xl border border-gray-200 p-4 w-80 pointer-events-none hidden md:block"
           style={{
             left: tooltipPosition.x,
             top: tooltipPosition.y,
           }}
         >
           <div className="font-bold text-sm text-gray-800 mb-2">
-            {hoveredEvent.title}
+            {tooltipEvent.title}
           </div>
           <div className="space-y-2 text-xs text-gray-600">
-            {hoveredEvent.sessionName && (
+            {tooltipEvent.sessionName && (
               <div className="flex items-start gap-2">
                 <CalendarIcon size={14} className="mt-0.5 flex-shrink-0" />
-                <span>{hoveredEvent.sessionName}</span>
+                <span>{tooltipEvent.sessionName}</span>
               </div>
             )}
-            {hoveredEvent.startTime && hoveredEvent.endTime && (
+            {tooltipEvent.startTime && tooltipEvent.endTime && (
               <div className="flex items-start gap-2">
                 <Clock size={14} className="mt-0.5 flex-shrink-0" />
                 <span>
-                  {hoveredEvent.startTime} - {hoveredEvent.endTime}
+                  {tooltipEvent.startTime} - {tooltipEvent.endTime}
                 </span>
               </div>
             )}
             <div className="flex items-start gap-2">
               <div
                 className="w-3 h-3 rounded-full flex-shrink-0 mt-0.5"
-                style={{ backgroundColor: hoveredEvent.color }}
+                style={{ backgroundColor: tooltipEvent.color }}
               />
               <span className="capitalize">
-                {hoveredEvent.programType} Program
+                {tooltipEvent.programType} Program
               </span>
             </div>
-            {hoveredEvent.programDescription && (
+            {tooltipEvent.programDescription && (
               <div className="pt-2 border-t border-gray-100">
                 <p className="line-clamp-3 leading-relaxed">
-                  {hoveredEvent.programDescription}
+                  {tooltipEvent.programDescription}
                 </p>
               </div>
             )}

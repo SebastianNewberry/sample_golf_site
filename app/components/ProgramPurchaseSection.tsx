@@ -18,6 +18,7 @@ interface Session {
   id: string;
   name: string;
   startDate?: string | Date;
+  isBooked?: boolean;
 }
 
 interface ProgramPurchaseSectionProps {
@@ -110,11 +111,21 @@ export function ProgramPurchaseSection({
             </SelectTrigger>
             <SelectContent>
               {sessions.map((session) => {
-                const isStarted = session.startDate ? new Date() > new Date(session.startDate) : false;
+                const isStarted = session.startDate
+                  ? new Date() > new Date(session.startDate)
+                  : false;
+                const isBooked = session.isBooked ?? false;
+                const isUnavailable = isStarted || isBooked;
                 return (
-                  <SelectItem key={session.id} value={session.id} disabled={isStarted} className={isStarted ? "text-gray-400" : ""}>
+                  <SelectItem
+                    key={session.id}
+                    value={session.id}
+                    disabled={isUnavailable}
+                    className={isUnavailable ? "text-gray-400" : ""}
+                  >
                     {session.name}
                     {isStarted && " (Started)"}
+                    {!isStarted && isBooked && " (Booked)"}
                   </SelectItem>
                 );
               })}
@@ -137,12 +148,13 @@ export function ProgramPurchaseSection({
 
       {isSessionSelected && availability && (
         <div
-          className={`mb-5 p-4 rounded-xl border flex items-start gap-3 ${isFull
+          className={`mb-5 p-4 rounded-xl border flex items-start gap-3 ${
+            isFull
               ? "bg-red-50 border-red-200 text-red-700"
               : availability.remaining <= 3
                 ? "bg-amber-50 border-amber-200 text-amber-700"
                 : "bg-green-50 border-green-200 text-green-700"
-            }`}
+          }`}
         >
           {isFull ? (
             <AlertCircle size={20} className="shrink-0 mt-0.5" />
@@ -162,10 +174,11 @@ export function ProgramPurchaseSection({
                 ? currentInCart > 0
                   ? `You have ${currentInCart} ${currentInCart === 1 ? "spot" : "spots"} in your cart, which fills the remaining capacity.`
                   : "All spots for this session have been booked."
-                : `${availability.remaining - currentInCart} ${availability.remaining - currentInCart === 1
-                  ? "spot remains"
-                  : "spots remain"
-                }${currentInCart > 0 ? ` (${currentInCart} in cart)` : ""}`}
+                : `${availability.remaining - currentInCart} ${
+                    availability.remaining - currentInCart === 1
+                      ? "spot remains"
+                      : "spots remain"
+                  }${currentInCart > 0 ? ` (${currentInCart} in cart)` : ""}`}
             </p>
           </div>
         </div>
@@ -178,10 +191,11 @@ export function ProgramPurchaseSection({
             programSessionId={selectedSession || undefined}
             registrationType={registrationType}
             price={programPrice}
-            className={`w-full py-3.5 font-bold text-base rounded-xl shadow-md enabled:hover:shadow-lg transition-all ${!isDisabled
+            className={`w-full py-3.5 font-bold text-base rounded-xl shadow-md enabled:hover:shadow-lg transition-all ${
+              !isDisabled
                 ? "bg-orange-500 enabled:hover:bg-orange-600 text-white"
                 : "bg-gray-200 text-gray-400"
-              }`}
+            }`}
             size="lg"
             disabled={isDisabled}
           >
@@ -193,10 +207,11 @@ export function ProgramPurchaseSection({
             programSessionId={selectedSession || undefined}
             registrationType={registrationType}
             price={programPrice}
-            className={`w-full py-3.5 font-bold text-base border-2 rounded-xl transition-all ${!isDisabled
+            className={`w-full py-3.5 font-bold text-base border-2 rounded-xl transition-all ${
+              !isDisabled
                 ? "bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 border-green-600"
                 : "border-gray-200 text-gray-400 bg-gray-50"
-              }`}
+            }`}
             size="lg"
             disabled={isDisabled}
           >

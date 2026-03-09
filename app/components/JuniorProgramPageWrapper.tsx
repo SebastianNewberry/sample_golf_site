@@ -2,6 +2,8 @@
 
 import { useState, ReactNode, ReactElement, useEffect } from "react";
 import Link from "next/link";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Accordion,
   AccordionContent,
@@ -18,10 +20,15 @@ type RenderProps = {
   onSessionChange: (id: string) => void;
 };
 
+type SessionWithEnrollment = ProgramSession & {
+  isBooked?: boolean;
+  spotsRemaining?: number;
+};
+
 interface JuniorProgramPageWrapperProps {
   programName: string;
   currentPage: string;
-  sessions: ProgramSession[];
+  sessions: SessionWithEnrollment[];
   children: ReactNode | ((props: RenderProps) => ReactElement);
   initialSessionId?: string | undefined;
 }
@@ -40,6 +47,7 @@ export function JuniorProgramPageWrapper({
   const [purchaseSessionId, setPurchaseSessionId] = useState<string>(
     initialSessionId || "",
   );
+  const [showNav, setShowNav] = useState(false);
 
   // Initialize checks on mount/updates if initialSessionId is provided
   useEffect(() => {
@@ -52,9 +60,10 @@ export function JuniorProgramPageWrapper({
         const startDate =
           schedule && schedule.length > 0 ? new Date(schedule[0].date) : null;
         const isStarted = startDate ? new Date() > startDate : false;
+        const isUnavailable = isStarted || (session.isBooked ?? false);
 
-        if (isStarted) {
-          setPurchaseSessionId(""); // Don't select if started
+        if (isUnavailable) {
+          setPurchaseSessionId(""); // Don't select if unavailable
         }
       }
     }
@@ -73,11 +82,12 @@ export function JuniorProgramPageWrapper({
         const startDate =
           schedule && schedule.length > 0 ? new Date(schedule[0].date) : null;
         const isStarted = startDate ? new Date() > startDate : false;
+        const isUnavailable = isStarted || (session.isBooked ?? false);
 
-        if (!isStarted) {
+        if (!isUnavailable) {
           setPurchaseSessionId(val);
         } else {
-          // If started, do not select for purchase
+          // If unavailable (started or booked), do not select for purchase
           setPurchaseSessionId("");
         }
       }
@@ -97,36 +107,98 @@ export function JuniorProgramPageWrapper({
       {/* Left Sidebar - Program Links + Calendar */}
       <div className="lg:col-span-3 space-y-2">
         {/* Header with program name */}
-        <h1 className="text-2xl font-bold text-gray-800 mb-4">{programName}</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold text-gray-800">{programName}</h1>
+          <button
+            onClick={() => setShowNav(!showNav)}
+            className="lg:hidden flex items-center gap-1 text-[10px] font-semibold text-gray-500 hover:text-gray-700 transition-colors px-2 py-1 rounded-md hover:bg-gray-100 cursor-pointer whitespace-nowrap"
+          >
+            {showNav ? "Hide Programs" : "Show Programs"}
+            {showNav ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
+          </button>
+        </div>
 
-        {/* Navigation Links */}
-        <Link
-          href="/junior-programs/beginner-series"
-          className={`block px-4 py-3 text-sm ${currentPage === "beginner-series"
-            ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-            : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
+        {/* Navigation Links - Always visible on desktop, toggleable on mobile */}
+        <div className="hidden lg:block space-y-0">
+          <Link
+            href="/junior-programs/beginner-series"
+            className={`block px-4 py-3 text-sm ${
+              currentPage === "beginner-series"
+                ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
+                : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
             }`}
-        >
-          JUNIOR BEGINNER SERIES
-        </Link>
-        <Link
-          href="/junior-programs/developmental-series"
-          className={`block px-4 py-3 text-sm ${currentPage === "developmental-series"
-            ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-            : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
+          >
+            JUNIOR BEGINNER SERIES
+          </Link>
+          <Link
+            href="/junior-programs/developmental-series"
+            className={`block px-4 py-3 text-sm ${
+              currentPage === "developmental-series"
+                ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
+                : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
             }`}
-        >
-          JUNIOR DEVELOPMENTAL SERIES
-        </Link>
-        <Link
-          href="/junior-programs/private-instruction"
-          className={`block px-4 py-3 text-sm ${currentPage === "private-instruction"
-            ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-            : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
+          >
+            JUNIOR DEVELOPMENTAL SERIES
+          </Link>
+          <Link
+            href="/junior-programs/private-instruction"
+            className={`block px-4 py-3 text-sm ${
+              currentPage === "private-instruction"
+                ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
+                : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
             }`}
-        >
-          JUNIOR PRIVATE GOLF INSTRUCTION
-        </Link>
+          >
+            JUNIOR PRIVATE GOLF INSTRUCTION
+          </Link>
+        </div>
+
+        {/* Mobile animated nav */}
+        <AnimatePresence>
+          {showNav && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, height: 0 }}
+              animate={{ opacity: 1, y: 0, height: "auto" }}
+              exit={{ opacity: 0, y: -10, height: 0 }}
+              transition={{ duration: 0.25, ease: "easeOut" }}
+              className="lg:hidden overflow-hidden space-y-0 mb-2"
+            >
+              <Link
+                href="/junior-programs/beginner-series"
+                className={`block px-4 py-2.5 text-sm ${
+                  currentPage === "beginner-series"
+                    ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
+                    : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
+                }`}
+              >
+                JUNIOR BEGINNER SERIES
+              </Link>
+              <Link
+                href="/junior-programs/developmental-series"
+                className={`block px-4 py-2.5 text-sm ${
+                  currentPage === "developmental-series"
+                    ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
+                    : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
+                }`}
+              >
+                JUNIOR DEVELOPMENTAL SERIES
+              </Link>
+              <Link
+                href="/junior-programs/private-instruction"
+                className={`block px-4 py-2.5 text-sm ${
+                  currentPage === "private-instruction"
+                    ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
+                    : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
+                }`}
+              >
+                JUNIOR PRIVATE GOLF INSTRUCTION
+              </Link>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Session Calendar - below navigation links */}
         <div className="mt-6">
@@ -144,9 +216,16 @@ export function JuniorProgramPageWrapper({
                   className="w-full"
                 >
                   {sessions.map((session) => {
-                    const schedule = session.schedule ? parseSchedule(session.schedule) : null;
-                    const startDate = schedule && schedule.length > 0 ? new Date(schedule[0].date) : null;
-                    const isStarted = startDate ? new Date() > startDate : false;
+                    const schedule = session.schedule
+                      ? parseSchedule(session.schedule)
+                      : null;
+                    const startDate =
+                      schedule && schedule.length > 0
+                        ? new Date(schedule[0].date)
+                        : null;
+                    const isStarted = startDate
+                      ? new Date() > startDate
+                      : false;
 
                     return (
                       <AccordionItem
@@ -157,16 +236,23 @@ export function JuniorProgramPageWrapper({
                         <AccordionTrigger className="text-left hover:no-underline py-3">
                           <span className="font-medium text-sm">
                             {session.name ? session.name : "Session Details"}
-                            {isStarted && <span className="text-red-600 ml-1">(Started)</span>}
+                            {isStarted && (
+                              <span className="text-red-600 ml-1">
+                                (Started)
+                              </span>
+                            )}
+                            {!isStarted && session.isBooked && (
+                              <span className="text-red-600 ml-1">
+                                (Booked)
+                              </span>
+                            )}
                           </span>
                         </AccordionTrigger>
                         <AccordionContent className="pb-4">
-                          <SessionCalendar
-                            schedule={schedule}
-                          />
+                          <SessionCalendar schedule={schedule} />
                         </AccordionContent>
                       </AccordionItem>
-                    )
+                    );
                   })}
                 </Accordion>
               ) : (
@@ -176,9 +262,20 @@ export function JuniorProgramPageWrapper({
               )}
             </CardContent>
           </Card>
-          <p className="text-xs text-red-500 mt-2 font-medium">
-            * Call to inquire about past sessions that have already started
-          </p>
+          {sessions.some((s) => {
+            const schedule = s.schedule ? parseSchedule(s.schedule) : null;
+            const startDate =
+              schedule && schedule.length > 0
+                ? new Date(schedule[0].date)
+                : null;
+            const isStarted = startDate ? new Date() > startDate : false;
+            return isStarted || (s.isBooked ?? false);
+          }) && (
+            <p className="text-xs text-red-500 mt-2 font-medium">
+              * Call to inquire about joining past sessions that have already
+              started or are sold out
+            </p>
+          )}
         </div>
       </div>
 
@@ -186,9 +283,9 @@ export function JuniorProgramPageWrapper({
       <div className="lg:col-span-6">
         {isRenderFunction
           ? (children as (props: RenderProps) => ReactElement)({
-            selectedSessionId: purchaseSessionId,
-            onSessionChange: handlePurchaseChange,
-          })
+              selectedSessionId: purchaseSessionId,
+              onSessionChange: handlePurchaseChange,
+            })
           : children}
       </div>
     </>

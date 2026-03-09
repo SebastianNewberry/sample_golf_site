@@ -403,7 +403,9 @@ export async function getCartTotal(cartId: string) {
     .from(cartItem)
     .where(eq(cartItem.cartId, cartId));
 
-  return items.reduce((total, item) => {
+  const rawTotal = items.reduce((total, item) => {
     return total + item.quantity * parseFloat(item.priceAtAdd);
   }, 0);
+  // Round to 2 decimal places to avoid floating-point precision errors (e.g. $474.99 instead of $475.00)
+  return Math.round(rawTotal * 100) / 100;
 }

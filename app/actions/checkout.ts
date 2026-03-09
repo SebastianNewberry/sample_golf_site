@@ -146,6 +146,16 @@ export async function createCheckoutPaymentIntent(data: CheckoutData) {
     // and relying on optimistic concurrency.
     // --------------------------------------------------------
 
+    // --------------------------------------------------------
+    // STRICT TOTAL CALCULATION
+    // --------------------------------------------------------
+    // Ignore data.totalAmount from the frontend.
+    // Calculate uniquely from validated cart items exactly as they are in the DB.
+    const serverTotalAmount = cart.items.reduce((sum, item) => {
+      // priceAtAdd was already strictly validated when added to the cart
+      return sum + Number(item.priceAtAdd) * item.quantity;
+    }, 0);
+
     // Store checkout data in database
     const savedSession = await createCheckoutSession({
       checkoutId,
@@ -161,14 +171,17 @@ export async function createCheckoutPaymentIntent(data: CheckoutData) {
             metadata:
               cart.items.find((ci) => ci.id === item.cartItemId)?.metadata ||
               undefined,
+            priceAtAdd:
+              cart.items.find((ci) => ci.id === item.cartItemId)?.priceAtAdd ||
+              "0",
           };
         }),
       },
-      totalAmount: data.totalAmount.toFixed(2),
+      totalAmount: serverTotalAmount.toFixed(2), // Use Server Total!
     });
 
     console.log(
-      `[Checkout] Created session ${checkoutId} with ${data.items.length} items. DB ID: ${savedSession.id}`,
+      `[Checkout] Created session ${checkoutId} with ${data.items.length} items. DB ID: ${savedSession.id}. Total: $${serverTotalAmount}`,
     );
 
     // Create Stripe metadata
@@ -184,7 +197,7 @@ export async function createCheckoutPaymentIntent(data: CheckoutData) {
 
     // Create PaymentIntent (Embedded Checkout)
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(data.totalAmount * 100), // Amount in cents
+      amount: Math.round(serverTotalAmount * 100), // Amount in cents using Server Total!
       currency: "usd",
       metadata: metadata,
       automatic_payment_methods: {

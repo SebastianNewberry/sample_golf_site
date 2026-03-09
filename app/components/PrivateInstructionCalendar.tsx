@@ -1,15 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import {
-  format,
-  addDays,
-  startOfWeek,
-  isSameDay,
-  startOfDay,
-  isBefore,
-  parseISO,
-} from "date-fns";
+import { format, isSameDay, parseISO } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,16 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Calendar as CalendarIcon,
-  Clock,
-  ChevronLeft,
-  ChevronRight,
-  Check,
-  X,
-  List as ListIcon,
-  Grid as GridIcon,
-} from "lucide-react";
+import { Calendar as CalendarIcon, Clock, X } from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -58,12 +41,8 @@ export interface PrivateInstructionCalendarProps {
   inCartSlots?: TimeSlot[];
 }
 
-// --- Constants ---
-const SLOT_DURATION_MINUTES = 30;
-const START_HOUR = 8; // Assuming lessons start around 8am
-const END_HOUR = 22; // Until 10pm
-const TOTAL_SLOTS_PER_DAY =
-  (END_HOUR - START_HOUR) * (60 / SLOT_DURATION_MINUTES);
+const START_HOUR = 8;
+const END_HOUR = 22;
 
 // --- Helpers ---
 const getNowEST = () => {
@@ -75,10 +54,6 @@ const getNowEST = () => {
 const normalizeFromUTC = (date: Date | string) => {
   const d = typeof date === "string" ? parseISO(date) : date;
   return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-};
-
-const getSlotId = (date: Date, hour: number, minute: number) => {
-  return `${format(date, "yyyy-MM-dd")}T${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
 };
 
 const formatTime = (hour: number, minute: number) => {
@@ -97,15 +72,6 @@ const formatTime12 = (time24: string) => {
   return format(d, "h:mm a");
 };
 
-const getDailySlotTimes = () => {
-  return Array.from({ length: TOTAL_SLOTS_PER_DAY }, (_, i) => {
-    const totalMinutes = START_HOUR * 60 + i * SLOT_DURATION_MINUTES;
-    const hour = Math.floor(totalMinutes / 60);
-    const minute = totalMinutes % 60;
-    return { hour, minute };
-  });
-};
-
 export function PrivateInstructionCalendar({
   open,
   onOpenChange,
@@ -120,26 +86,10 @@ export function PrivateInstructionCalendar({
   inCartSlots = [],
 }: PrivateInstructionCalendarProps) {
   const [isMounted, setIsMounted] = useState(false);
-  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(new Date());
-  const [hoveredSlot, setHoveredSlot] = useState<TimeSlot | null>(null);
-  const [blockedHoverSlot, setBlockedHoverSlot] = useState<TimeSlot | null>(
-    null,
-  );
-  const [viewMode, setViewMode] = useState<"calendar" | "list">("list");
 
   useEffect(() => {
-    const nowEST = getNowEST();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    setCurrentWeekStart(startOfWeek(nowEST, { weekStartsOn: 1 }));
     setIsMounted(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const dailySlots = useMemo(() => getDailySlotTimes(), []);
-
-  const weekDays = useMemo(() => {
-    return Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
-  }, [currentWeekStart]);
 
   // Filter available slots to exclude past times in EST
   const filteredAvailableSlots = useMemo(() => {
@@ -203,26 +153,6 @@ export function PrivateInstructionCalendar({
     return map;
   }, [filteredAvailableSlots]);
 
-  // Keep strict ID set for simple existence checks (rendering white boxes)
-  const availableSlotIds = useMemo(() => {
-    const ids = new Set<string>();
-    filteredAvailableSlots.forEach((slot) => {
-      const date = normalizeFromUTC(slot.date);
-      const [startH, startM] = slot.startTime.split(":").map(Number);
-      const [endH, endM] = slot.endTime.split(":").map(Number);
-
-      const startTotal = startH * 60 + startM;
-      const endTotal = endH * 60 + endM;
-
-      for (let t = startTotal; t < endTotal; t += 30) {
-        const h = Math.floor(t / 60);
-        const m = t % 60;
-        ids.add(getSlotId(date, h, m));
-      }
-    });
-    return ids;
-  }, [filteredAvailableSlots]);
-
   // --- List View Logic ---
   const sortedAvailableDates = useMemo(() => {
     // Get all unique dates from availableIntervals
@@ -234,54 +164,6 @@ export function PrivateInstructionCalendar({
     });
     return Array.from(uniqueDates).sort();
   }, [dailyIntervalsMap]);
-
-  // Check if a specific time is already selected (for highlighting)
-  const isTimeSelected = (date: Date, hour: number, minute: number) => {
-    const slotTotal = hour * 60 + minute;
-    // Check legacy selectedSlot
-    if (selectedSlot) {
-      const sDate = normalizeFromUTC(selectedSlot.date);
-      if (isSameDay(sDate, date)) {
-        const [sH, sM] = selectedSlot.startTime.split(":").map(Number);
-        const [eH, eM] = selectedSlot.endTime.split(":").map(Number);
-        const sTotal = sH * 60 + sM;
-        const eTotal = eH * 60 + eM;
-        if (slotTotal >= sTotal && slotTotal < eTotal) return true;
-      }
-    }
-
-    // Check new selectedSlots
-    // Check new selectedSlots
-    if (
-      selectedSlots.some((slot) => {
-        const sDate = normalizeFromUTC(slot.date);
-        if (!isSameDay(sDate, date)) return false;
-
-        const [sH, sM] = slot.startTime.split(":").map(Number);
-        const [eH, eM] = slot.endTime.split(":").map(Number);
-
-        const sTotal = sH * 60 + sM;
-        const eTotal = eH * 60 + eM;
-
-        return slotTotal >= sTotal && slotTotal < eTotal;
-      })
-    )
-      return true;
-
-    // Check inCartSlots
-    return inCartSlots.some((slot) => {
-      const sDate = normalizeFromUTC(slot.date);
-      if (!isSameDay(sDate, date)) return false;
-
-      const [sH, sM] = slot.startTime.split(":").map(Number);
-      const [eH, eM] = slot.endTime.split(":").map(Number);
-
-      const sTotal = sH * 60 + sM;
-      const eTotal = eH * 60 + eM;
-
-      return slotTotal >= sTotal && slotTotal < eTotal;
-    });
-  };
 
   const handleSlotClick = (date: Date, hour: number, minute: number) => {
     // Determine requested start and end times
@@ -390,487 +272,129 @@ export function PrivateInstructionCalendar({
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            {/* View Toggle */}
-            <div className="flex items-center p-1 bg-gray-100 rounded-lg">
-              <button
-                onClick={() => setViewMode("calendar")}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer",
-                  viewMode === "calendar"
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700",
-                )}
-              >
-                <GridIcon className="w-4 h-4" />
-                Calendar
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer",
-                  viewMode === "list"
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-500 hover:text-gray-700",
-                )}
-              >
-                <ListIcon className="w-4 h-4" />
-                List
-              </button>
+          {/* Legend */}
+          <div className="hidden lg:flex items-center gap-4 text-sm text-gray-500">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-[hsl(var(--golf-green))] rounded-sm"></div>
+              <span>Selected</span>
             </div>
-
-            {/* Actions / Legend (Only show appropriate legend for view) */}
-            <div className="flex items-center gap-4 text-sm text-gray-500 hidden lg:flex">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-[hsl(var(--golf-green))] rounded-sm"></div>
-                <span>Selected</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-white border border-gray-200 rounded-sm"></div>
-                <span>Available</span>
-              </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 bg-white border border-gray-200 rounded-sm"></div>
+              <span>Available</span>
             </div>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 overflow-hidden flex">
-          {viewMode === "calendar" ? (
-            /* --- CALENDAR VIEW --- */
-            <div className="flex-1 flex flex-col bg-gray-50/50 min-w-0">
-              {/* Nav */}
-              <div className="flex-none flex items-center justify-between px-6 py-4">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentWeekStart((d) => addDays(d, -7))}
-                  className="h-8 w-8 rounded-full"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <span className="font-semibold text-gray-700 bg-white px-4 py-1.5 rounded-full border shadow-sm">
-                  {format(currentWeekStart, "MMMM yyyy")}
-                </span>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setCurrentWeekStart((d) => addDays(d, 7))}
-                  className="h-8 w-8 rounded-full"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
+        <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+          {/* --- LIST VIEW --- */}
+          <div className="flex-1 flex flex-col bg-gray-50/50 min-w-0 overflow-hidden">
+            <div className="flex-1 overflow-auto p-6">
+              <div className="max-w-3xl mx-auto space-y-4">
+                <Accordion type="single" collapsible className="w-full">
+                  {sortedAvailableDates.map((dateKey) => {
+                    const date = parseISO(dateKey);
+                    const displayDate = new Date(
+                      date.getUTCFullYear(),
+                      date.getUTCMonth(),
+                      date.getUTCDate(),
+                    );
 
-              {/* Scrollable Area */}
-              <div className="flex-1 overflow-auto px-6 pb-6 relative">
-                <div
-                  className={cn(
-                    "bg-white rounded-xl border shadow-sm overflow-hidden min-w-[800px] transition-all duration-300",
-                    isComplete ? "border-green-500 ring-4 ring-green-50" : "",
-                  )}
-                >
-                  {/* Week Header */}
-                  <div className="grid grid-cols-8 border-b divide-x sticky top-0 bg-white z-10">
-                    <div className="p-3 text-xs font-semibold text-gray-400 text-center uppercase tracking-wider bg-gray-50/50">
-                      Time
-                    </div>
-                    {weekDays.map((day) => {
-                      const todayEST = getNowEST();
-                      const isToday = isSameDay(day, todayEST);
-                      return (
-                        <div
-                          key={day.toISOString()}
-                          className={cn(
-                            "p-3 text-center transition-colors",
-                            isToday
-                              ? "bg-[hsl(var(--golf-orange))]/5"
-                              : "bg-gray-50/50",
-                          )}
-                        >
-                          <div
-                            className={cn(
-                              "text-xs font-bold uppercase mb-1",
-                              isToday
-                                ? "text-[hsl(var(--golf-orange))]"
-                                : "text-gray-500",
-                            )}
-                          >
-                            {format(day, "EEE")}
-                          </div>
-                          <div
-                            className={cn(
-                              "text-lg font-medium w-8 h-8 rounded-full flex items-center justify-center mx-auto",
-                              isToday
-                                ? "bg-[hsl(var(--golf-orange))] text-white shadow-md"
-                                : "text-gray-900",
-                            )}
-                          >
-                            {format(day, "d")}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                    // Calculate available slots for this date
+                    const availableTimesForDay = [];
+                    const intervals = dailyIntervalsMap.get(dateKey) || [];
 
-                  {/* Slots */}
-                  <div className="divide-y relative select-none">
-                    {dailySlots.map(({ hour, minute }) => (
-                      <div
-                        key={`${hour}-${minute}`}
-                        className="grid grid-cols-8 divide-x hover:bg-gray-50/30 transition-colors"
-                      >
-                        {/* Time Label */}
-                        <div className="p-2 text-xs text-gray-500 text-center flex items-center justify-center font-medium border-l-4 border-l-transparent">
-                          {formatTime(hour, minute)}
-                        </div>
+                    // Iterate through all 30-min slots in the day
+                    for (let t = START_HOUR * 60; t < END_HOUR * 60; t += 30) {
+                      const startTotal = t;
+                      const endTotal = startTotal + durationMinutes;
 
-                        {/* Days */}
-                        {weekDays.map((day) => {
-                          const id = getSlotId(day, hour, minute);
-                          const isAvailable = availableSlotIds.has(id);
-                          // "isPartOfSelection" means this slot falls within the range of a selected booking (Green Block)
-                          const isPartOfSelection = isTimeSelected(
-                            day,
-                            hour,
-                            minute,
-                          );
-
-                          // "isExactStart" means this is the specific time the user clicked (The "Head" of the booking)
-                          const isExactStart = selectedSlots.some((slot) => {
-                            const sDate = normalizeFromUTC(slot.date);
-                            if (!isSameDay(sDate, day)) return false;
-                            const [sH, sM] = slot.startTime
-                              .split(":")
-                              .map(Number);
-                            return sH === hour && sM === minute;
-                          });
-
-                          // Check sufficiency / Interval fit (Robust)
-                          let isInsufficient = false;
-
-                          if (isAvailable) {
-                            const startTotal = hour * 60 + minute;
-                            const endTotal = startTotal + durationMinutes;
-
-                            const dateKey = format(day, "yyyy-MM-dd");
-                            const intervals =
-                              dailyIntervalsMap.get(dateKey) || [];
-
-                            // Check if fits in any interval
-                            const isFits = intervals.some(
-                              (iv) =>
-                                startTotal >= iv.start && endTotal <= iv.end,
-                            );
-
-                            if (!isFits) {
-                              isInsufficient = true;
-                            }
-                          }
-
-                          // Check for overlap with other selected slots
-                          let isOverlap = false;
-
-                          if (
-                            isAvailable &&
-                            !isInsufficient &&
-                            !isPartOfSelection
-                          ) {
-                            const currentStartTotal = hour * 60 + minute;
-                            const currentEndTotal =
-                              currentStartTotal + durationMinutes;
-
-                            isOverlap =
-                              selectedSlots.some((slot) => {
-                                const sDate = normalizeFromUTC(slot.date);
-                                if (!isSameDay(sDate, day)) return false;
-
-                                const [sH, sM] = slot.startTime
-                                  .split(":")
-                                  .map(Number);
-                                const [sEndH, sEndM] = slot.endTime
-                                  .split(":")
-                                  .map(Number);
-
-                                const sStartTotal = sH * 60 + sM;
-                                const sEndTotal = sEndH * 60 + sEndM;
-
-                                // Overlap condition
-                                return (
-                                  currentStartTotal < sEndTotal &&
-                                  currentEndTotal > sStartTotal
-                                );
-                              }) ||
-                              inCartSlots.some((slot) => {
-                                const sDate = normalizeFromUTC(slot.date);
-                                if (!isSameDay(sDate, day)) return false;
-
-                                const [sH, sM] = slot.startTime
-                                  .split(":")
-                                  .map(Number);
-                                const [sEndH, sEndM] = slot.endTime
-                                  .split(":")
-                                  .map(Number);
-
-                                const sStartTotal = sH * 60 + sM;
-                                const sEndTotal = sEndH * 60 + sEndM;
-
-                                // Overlap condition
-                                return (
-                                  currentStartTotal < sEndTotal &&
-                                  currentEndTotal > sStartTotal
-                                );
-                              });
-                          }
-
-                          // Green Hover Logic (for valid slots - fills entire duration)
-                          let isHovered = false;
-                          if (hoveredSlot && isAvailable) {
-                            if (isSameDay(day, hoveredSlot.date)) {
-                              const currentTotal = hour * 60 + minute;
-                              const [hStart, mStart] = hoveredSlot.startTime
-                                .split(":")
-                                .map(Number);
-                              const startTotal = hStart * 60 + mStart;
-                              const endTotal = startTotal + durationMinutes;
-
-                              // Highlight all cells in the duration range
-                              if (
-                                currentTotal >= startTotal &&
-                                currentTotal < endTotal
-                              ) {
-                                isHovered = true;
-                              }
-                            }
-                          }
-
-                          // Red/Blocked Hover Logic (for insufficient or overlapping slots)
-                          let isBlockedHovered = false;
-                          if (
-                            blockedHoverSlot &&
-                            isSameDay(day, blockedHoverSlot.date)
-                          ) {
-                            const currentTotal = hour * 60 + minute;
-                            const [hStart, mStart] = blockedHoverSlot.startTime
-                              .split(":")
-                              .map(Number);
-                            const startTotal = hStart * 60 + mStart;
-                            const endTotal = startTotal + durationMinutes;
-
-                            if (
-                              currentTotal >= startTotal &&
-                              currentTotal < endTotal
-                            ) {
-                              isBlockedHovered = true;
-                            }
-                          }
-
-                          const allow =
-                            isAvailable &&
-                            !isInsufficient &&
-                            !isOverlap &&
-                            (!isMaxReached || isPartOfSelection); // Disable if max reached AND not part of selection
-
-                          // Determine if this slot is blocked (insufficient OR overlapping OR max reached)
-                          const isBlocked =
-                            isAvailable &&
-                            (isInsufficient ||
-                              isOverlap ||
-                              (isMaxReached && !isPartOfSelection));
-
-                          return (
-                            <div
-                              key={id}
-                              onClick={() => {
-                                // Clear hover states immediately to prevent "gray ghosts"
-                                setHoveredSlot(null);
-                                setBlockedHoverSlot(null);
-
-                                // Allow clicking on START of selection (to toggle/remove)
-                                // OR allow clicking on valid NEW slots
-                                // PREVENT clicking on "tail" slots (isPartOfSelection but !isExactStart)
-                                if (
-                                  isExactStart ||
-                                  (allow && !isPartOfSelection)
-                                ) {
-                                  handleSlotClick(day, hour, minute);
-                                }
-                              }}
-                              onMouseEnter={() => {
-                                const sTime = formatTime24(hour, minute);
-
-                                if (isAvailable && isBlocked) {
-                                  // Show red hover OR nothing for blocked slots
-                                  // If max reached, maybe don't show red hover? just don't show green.
-                                  if (isMaxReached && !isPartOfSelection) {
-                                    setHoveredSlot(null);
-                                    setBlockedHoverSlot(null);
-                                  } else {
-                                    setBlockedHoverSlot({
-                                      date: day,
-                                      startTime: sTime,
-                                      endTime: "",
-                                    });
-                                    setHoveredSlot(null);
-                                  }
-                                } else if (allow && !isPartOfSelection) {
-                                  // Show green hover for valid slots
-                                  setHoveredSlot({
-                                    date: day,
-                                    startTime: sTime,
-                                    endTime: "",
-                                  });
-                                  setBlockedHoverSlot(null);
-                                } else {
-                                  setHoveredSlot(null);
-                                  setBlockedHoverSlot(null);
-                                }
-                              }}
-                              onMouseLeave={() => {
-                                setHoveredSlot(null);
-                                setBlockedHoverSlot(null);
-                              }}
-                              className={cn(
-                                "h-10 transition-all duration-100 flex items-center justify-center cursor-pointer border-t border-transparent p-0.5",
-
-                                // Unavailable styling (not available at all)
-                                !isAvailable
-                                  ? "bg-gray-100 cursor-not-allowed opacity-60"
-                                  : "",
-
-                                // Blocked styling (max reached) - OVERRIDE other styles
-                                isAvailable &&
-                                  isMaxReached &&
-                                  !isPartOfSelection
-                                  ? "bg-gray-50 opacity-40 cursor-not-allowed text-gray-300"
-                                  : "",
-
-                                // Blocked hover styling (red for entire duration span)
-                                isBlockedHovered &&
-                                  (!isMaxReached || isPartOfSelection)
-                                  ? "bg-red-100 cursor-not-allowed"
-                                  : "",
-
-                                // Visual Blocked State (Gray out overlapping slots that aren't selected)
-                                isOverlap && !isBlockedHovered
-                                  ? "bg-gray-100/50 cursor-not-allowed"
-                                  : "",
-
-                                // Normal available slot - show green hover hint
-                                isAvailable &&
-                                  !isPartOfSelection &&
-                                  !isHovered &&
-                                  !isBlockedHovered &&
-                                  !isBlocked
-                                  ? "hover:bg-green-50"
-                                  : "",
-
-                                // Selected styling (Green background for whole block)
-                                isPartOfSelection
-                                  ? "bg-[hsl(var(--golf-green))] text-white hover:bg-[hsl(var(--golf-green))]"
-                                  : "",
-
-                                // Green hover for valid slots
-                                !isPartOfSelection &&
-                                  isHovered &&
-                                  isAvailable &&
-                                  !isBlockedHovered
-                                  ? "bg-green-100/70 shadow-inner"
-                                  : "",
-                              )}
-                            >
-                              {isExactStart && (
-                                <Check className="w-4 h-4 text-white" />
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            /* --- LIST VIEW --- */
-            <div className="flex-1 flex flex-col bg-gray-50/50 min-w-0 overflow-hidden">
-              <div className="flex-1 overflow-auto p-6">
-                <div className="max-w-3xl mx-auto space-y-4">
-                  <Accordion type="single" collapsible className="w-full">
-                    {sortedAvailableDates.map((dateKey) => {
-                      const date = parseISO(dateKey);
-                      const displayDate = new Date(
-                        date.getUTCFullYear(),
-                        date.getUTCMonth(),
-                        date.getUTCDate(),
+                      // Check if fits in interval
+                      const fits = intervals.some(
+                        (iv) => startTotal >= iv.start && endTotal <= iv.end,
                       );
 
-                      // Calculate available slots for this date
-                      const availableTimesForDay = [];
-                      const intervals = dailyIntervalsMap.get(dateKey) || [];
-
-                      // Iterate through all 30-min slots in the day
-                      for (
-                        let t = START_HOUR * 60;
-                        t < END_HOUR * 60;
-                        t += 30
-                      ) {
-                        const startTotal = t;
-                        const endTotal = startTotal + durationMinutes;
-
-                        // Check if fits in interval
-                        const fits = intervals.some(
-                          (iv) => startTotal >= iv.start && endTotal <= iv.end,
-                        );
-
-                        if (fits) {
-                          const h = Math.floor(t / 60);
-                          const m = t % 60;
-                          availableTimesForDay.push({ h, m });
-                        }
+                      if (fits) {
+                        const h = Math.floor(t / 60);
+                        const m = t % 60;
+                        availableTimesForDay.push({ h, m });
                       }
+                    }
 
-                      if (availableTimesForDay.length === 0) return null;
+                    if (availableTimesForDay.length === 0) return null;
 
-                      return (
-                        <AccordionItem
-                          key={dateKey}
-                          value={dateKey}
-                          className="bg-white border rounded-xl shadow-sm mb-3 px-4 last:mb-0"
-                        >
-                          <AccordionTrigger className="hover:no-underline py-4">
-                            <div className="flex items-center gap-4">
-                              <div className="text-left">
-                                <p className="font-bold text-lg text-gray-900">
-                                  {format(displayDate, "EEEE, MMMM d, yyyy")}
-                                </p>
-                                <p className="text-sm text-gray-500 font-medium">
-                                  {availableTimesForDay.length} available times
-                                </p>
-                              </div>
+                    return (
+                      <AccordionItem
+                        key={dateKey}
+                        value={dateKey}
+                        className="bg-white border rounded-xl shadow-sm mb-3 px-4 last:mb-0"
+                      >
+                        <AccordionTrigger className="hover:no-underline py-4">
+                          <div className="flex items-center gap-4">
+                            <div className="text-left">
+                              <p className="font-bold text-lg text-gray-900">
+                                {format(displayDate, "EEEE, MMMM d, yyyy")}
+                              </p>
+                              <p className="text-sm text-gray-500 font-medium">
+                                {availableTimesForDay.length} available times
+                              </p>
                             </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="pb-6 pt-2">
-                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 p-1">
-                              {availableTimesForDay.map(({ h, m }) => {
-                                const currentStartTotal = h * 60 + m;
-                                const currentEndTotal =
-                                  currentStartTotal + durationMinutes;
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="pb-6 pt-2">
+                          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 p-1">
+                            {availableTimesForDay.map(({ h, m }) => {
+                              const currentStartTotal = h * 60 + m;
+                              const currentEndTotal =
+                                currentStartTotal + durationMinutes;
 
-                                let isSelected = false;
-                                let isOverlap = false;
+                              let isSelected = false;
+                              let isOverlap = false;
 
-                                // Check in-cart status first
-                                let isInCart = false;
+                              // Check in-cart status first
+                              let isInCart = false;
+                              inCartSlots.forEach((slot) => {
+                                const sDate = normalizeFromUTC(slot.date);
+                                if (!isSameDay(sDate, displayDate)) return;
+                                const [sH, sM] = slot.startTime
+                                  .split(":")
+                                  .map(Number);
+                                if (sH === h && sM === m) isInCart = true;
+                              });
+
+                              selectedSlots.forEach((slot) => {
+                                const sDate = normalizeFromUTC(slot.date);
+                                if (!isSameDay(sDate, displayDate)) return;
+
+                                const [sH, sM] = slot.startTime
+                                  .split(":")
+                                  .map(Number);
+                                const [sEndH, sEndM] = slot.endTime
+                                  .split(":")
+                                  .map(Number);
+
+                                // Check for exact match (Selected)
+                                if (sH === h && sM === m) {
+                                  isSelected = true;
+                                  return;
+                                }
+
+                                // Check for overlap (Disabled)
+                                const sStartTotal = sH * 60 + sM;
+                                const sEndTotal = sEndH * 60 + sEndM;
+
+                                // Overlap condition: StartA < EndB && EndA > StartB
+                                if (
+                                  currentStartTotal < sEndTotal &&
+                                  currentEndTotal > sStartTotal
+                                ) {
+                                  isOverlap = true;
+                                }
+                              });
+
+                              // Check for overlap with Cart Slots
+                              if (!isOverlap) {
                                 inCartSlots.forEach((slot) => {
-                                  const sDate = normalizeFromUTC(slot.date);
-                                  if (!isSameDay(sDate, displayDate)) return;
-                                  const [sH, sM] = slot.startTime
-                                    .split(":")
-                                    .map(Number);
-                                  if (sH === h && sM === m) isInCart = true;
-                                });
-
-                                selectedSlots.forEach((slot) => {
                                   const sDate = normalizeFromUTC(slot.date);
                                   if (!isSameDay(sDate, displayDate)) return;
 
@@ -881,17 +405,9 @@ export function PrivateInstructionCalendar({
                                     .split(":")
                                     .map(Number);
 
-                                  // Check for exact match (Selected)
-                                  if (sH === h && sM === m) {
-                                    isSelected = true;
-                                    return;
-                                  }
-
-                                  // Check for overlap (Disabled)
                                   const sStartTotal = sH * 60 + sM;
                                   const sEndTotal = sEndH * 60 + sEndM;
 
-                                  // Overlap condition: StartA < EndB && EndA > StartB
                                   if (
                                     currentStartTotal < sEndTotal &&
                                     currentEndTotal > sStartTotal
@@ -899,202 +415,280 @@ export function PrivateInstructionCalendar({
                                     isOverlap = true;
                                   }
                                 });
+                              }
 
-                                // Check for overlap with Cart Slots
-                                if (!isOverlap) {
-                                  inCartSlots.forEach((slot) => {
-                                    const sDate = normalizeFromUTC(slot.date);
-                                    if (!isSameDay(sDate, displayDate)) return;
+                              return (
+                                <button
+                                  key={`${h}-${m}`}
+                                  onClick={() => {
+                                    // Check overlap or in cart
+                                    let isInCart = false;
+                                    inCartSlots.forEach((s) => {
+                                      if (
+                                        !isSameDay(
+                                          normalizeFromUTC(s.date),
+                                          displayDate,
+                                        )
+                                      )
+                                        return;
+                                      const [sH, sM] = s.startTime
+                                        .split(":")
+                                        .map(Number);
+                                      if (sH === h && sM === m) isInCart = true;
+                                    });
 
-                                    const [sH, sM] = slot.startTime
-                                      .split(":")
-                                      .map(Number);
-                                    const [sEndH, sEndM] = slot.endTime
-                                      .split(":")
-                                      .map(Number);
-
-                                    const sStartTotal = sH * 60 + sM;
-                                    const sEndTotal = sEndH * 60 + sEndM;
+                                    // NEW: Check if max reached
+                                    const limitReached =
+                                      selectedSlots.length >= maxSlots;
+                                    // If max reached, only allow clicking if it IS already select (to toggle off/remove)
+                                    // But wait, the remove logic for list view is... actually this button doesn't handle remove directly?
+                                    // Let's check handleSlotClick. It DOES handle remove.
+                                    // So if isSelected, we allow click.
+                                    // If !isSelected and limitReached, we disable.
 
                                     if (
-                                      currentStartTotal < sEndTotal &&
-                                      currentEndTotal > sStartTotal
+                                      !isOverlap &&
+                                      !isInCart &&
+                                      (!limitReached || isSelected)
                                     ) {
-                                      isOverlap = true;
+                                      handleSlotClick(displayDate, h, m);
                                     }
-                                  });
-                                }
-
-                                return (
-                                  <button
-                                    key={`${h}-${m}`}
-                                    onClick={() => {
-                                      // Check overlap or in cart
-                                      let isInCart = false;
-                                      inCartSlots.forEach((s) => {
-                                        if (
-                                          !isSameDay(
-                                            normalizeFromUTC(s.date),
-                                            displayDate,
-                                          )
-                                        )
-                                          return;
-                                        const [sH, sM] = s.startTime
-                                          .split(":")
-                                          .map(Number);
-                                        if (sH === h && sM === m)
-                                          isInCart = true;
-                                      });
-
-                                      // NEW: Check if max reached
-                                      const limitReached =
-                                        selectedSlots.length >= maxSlots;
-                                      // If max reached, only allow clicking if it IS already select (to toggle off/remove)
-                                      // But wait, the remove logic for list view is... actually this button doesn't handle remove directly?
-                                      // Let's check handleSlotClick. It DOES handle remove.
-                                      // So if isSelected, we allow click.
-                                      // If !isSelected and limitReached, we disable.
-
-                                      if (
-                                        !isOverlap &&
-                                        !isInCart &&
-                                        (!limitReached || isSelected)
-                                      ) {
-                                        handleSlotClick(displayDate, h, m);
-                                      }
-                                    }}
-                                    disabled={
-                                      isOverlap ||
-                                      (selectedSlots.length >= maxSlots &&
-                                        !isSelected)
-                                    }
-                                    className={cn(
-                                      "px-2 py-3 rounded-lg text-sm font-bold border-2 transition-all shadow-sm cursor-pointer",
-                                      isSelected
-                                        ? "bg-[hsl(var(--golf-green))] border-[hsl(var(--golf-green))] text-white shadow-md transform scale-105"
-                                        : isInCart
-                                          ? "bg-[hsl(var(--golf-green))]/80 border-[hsl(var(--golf-green))] text-white shadow-md cursor-default opacity-80"
-                                          : isOverlap ||
-                                            (selectedSlots.length >=
-                                              maxSlots &&
+                                  }}
+                                  disabled={
+                                    isOverlap ||
+                                    (selectedSlots.length >= maxSlots &&
+                                      !isSelected)
+                                  }
+                                  className={cn(
+                                    "px-2 py-3 rounded-lg text-sm font-bold border-2 transition-all shadow-sm cursor-pointer",
+                                    isSelected
+                                      ? "bg-[hsl(var(--golf-green))] border-[hsl(var(--golf-green))] text-white shadow-md transform scale-105"
+                                      : isInCart
+                                        ? "bg-[hsl(var(--golf-green))]/80 border-[hsl(var(--golf-green))] text-white shadow-md cursor-default opacity-80"
+                                        : isOverlap ||
+                                            (selectedSlots.length >= maxSlots &&
                                               !isSelected)
-                                            ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed" // Disabled style
-                                            : "bg-white border-gray-100 text-gray-700 hover:border-green-300 hover:bg-green-50 hover:shadow-md",
-                                    )}
-                                  >
-                                    {formatTime(h, m)}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      );
-                    })}
-                  </Accordion>
+                                          ? "bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed" // Disabled style
+                                          : "bg-white border-gray-100 text-gray-700 hover:border-green-300 hover:bg-green-50 hover:shadow-md",
+                                  )}
+                                >
+                                  {formatTime(h, m)}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    );
+                  })}
+                </Accordion>
 
-                  {sortedAvailableDates.length === 0 && (
-                    <div className="text-center py-12">
-                      <p className="text-gray-500">
-                        No available dates found. Please try again later.
-                      </p>
-                    </div>
-                  )}
-                </div>
+                {sortedAvailableDates.length === 0 && (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500">
+                      No available dates found. Please try again later.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
-          )}
+          </div>
 
           {/* Sidebar */}
-          <div className="w-80 border-l bg-white flex flex-col z-20 shadow-xl">
-            <div className="p-6 border-b">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className="font-bold text-lg text-gray-900">
-                  Selected Times
-                </h3>
-                <span className="text-xs font-semibold bg-gray-100 px-2 py-1 rounded-full text-gray-600">
-                  {selectedSlots.length || (selectedSlot ? 1 : 0)} / {maxSlots}
-                </span>
-              </div>
-              <p
-                className={cn(
-                  "text-sm",
-                  isComplete ? "text-red-600 font-semibold" : "text-gray-500",
-                )}
-              >
-                {isComplete
-                  ? `All ${maxSlots} session(s) have been scheduled. Please confirm selection.`
-                  : `Please select ${maxSlots - (selectedSlots?.length || 0)} more slot${maxSlots - (selectedSlots?.length || 0) !== 1 ? "s" : ""}`}
-              </p>
-            </div>
-
-            <div className="flex-1 p-6 space-y-4 overflow-auto">
-              {/* Support both legacy single selectedSlot and new selectedSlots array */}
-              {selectedSlots.length > 0 || selectedSlot ? (
-                <>
-                  {selectedSlots.map((slot, idx) => (
-                    <div
-                      key={idx}
-                      className="p-4 rounded-xl border-2 border-[hsl(var(--golf-green))] bg-[hsl(var(--golf-green))]/5 relative group"
-                    >
-                      <button
-                        onClick={() => onRemoveSlot && onRemoveSlot(slot)}
-                        className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center text-white bg-red-500 shadow-sm hover:bg-red-600 rounded-full transition-all cursor-pointer"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 bg-[hsl(var(--golf-green))] rounded-lg text-white">
-                          <CalendarIcon className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-gray-900 text-lg">
-                            {format(normalizeFromUTC(slot.date), "EEEE, MMM d")}
-                          </p>
-                          <p className="font-medium text-[hsl(var(--golf-green))] text-base mt-0.5">
-                            {formatTime12(slot.startTime)} -{" "}
-                            {formatTime12(slot.endTime)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  {selectedSlot && selectedSlots.length === 0 && (
-                    <div className="p-4 rounded-xl border-2 border-[hsl(var(--golf-green))] bg-[hsl(var(--golf-green))]/5">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 bg-[hsl(var(--golf-green))] rounded-lg text-white">
-                          <CalendarIcon className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <p className="font-bold text-gray-900 text-lg">
-                            {format(
-                              normalizeFromUTC(selectedSlot.date),
-                              "EEEE, MMM d",
-                            )}
-                          </p>
-                          <p className="font-medium text-[hsl(var(--golf-green))] text-base mt-0.5">
-                            {formatTime12(selectedSlot.startTime)} -{" "}
-                            {formatTime12(selectedSlot.endTime)}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="text-center py-10 border-2 border-dashed rounded-xl border-gray-200">
-                  <Clock className="w-8 h-8 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-400 text-sm">No time selected.</p>
-                  <p className="text-gray-400 text-xs mt-1">
-                    Click a white slot on the grid.
-                  </p>
+          <div className="w-full md:w-80 md:border-l border-t md:border-t-0 bg-white flex flex-col z-20 shadow-xl">
+            {/* Desktop sidebar (always visible) */}
+            <div className="hidden md:flex md:flex-col md:flex-1">
+              <div className="p-6 border-b">
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="font-bold text-lg text-gray-900">
+                    Selected Times
+                  </h3>
+                  <span className="text-xs font-semibold bg-gray-100 px-2 py-1 rounded-full text-gray-600">
+                    {selectedSlots.length || (selectedSlot ? 1 : 0)} /{" "}
+                    {maxSlots}
+                  </span>
                 </div>
-              )}
+                <p
+                  className={cn(
+                    "text-sm",
+                    isComplete ? "text-red-600 font-semibold" : "text-gray-500",
+                  )}
+                >
+                  {isComplete
+                    ? `All ${maxSlots} session(s) have been scheduled. Please confirm selection.`
+                    : `Please select ${maxSlots - (selectedSlots?.length || 0)} more slot${maxSlots - (selectedSlots?.length || 0) !== 1 ? "s" : ""}`}
+                </p>
+              </div>
+
+              <div className="flex-1 p-6 space-y-4 overflow-auto">
+                {selectedSlots.length > 0 || selectedSlot ? (
+                  <>
+                    {selectedSlots.map((slot, idx) => (
+                      <div
+                        key={idx}
+                        className="p-4 rounded-xl border-2 border-[hsl(var(--golf-green))] bg-[hsl(var(--golf-green))]/5 relative group"
+                      >
+                        <button
+                          onClick={() => onRemoveSlot && onRemoveSlot(slot)}
+                          className="absolute top-3 right-3 w-6 h-6 flex items-center justify-center text-white bg-red-500 shadow-sm hover:bg-red-600 rounded-full transition-all cursor-pointer"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-[hsl(var(--golf-green))] rounded-lg text-white">
+                            <CalendarIcon className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-gray-900 text-lg">
+                              {format(
+                                normalizeFromUTC(slot.date),
+                                "EEEE, MMM d",
+                              )}
+                            </p>
+                            <p className="font-medium text-[hsl(var(--golf-green))] text-base mt-0.5">
+                              {formatTime12(slot.startTime)} -{" "}
+                              {formatTime12(slot.endTime)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {selectedSlot && selectedSlots.length === 0 && (
+                      <div className="p-4 rounded-xl border-2 border-[hsl(var(--golf-green))] bg-[hsl(var(--golf-green))]/5">
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-[hsl(var(--golf-green))] rounded-lg text-white">
+                            <CalendarIcon className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-gray-900 text-lg">
+                              {format(
+                                normalizeFromUTC(selectedSlot.date),
+                                "EEEE, MMM d",
+                              )}
+                            </p>
+                            <p className="font-medium text-[hsl(var(--golf-green))] text-base mt-0.5">
+                              {formatTime12(selectedSlot.startTime)} -{" "}
+                              {formatTime12(selectedSlot.endTime)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-center py-6 border-2 border-dashed rounded-xl border-gray-200">
+                    <Clock className="w-6 h-6 text-gray-300 mx-auto mb-2" />
+                    <p className="text-gray-400 text-sm">No time selected.</p>
+                    <p className="text-gray-400 text-xs mt-1">
+                      Select an available time from the list.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
-            <div className="p-6 border-t bg-gray-50">
+            {/* Mobile sidebar (collapsible accordion) */}
+            <div className="md:hidden">
+              <Accordion type="single" collapsible>
+                <AccordionItem value="selected-times" className="border-0">
+                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                    <div className="flex items-center gap-3 w-full">
+                      <h3 className="font-bold text-base text-gray-900">
+                        Selected Times
+                      </h3>
+                      <span className="text-xs font-semibold bg-gray-100 px-2 py-0.5 rounded-full text-gray-600">
+                        {selectedSlots.length || (selectedSlot ? 1 : 0)} /{" "}
+                        {maxSlots}
+                      </span>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-4 pb-3">
+                    <p
+                      className={cn(
+                        "text-xs mb-3",
+                        isComplete
+                          ? "text-red-600 font-semibold"
+                          : "text-gray-500",
+                      )}
+                    >
+                      {isComplete
+                        ? `All ${maxSlots} session(s) scheduled. Confirm below.`
+                        : `Select ${maxSlots - (selectedSlots?.length || 0)} more slot${maxSlots - (selectedSlots?.length || 0) !== 1 ? "s" : ""}`}
+                    </p>
+                    <div className="space-y-3 max-h-[140px] overflow-y-auto">
+                      {selectedSlots.length > 0 || selectedSlot ? (
+                        <>
+                          {selectedSlots.map((slot, idx) => (
+                            <div
+                              key={idx}
+                              className="p-3 rounded-lg border-2 border-[hsl(var(--golf-green))] bg-[hsl(var(--golf-green))]/5 relative"
+                            >
+                              <button
+                                onClick={() =>
+                                  onRemoveSlot && onRemoveSlot(slot)
+                                }
+                                className="absolute top-2 right-2 w-5 h-5 flex items-center justify-center text-white bg-red-500 shadow-sm hover:bg-red-600 rounded-full transition-all cursor-pointer"
+                              >
+                                <X className="w-2.5 h-2.5" />
+                              </button>
+                              <div className="flex items-center gap-2">
+                                <div className="p-1.5 bg-[hsl(var(--golf-green))] rounded-md text-white">
+                                  <CalendarIcon className="w-4 h-4" />
+                                </div>
+                                <div>
+                                  <p className="font-bold text-gray-900 text-sm">
+                                    {format(
+                                      normalizeFromUTC(slot.date),
+                                      "EEE, MMM d",
+                                    )}
+                                  </p>
+                                  <p className="font-medium text-[hsl(var(--golf-green))] text-xs">
+                                    {formatTime12(slot.startTime)} –{" "}
+                                    {formatTime12(slot.endTime)}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          {selectedSlot && selectedSlots.length === 0 && (
+                            <div className="p-3 rounded-lg border-2 border-[hsl(var(--golf-green))] bg-[hsl(var(--golf-green))]/5">
+                              <div className="flex items-center gap-2">
+                                <div className="p-1.5 bg-[hsl(var(--golf-green))] rounded-md text-white">
+                                  <CalendarIcon className="w-4 h-4" />
+                                </div>
+                                <div>
+                                  <p className="font-bold text-gray-900 text-sm">
+                                    {format(
+                                      normalizeFromUTC(selectedSlot.date),
+                                      "EEE, MMM d",
+                                    )}
+                                  </p>
+                                  <p className="font-medium text-[hsl(var(--golf-green))] text-xs">
+                                    {formatTime12(selectedSlot.startTime)} –{" "}
+                                    {formatTime12(selectedSlot.endTime)}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="text-center py-3 border border-dashed rounded-lg border-gray-200">
+                          <Clock className="w-5 h-5 text-gray-300 mx-auto mb-1" />
+                          <p className="text-gray-400 text-xs">
+                            No time selected.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </div>
+
+            <div className="p-4 md:p-6 border-t bg-gray-50">
               <Button
-                className="w-full h-12 text-base font-bold bg-[hsl(var(--golf-orange))] hover:bg-[hsl(var(--golf-orange))]/90 text-white shadow-lg shadow-orange-500/20"
+                className="w-full h-10 md:h-12 text-sm md:text-base font-bold bg-[hsl(var(--golf-orange))] hover:bg-[hsl(var(--golf-orange))]/90 text-white shadow-lg shadow-orange-500/20"
                 disabled={!isComplete}
                 onClick={() => onOpenChange(false)}
               >
