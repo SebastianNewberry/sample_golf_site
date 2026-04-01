@@ -12,7 +12,7 @@ interface DevelopmentalCampPageClientProps {
   imageUrl?: string | undefined;
   defaultImage: any;
   title: string;
-  description: string[];
+  description: string;
   programId: string;
   programPrice: number;
   duration: string;

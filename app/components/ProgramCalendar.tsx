@@ -6,7 +6,10 @@ import {
   ChevronRight,
   Clock,
   Calendar as CalendarIcon,
+  ChevronRightIcon,
 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export interface CalendarEvent {
   id: string;
@@ -27,6 +30,12 @@ interface ProgramCalendarProps {
   maxHeight?: string;
 }
 
+// Helper to strip HTML tags from rich-text descriptions
+function stripHtml(html: string) {
+  if (!html) return "";
+  return html.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/g, " ");
+}
+
 export function ProgramCalendar({
   events,
   maxHeight = "400px",
@@ -38,6 +47,7 @@ export function ProgramCalendar({
   const [hoveredEvent, setHoveredEvent] = useState<CalendarEvent | null>(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
+  const router = useRouter();
 
   // The event to display in the tooltip (only on hover for desktop)
   const tooltipEvent = hoveredEvent;
@@ -220,7 +230,11 @@ export function ProgramCalendar({
                         style={{ backgroundColor: event.color }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleEventInteraction(event, e);
+                          if (event.url) {
+                            router.push(event.url);
+                          } else {
+                            handleEventInteraction(event, e);
+                          }
                         }}
                         onMouseEnter={(e) => {
                           setHoveredEvent(event);
@@ -342,14 +356,25 @@ export function ProgramCalendar({
                           )}
                           {/* Inline detail for mobile */}
                           {selectedEvent?.id === event.id && (
-                            <div className="mt-2 p-2 bg-gray-50 rounded-md border border-gray-100 text-xs text-gray-600 space-y-1">
-                              <p className="capitalize font-medium">
+                            <div className="mt-2 p-2 bg-white rounded-md border border-gray-200 shadow-sm text-xs text-gray-600 space-y-2">
+                              <p className="capitalize font-medium text-gray-800">
                                 {event.programType} Program
                               </p>
                               {event.programDescription && (
-                                <p className="line-clamp-3 leading-relaxed">
-                                  {event.programDescription}
+                                <p className="line-clamp-3 leading-relaxed text-gray-500">
+                                  {stripHtml(event.programDescription)}
                                 </p>
+                              )}
+                              {event.url && (
+                                <div className="pt-2 mt-1 border-t border-gray-100">
+                                  <Link
+                                    href={event.url}
+                                    className="text-orange-600 font-medium hover:text-orange-700 flex items-center group transition-colors"
+                                  >
+                                    View Program Details
+                                    <ChevronRightIcon size={14} className="ml-1 group-hover:translate-x-1 transition-transform" />
+                                  </Link>
+                                </div>
                               )}
                             </div>
                           )}
@@ -428,9 +453,9 @@ export function ProgramCalendar({
               </span>
             </div>
             {tooltipEvent.programDescription && (
-              <div className="pt-2 border-t border-gray-100">
-                <p className="line-clamp-3 leading-relaxed">
-                  {tooltipEvent.programDescription}
+              <div className="pt-2 border-t border-gray-100 mt-2">
+                <p className="line-clamp-3 leading-relaxed text-gray-500">
+                  {stripHtml(tooltipEvent.programDescription)}
                 </p>
               </div>
             )}

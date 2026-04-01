@@ -17,6 +17,8 @@ export function CartIcon() {
   const autoShowTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pathname = usePathname();
 
+  const isCartPage = pathname === "/cart";
+
   // Close all popup states when route changes
   useEffect(() => {
     setIsHovered(false);
@@ -75,7 +77,8 @@ export function CartIcon() {
     };
   }, []);
 
-  const isOpen = isHovered || isMobileTapped || autoShow;
+  const isOpen =
+    !isCartPage && (isHovered || isMobileTapped || autoShow);
 
   return (
     <div
@@ -88,16 +91,6 @@ export function CartIcon() {
         href="/cart"
         className="relative inline-flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-300 transition-colors"
         aria-label={`Shopping cart with ${itemCount} items`}
-        onClick={(e) => {
-          // On mobile (touch devices), first tap toggles popup instead of navigating
-          if (window.matchMedia("(pointer: coarse)").matches) {
-            if (!isMobileTapped) {
-              e.preventDefault();
-              setIsMobileTapped(true);
-            }
-            // If already tapped open, let the link navigate to /cart
-          }
-        }}
       >
         <motion.div
           key={cartAnimationTrigger}

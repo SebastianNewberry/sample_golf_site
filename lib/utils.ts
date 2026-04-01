@@ -13,3 +13,17 @@ export function formatPhoneNumber(value: string) {
   // Otherwise, just strip characters that aren't digits or phone-related symbols
   return value.replace(/[^\d\s\(\)\-+]/g, "");
 }
+
+/**
+ * Formats a number or string into a standard price format "1,000.00"
+ */
+export function formatPrice(value: string | number): string {
+  if (!value && value !== 0) return "0.00";
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  if (isNaN(num)) return "0.00";
+  
+  return num.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}

@@ -30,6 +30,7 @@ import { createCheckoutPaymentIntent } from "@/app/actions/checkout";
 import { validateCartAvailability } from "@/app/actions/validation";
 import { EmbeddedPaymentForm } from "@/app/components/checkout/EmbeddedPaymentForm";
 import { verifyPaymentStatus } from "@/app/actions/verify-payment";
+import { formatPrice } from "@/lib/utils";
 
 // Initialize Stripe
 const stripePromise = loadStripe(
@@ -73,11 +74,11 @@ function CheckoutSuccess() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    // Immediately clear local cart state and localStorage
+    if (verificationState !== "verified") return;
     clearCart();
     localStorage.removeItem("checkout_form_data");
     localStorage.removeItem("pending_checkout_id");
-  }, [clearCart]);
+  }, [verificationState, clearCart]);
 
   useEffect(() => {
     const verify = async () => {
@@ -441,8 +442,8 @@ export function CheckoutClient() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-6 md:py-8 px-0">
-      <div className="w-[92%] max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gray-100 py-4 md:py-8 px-0">
+      <div className="w-[94%] sm:w-[92%] max-w-4xl mx-auto">
         <div className="mb-8 text-center">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
             Checkout
@@ -454,7 +455,7 @@ export function CheckoutClient() {
             <React.Fragment key={step.id}>
               <div className="flex flex-col items-center">
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                  className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-colors ${
                     index < currentStep
                       ? "bg-green-600 text-white"
                       : index === currentStep
@@ -465,7 +466,7 @@ export function CheckoutClient() {
                   {index < currentStep ? <CheckCircle2 size={20} /> : step.icon}
                 </div>
                 <span
-                  className={`text-xs mt-2 ${
+                  className={`text-[10px] md:text-xs mt-1.5 md:mt-2 ${
                     index <= currentStep
                       ? "text-gray-800 font-medium"
                       : "text-gray-400"
@@ -476,7 +477,7 @@ export function CheckoutClient() {
               </div>
               {index < steps.length - 1 && (
                 <div
-                  className={`w-16 h-0.5 mx-2 ${
+                  className={`w-10 md:w-16 h-0.5 mx-1 md:mx-2 ${
                     index < currentStep ? "bg-green-600" : "bg-gray-200"
                   }`}
                 />
@@ -491,9 +492,9 @@ export function CheckoutClient() {
           </div>
         )}
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-4 md:gap-8">
           <div className="lg:col-span-2">
-            <Card className="p-4 md:p-8 bg-white shadow-lg">
+            <Card className="p-3 sm:p-4 md:p-8 bg-white shadow-lg">
               <AnimatePresence mode="wait">
                 {currentStep === 0 && (
                   <motion.div
@@ -549,10 +550,9 @@ export function CheckoutClient() {
                               </p>
                             </div>
                             <p className="font-bold text-green-700">
-                              $
-                              {(
+                              ${formatPrice(
                                 parseFloat(item.priceAtAdd) * item.quantity
-                              ).toFixed(2)}
+                              )}
                             </p>
                           </div>
                         );
@@ -729,8 +729,8 @@ export function CheckoutClient() {
           </div>
 
           <div className="lg:col-span-1">
-            <Card className="p-6 bg-white sticky top-8">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">
+            <Card className="p-4 md:p-6 bg-white lg:sticky top-8">
+              <h3 className="text-base md:text-lg font-bold text-gray-800 mb-3 md:mb-4">
                 Order Summary
               </h3>
               <div className="space-y-3 mb-4">
@@ -741,8 +741,7 @@ export function CheckoutClient() {
                       {item.quantity > 1 && ` (×${item.quantity})`}
                     </span>
                     <span className="font-medium text-gray-800 shrink-0">
-                      $
-                      {(parseFloat(item.priceAtAdd) * item.quantity).toFixed(2)}
+                      ${formatPrice(parseFloat(item.priceAtAdd) * item.quantity)}
                     </span>
                   </div>
                 ))}
@@ -750,7 +749,7 @@ export function CheckoutClient() {
               <div className="border-t border-gray-200 pt-3">
                 <div className="flex justify-between text-lg font-bold text-gray-800">
                   <span>Total</span>
-                  <span className="text-green-700">${total.toFixed(2)}</span>
+                  <span className="text-green-700">${formatPrice(total)}</span>
                 </div>
               </div>
             </Card>

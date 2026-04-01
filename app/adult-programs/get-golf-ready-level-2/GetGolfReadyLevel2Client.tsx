@@ -6,7 +6,7 @@ interface GetGolfReadyLevel2ClientProps {
   imageUrl?: string;
   defaultImage: any;
   title: string;
-  description: string[];
+  description: string;
   programId: string;
   programPrice: number;
   duration: string;

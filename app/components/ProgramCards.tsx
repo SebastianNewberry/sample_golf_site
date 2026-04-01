@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import Link from "next/link";
 import pgaOfAmerica from "@/public/adult_private_instruction.webp";
 import usKidsGolf from "@/public/us_kids_golf.webp";
 import titleist from "@/public/titleist.webp";
@@ -8,27 +9,24 @@ import trackman from "@/public/trackman.webp";
 export default function ProgramCards() {
   const programs = [
     {
-      title: "JUNIOR GOLF CAMPS",
-      description:
-        "Exciting programs for new junior golfers and those looking to improve their skills in a fun, supportive environment.",
-    },
-    {
       title: "ADULT PROGRAMS",
       description:
         "2026 programs starting in April. Schedules available in January. Private and group instruction available for all skill levels.",
+      href: "/adult-programs/get-golf-ready-level-1",
     },
     {
       title: "JUNIOR PROGRAMS",
       description:
         "2026 programs starting in April at Sanctuary Lake Golf Course, Troy. Comprehensive junior development programs.",
+      href: "/junior-programs/beginner-series",
     },
   ];
 
   return (
     <section className="bg-white py-16 md:py-20">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Three Column Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+        {/* Two Column Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 max-w-4xl mx-auto gap-8 mb-12">
           {programs.map((program, index) => (
             <div key={index} className="text-center space-y-4">
               <h3 className="text-lg md:text-xl font-semibold text-gray-800 tracking-wide">
@@ -37,19 +35,21 @@ export default function ProgramCards() {
               <p className="text-gray-600 text-base leading-relaxed">
                 {program.description}
               </p>
-              <a
-                href="#"
+              <Link
+                href={program.href}
                 className="inline-block text-orange-500 font-medium hover:text-orange-600 transition-colors text-base"
               >
                 Details →
-              </a>
+              </Link>
             </div>
           ))}
         </div>
 
         {/* CTA Button */}
         <div className="text-center">
-          <Button className="tracking-wide uppercase">SCHEDULE A LESSON</Button>
+          <Button asChild className="tracking-wide uppercase">
+            <Link href="/adult-programs/private">SCHEDULE A LESSON</Link>
+          </Button>
         </div>
 
         {/* Professional Associations */}

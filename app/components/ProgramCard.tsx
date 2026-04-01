@@ -10,7 +10,7 @@ interface ProgramCardProps {
   alt: string;
   defaultImage: any;
   title: string;
-  description: string[];
+  description: string;
   programId: string;
   programPrice: number;
   duration: string;
@@ -57,15 +57,9 @@ export function ProgramCard({
       {/* Description and Price below image */}
       <div className="p-6">
         <h1 className="text-lg font-bold text-gray-900 mb-2">{title}</h1>
-        {description.map((paragraph, index) => (
-          <p
-            key={index}
-            className={`${index === 0 ? "text-gray-700" : "text-gray-600"
-              } text-sm leading-relaxed mb-2`}
-          >
-            <SafeHTML html={paragraph} />
-          </p>
-        ))}
+        <div className="text-gray-700 text-sm leading-relaxed mb-6 [&_p]:mb-3 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-2 [&_h2]:mt-4 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mb-2 [&_h3]:mt-3 [&_ul]:list-disc [&_ul]:ml-5 [&_ol]:list-decimal [&_ol]:ml-5 [&_li]:mb-1 font-sans">
+          <SafeHTML html={description} />
+        </div>
 
         {/* Price & Buttons */}
         <ProgramPurchaseSection

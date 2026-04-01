@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function Hero() {
   return (
@@ -23,17 +24,15 @@ export default function Hero() {
         <p className="text-white text-base md:text-lg font-light tracking-wide mb-4 italic">
           Welcome To
         </p>
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-4 tracking-widest uppercase">
+        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 tracking-[0.15em] uppercase drop-shadow-sm">
           TOSKI GOLF ACADEMY
         </h1>
         <p className="text-white text-base md:text-lg font-light tracking-wide italic">
           - Troy, Michigan -
         </p>
         <div className="mt-8">
-          <Button
-            className="tracking-wide uppercase"
-          >
-            CONTACT US
+          <Button asChild className="tracking-wide uppercase rounded-full px-8">
+            <Link href="/contact">CONTACT US</Link>
           </Button>
         </div>
       </div>

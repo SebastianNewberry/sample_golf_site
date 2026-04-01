@@ -32,10 +32,7 @@ export default async function AdultOpenPractice(props: {
               imageUrl={program.imageUrl || undefined}
               defaultImage={defaultImage}
               title={program.name}
-              description={[
-                `Join us for our next <strong>ADULT OPEN PRACTICE</strong> program. Our PGA certified instructors will teach you the fundamentals of short game to improve your scoring within 100 yards of the hole.`,
-                `This PGA National program is designed for beginners to teach you everything you need to step onto a golf course with confidence.`,
-              ]}
+              description={program.description || ""}
               programId={program.id}
               programPrice={parseFloat(program.price)}
               duration={program.duration}

@@ -32,10 +32,7 @@ export default async function GolfForWomenProgram(props: {
               imageUrl={program.imageUrl || undefined}
               defaultImage={defaultImage}
               title={program.name}
-              description={[
-                `Join us for our next <strong>GOLF FOR WOMEN</strong> program. Our PGA certified instructors will teach you basics so you can participate in a corporate outing, or simply create a foundation to enjoy golf.`,
-                `This PGA National program is designed for beginners to teach you everything you need to step onto a golf course with confidence.`,
-              ]}
+              description={program.description || ""}
               programId={program.id}
               programPrice={parseFloat(program.price)}
               duration={program.duration}

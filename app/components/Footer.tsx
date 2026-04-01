@@ -10,15 +10,17 @@ import {
   Users,
   Calendar,
   Share2,
+  Facebook,
+  Instagram,
 } from "lucide-react";
 
 export default function Footer() {
   return (
     <footer className="bg-gradient-to-br from-gray-900 via-green-900 to-gray-900 text-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-12">
           {/* Brand & Contact */}
-          <div className="space-y-6">
+          <div className="lg:col-span-4 space-y-6">
             <div className="space-y-4">
               <div className="flex items-center gap-2 mb-2">
                 <Phone size={22} className="text-golf-orange" />
@@ -55,7 +57,7 @@ export default function Footer() {
           </div>
 
           {/* Locations */}
-          <div className="space-y-4">
+          <div className="lg:col-span-4 space-y-4">
             <div className="flex items-center gap-2 mb-2">
               <MapPin size={22} className="text-golf-orange" />
               <h3 className="text-xl font-bold text-golf-orange">
@@ -114,7 +116,7 @@ export default function Footer() {
           </div>
 
           {/* Quick Links */}
-          <div className="space-y-4">
+          <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-2 mb-2">
               <Users size={22} className="text-golf-orange" />
               <h3 className="text-xl font-bold text-golf-orange">
@@ -166,7 +168,7 @@ export default function Footer() {
           </div>
 
           {/* Social Media */}
-          <div className="space-y-4">
+          <div className="lg:col-span-2 space-y-4">
             <div className="flex items-center gap-2 mb-2">
               <Share2 size={22} className="text-golf-orange" />
               <h3 className="text-xl font-bold text-golf-orange">Follow Us</h3>
@@ -179,13 +181,7 @@ export default function Footer() {
                 className="w-12 h-12 bg-green-800 hover:bg-orange-500 rounded-full flex items-center justify-center transition-all hover:scale-110"
                 aria-label="Facebook"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="w-5 h-5"
-                >
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s5.373-12 12-12 12 5.373 12 12-5.373 12-12zm-5.864 0h-1.658v6.182h1.658v-6.182zm-1.658-2.5c.553 0 1-.447 1-1s-.447-1-1-1-1 .447-1 1-.447 1 1zm8.965 2.5h-1.591v3.318c0 .848-.507 1.286-1.182 1.286-.685 0-1.182-.438-1.182-1.286v-3.318h-1.591v6.182h1.591v-1.637c.438.568.964.902 1.596.902 1.39 0 2.5-1.11 2.5-2.5v-6.182z" />
-                </svg>
+                <Facebook className="w-5 h-5" />
               </a>
               <a
                 href="https://www.instagram.com/toskigolfacademy"
@@ -194,13 +190,7 @@ export default function Footer() {
                 className="w-12 h-12 bg-green-800 hover:bg-orange-500 rounded-full flex items-center justify-center transition-all hover:scale-110"
                 aria-label="Instagram"
               >
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="w-5 h-5"
-                >
-                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-5.91 2.65-5.91 5.91s2.651 5.91 5.91 5.91 5.91-2.651 5.91-5.91-2.651-5.91-5.91-5.91zm-2.91 5.91c0-1.607 1.303-2.91 2.91-2.91s2.91 1.303 2.91 2.91-1.303 2.91-2.91 2.91zm5.734-6.687h-2.085v3.569c0 1.525-.849 2.591-2.06 2.591-1.277 0-2.026-.906-2.026-2.023v-2.137h1.611v-.949h-1.611v-2.718h-2.006v2.718h-1.27v.949h1.27v2.137c0 1.974 1.028 3.506 2.773 3.506 1.659 0 2.821-1.041 3.019-2.536v-1.972h1.59v-.949h-1.59v-3.569z" />
-                </svg>
+                <Instagram className="w-5 h-5" />
               </a>
             </div>
           </div>

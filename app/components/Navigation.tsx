@@ -62,24 +62,24 @@ const juniorPrograms = [
     title: "PGA & U.S. Kids Golf Certified",
     desc: "Our mission is to share our passion for the great game of golf with juniors in our area. Our promise is to support, encourage and respect each and every one of our students and inspire them to identify and reach their full potential in golf.",
     fullDesc:
-      "Our junior programs are described on this website and we encourage you to contact our professional staff with any questions about our academy, our schedules or how to choose the right program for your child. We look forward to seeing your junior golfer in one of our programs this season.",
+      "Our junior programs are described on this website and we encourage you to contact our professional staff with any questions about our academy, our schedules, or how to choose the right program for your child. We look forward to seeing your junior golfer in one of our programs this season.",
   },
   {
     type: "separator",
   },
   {
     title: "Junior Beginner Series",
-    desc: "For new junior golfers ages 7-17. Learn fundamentals with 6 one-hour sessions including on-course experience.",
+    desc: "Designed for new junior golfers ages 7-17. This entry-level program covers the core fundamentals of the game over 6 one-hour sessions. Students will learn proper grip, stance, swing mechanics, and course etiquette, culminating in valuable on-course experience.",
     href: "/junior-programs/beginner-series",
   },
   {
     title: "Junior Developmental Series",
-    desc: "For intermediate players ages 9-17. Advanced curriculum with video analysis and personalized improvement plans.",
+    desc: "Tailored for intermediate players ages 9-17 with prior experience. This advanced curriculum focuses on competitive skill building using in-depth video analysis, individualized improvement plans, and comprehensive on-course coaching to lower scores.",
     href: "/junior-programs/developmental-series",
   },
   {
     title: "Junior Private Golf Instruction",
-    desc: "Individual instruction with PGA Professional. Private lessons and on-course coaching available.",
+    desc: "Receive highly personalized individual instruction from a certified PGA Professional. Whether you're a beginner or an elite junior competitor, custom private lessons and dedicated on-course coaching will help you reach your full potential.",
     href: "/junior-programs/private-instruction",
   },
 ];
@@ -128,6 +128,12 @@ export default function Navigation() {
     setOpen(false);
   };
 
+  // Function to close desktop dropdowns when a link is clicked
+  const handleDesktopLinkClick = () => {
+    setJuniorProgramsOpen(false);
+    setAdultProgramsOpen(false);
+  };
+
   // Determine active state
   const isAdultProgramsActive = pathname?.startsWith("/adult-programs");
   const isJuniorProgramsActive = pathname?.startsWith("/junior-programs");
@@ -162,6 +168,7 @@ export default function Navigation() {
           <div className="hidden items-center gap-2 xl:flex">
             <Link
               href="/"
+              onClick={handleDesktopLinkClick}
               className={`hover:bg-gray-300 rounded-md px-4 py-2 text-sm font-bold ${
                 isHomeActive ? "text-orange-600" : "text-gray-800"
               }`}
@@ -200,90 +207,11 @@ export default function Navigation() {
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -6 }}
-                    className="bg-gray-200 absolute top-full left-0 z-20 mt-2 w-[700px] rounded-xl p-4 shadow-lg ring ring-gray-300"
+                    className="bg-gray-200 absolute top-full left-0 z-20 mt-2 w-[800px] rounded-xl p-4 shadow-lg ring ring-gray-300"
                   >
-                    <div className="flex gap-4">
-                      {/* First column - Introduction sections */}
-                      <div className="flex-[2] space-y-4">
-                        {/* About Our Junior Programs */}
-                        <div className="space-y-3">
-                          <p className="text-base font-bold text-gray-800">
-                            About Our Junior Programs
-                          </p>
-                          <Image
-                            src={aboutOurJuniorPrograms}
-                            alt="Junior Programs"
-                            className="w-full h-[280px] object-cover rounded-md"
-                          />
-                          <p className="text-xs text-gray-600 leading-relaxed">
-                            Our junior programs are designed to benefit boys and
-                            girls of all athletic abilities, levels of golf
-                            experience and competitive desire.
-                          </p>
-                          <p className="text-xs text-gray-600 leading-relaxed">
-                            Our programs focus on practice and on-course
-                            coaching sessions that provide juniors with a unique
-                            opportunity to develop technical and playing skills,
-                            learn how to practice them and then understand how
-                            to integrate them into their game. Our approach
-                            focuses on consistent, high quality standards from
-                            all of our coaches, who are all extensively trained
-                            by Paul Toski in junior-specific instruction,
-                            technique and strategies.
-                          </p>
-                          <div className="grid grid-cols-2 gap-3 pt-3">
-                            <div className="space-y-2">
-                              <div className="relative h-[160px] w-full">
-                                <Image
-                                  src={pgaMember}
-                                  alt="PGA Member"
-                                  fill
-                                  className="object-cover rounded-md"
-                                />
-                              </div>
-                              <p className="text-xs text-gray-600 text-center font-semibold">
-                                PGA Member
-                              </p>
-                            </div>
-                            <div className="space-y-2">
-                              <div className="relative h-[160px] w-full">
-                                <Image
-                                  src={usKidsGolfCertified}
-                                  alt="US Kids Golf Certified"
-                                  fill
-                                  className="object-cover rounded-md"
-                                />
-                              </div>
-                              <p className="text-xs text-gray-600 text-center font-semibold">
-                                U.S. Kids Golf Certified
-                              </p>
-                            </div>
-                          </div>
-                          <div className="pt-3">
-                            <p className="text-xs text-gray-600 leading-relaxed">
-                              Our mission is to share our passion for the great
-                              game of golf with juniors in our area. Our promise
-                              is to support, encourage and respect each and
-                              every one of our students and inspire them to
-                              identify and reach their full potential in golf.
-                            </p>
-                            <p className="text-xs text-gray-600 leading-relaxed mt-2">
-                              Our junior programs are described on this website
-                              and we encourage you to contact our professional
-                              staff with any questions about our academy, our
-                              schedules or how to choose the right program for
-                              your child. We look forward to seeing your junior
-                              golfer in one of our programs this season.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Separator */}
-                      <div className="w-px bg-gray-300" />
-
-                      {/* One column for program links */}
-                      <div className="flex-1 grid grid-cols-1 gap-2">
+                    <div className="flex flex-col gap-5">
+                      {/* Top Row - Program Links */}
+                      <div className="grid grid-cols-3 gap-4">
                         {juniorPrograms
                           .filter(
                             (program) =>
@@ -294,7 +222,8 @@ export default function Navigation() {
                             <Link
                               key={program.title}
                               href={program.href || ""}
-                              className={`hover:bg-gray-300 block rounded-md p-2 ${
+                              onClick={handleDesktopLinkClick}
+                              className={`hover:bg-gray-300 flex flex-col justify-start rounded-md p-3 transition-colors ${
                                 pathname === program.href ? "bg-gray-300" : ""
                               }`}
                             >
@@ -312,6 +241,87 @@ export default function Navigation() {
                               </p>
                             </Link>
                           ))}
+                      </div>
+
+                      {/* Separator */}
+                      <div className="h-px w-full bg-gray-300" />
+
+                      {/* Bottom Row - Introduction sections */}
+                      <div className="flex gap-6">
+                        {/* Text Content */}
+                        <div className="flex-1 space-y-3 flex flex-col justify-center">
+                          <p className="text-base font-bold text-gray-800">
+                            About Our Junior Programs
+                          </p>
+                          <p className="text-xs text-gray-600 leading-relaxed">
+                            Our junior programs are designed to benefit boys and
+                            girls of all athletic abilities, levels of golf
+                            experience and competitive desire.
+                          </p>
+                          <p className="text-xs text-gray-600 leading-relaxed">
+                            Our programs focus on practice and on-course
+                            coaching sessions that provide juniors with a unique
+                            opportunity to develop technical and playing skills,
+                            learn how to practice them and then understand how
+                            to integrate them into their game. Our approach
+                            focuses on consistent, high quality standards from
+                            all of our coaches, who are all extensively trained
+                            by Paul Toski in junior-specific instruction,
+                            technique and strategies.
+                          </p>
+                          <p className="text-xs text-gray-600 leading-relaxed">
+                            Our mission is to share our passion for the great
+                            game of golf with juniors in our area. Our promise
+                            is to support, encourage and respect each and every
+                            one of our students and inspire them to identify and
+                            reach their full potential in golf.
+                          </p>
+                          <p className="text-xs text-gray-600 leading-relaxed">
+                            Our junior programs are described on this website
+                            and we encourage you to contact our professional
+                            staff with any questions about our academy, our
+                            schedules, or how to choose the right program for
+                            your child. We look forward to seeing your junior
+                            golfer in one of our programs this season.
+                          </p>
+                        </div>
+
+                        {/* Images Content */}
+                        <div className="flex-1 space-y-3">
+                          <Image
+                            src={aboutOurJuniorPrograms}
+                            alt="Junior Programs"
+                            className="w-full h-[220px] object-cover rounded-md shadow-sm"
+                          />
+                          <div className="grid grid-cols-2 gap-3 pt-1">
+                            <div className="space-y-2">
+                              <div className="relative h-[120px] w-full">
+                                <Image
+                                  src={pgaMember}
+                                  alt="PGA Member"
+                                  fill
+                                  className="object-cover rounded-md shadow-sm"
+                                />
+                              </div>
+                              <p className="text-[10px] text-gray-600 text-center font-semibold uppercase tracking-wider">
+                                PGA Member
+                              </p>
+                            </div>
+                            <div className="space-y-2">
+                              <div className="relative h-[120px] w-full">
+                                <Image
+                                  src={usKidsGolfCertified}
+                                  alt="US Kids Golf Certified"
+                                  fill
+                                  className="object-cover rounded-md shadow-sm"
+                                />
+                              </div>
+                              <p className="text-[10px] text-gray-600 text-center font-semibold uppercase tracking-wider">
+                                U.S. Kids Golf Certified
+                              </p>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </motion.div>
@@ -357,6 +367,7 @@ export default function Navigation() {
                         <li key={program.title}>
                           <Link
                             href={program.href || "/"}
+                            onClick={handleDesktopLinkClick}
                             className={`hover:bg-gray-300 block rounded-md p-2 ${
                               pathname === program.href ? "bg-gray-300" : ""
                             }`}
@@ -384,6 +395,7 @@ export default function Navigation() {
 
             <Link
               href="/contact"
+              onClick={handleDesktopLinkClick}
               className={`hover:bg-gray-300 rounded-md px-4 py-2 text-sm font-bold ${
                 isContactActive ? "text-orange-600" : "text-gray-800"
               }`}
@@ -393,6 +405,7 @@ export default function Navigation() {
 
             <Link
               href="/calendar"
+              onClick={handleDesktopLinkClick}
               className={`hover:bg-gray-300 rounded-md px-4 py-2 text-sm font-bold ${
                 pathname === "/calendar" ? "text-orange-600" : "text-gray-800"
               }`}

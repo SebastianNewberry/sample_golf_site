@@ -330,13 +330,13 @@ export function JuniorPrivateGolfInstructionClient({
               </h1>
               <button
                 onClick={() => setShowNav(!showNav)}
-                className="lg:hidden flex items-center gap-1 text-[10px] font-semibold text-gray-500 hover:text-gray-700 transition-colors px-2 py-1 rounded-md hover:bg-gray-100 cursor-pointer whitespace-nowrap"
+                className="lg:hidden flex items-center self-center gap-0.5 text-[9px] font-semibold text-gray-500 hover:text-gray-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-gray-100 cursor-pointer whitespace-nowrap"
               >
                 {showNav ? "Hide Programs" : "Show Programs"}
                 {showNav ? (
-                  <ChevronUp className="w-4 h-4" />
+                  <ChevronUp className="w-3 h-3" />
                 ) : (
-                  <ChevronDown className="w-4 h-4" />
+                  <ChevronDown className="w-3 h-3" />
                 )}
               </button>
             </div>

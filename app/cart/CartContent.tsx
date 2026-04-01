@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useCart } from "@/app/components/cart/CartContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import {
   Trash2,
   Minus,
@@ -27,6 +28,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { formatPrice } from "@/lib/utils";
 
 // Mapping of program IDs to their corresponding images
 // Used as fallback when imageUrl is not available from database
@@ -293,9 +295,11 @@ export default function CartContent() {
     );
   }
 
+  const totalItemQty = items.reduce((sum, i) => sum + i.quantity, 0);
+
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen bg-gray-100 pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))] lg:pb-0">
         <div className="w-[92%] max-w-6xl mx-auto py-8 md:py-12">
           <div className="max-w-6xl mx-auto">
             {/* Header */}
@@ -315,281 +319,236 @@ export default function CartContent() {
             </div>
 
             <div className="grid lg:grid-cols-3 gap-8">
-              {/* Cart Items */}
-              <div className="lg:col-span-2 space-y-6">
-                {items.map((item) => {
-                  const scheduleInfo = item.session
-                    ? formatSessionSchedule(item.session.schedule)
-                    : null;
+              {/* Cart items: one card, separators between programs */}
+              <div className="lg:col-span-2">
+                <Card className="overflow-hidden bg-white shadow-md">
+                  {items.map((item, index) => {
+                    const scheduleInfo = item.session
+                      ? formatSessionSchedule(item.session.schedule)
+                      : null;
 
-                  const privateInfo = PRIVATE_INSTRUCTION_IDS.includes(
-                    item.programId,
-                  )
-                    ? formatPrivateInstructionMetadata(item.metadata)
-                    : null;
+                    const privateInfo = PRIVATE_INSTRUCTION_IDS.includes(
+                      item.programId,
+                    )
+                      ? formatPrivateInstructionMetadata(item.metadata)
+                      : null;
 
-                  const isPrivate = PRIVATE_INSTRUCTION_IDS.includes(
-                    item.programId,
-                  );
+                    const isPrivate = PRIVATE_INSTRUCTION_IDS.includes(
+                      item.programId,
+                    );
 
-                  const programImage =
-                    item.program?.imageUrl || PROGRAM_IMAGE_MAP[item.programId];
+                    const programImage =
+                      item.program?.imageUrl ||
+                      PROGRAM_IMAGE_MAP[item.programId];
 
-                  // Calculate availability
-                  let maxQuantity = Infinity;
-                  let isSoldOut = false;
-                  let hasInsufficientQuantity = false;
+                    // Calculate availability
+                    let maxQuantity = Infinity;
+                    let isSoldOut = false;
+                    let hasInsufficientQuantity = false;
 
-                  if (item.session) {
-                    const enrolled = item.session.enrolledCount ?? 0;
-                    maxQuantity = Math.max(0, item.session.capacity - enrolled);
-                    isSoldOut = maxQuantity === 0;
-                    hasInsufficientQuantity = item.quantity > maxQuantity;
-                  }
+                    if (item.session) {
+                      const enrolled = item.session.enrolledCount ?? 0;
+                      maxQuantity = Math.max(
+                        0,
+                        item.session.capacity - enrolled,
+                      );
+                      isSoldOut = maxQuantity === 0;
+                      hasInsufficientQuantity = item.quantity > maxQuantity;
+                    }
 
-                  // Check for new availability property
-                  if (item.availability && !item.availability.isAvailable) {
-                    isSoldOut = true;
-                  }
+                    // Check for new availability property
+                    if (item.availability && !item.availability.isAvailable) {
+                      isSoldOut = true;
+                    }
 
-                  const hasError =
-                    validationErrors[item.id] ||
-                    hasInsufficientQuantity ||
-                    isSoldOut;
+                    const hasError =
+                      validationErrors[item.id] ||
+                      hasInsufficientQuantity ||
+                      isSoldOut;
 
-                  return (
-                    <div key={item.id}>
-                      <Card
-                        className={`p-8 bg-white shadow-md transition-all ${
-                          hasError
-                            ? "border-2 border-red-500 ring-4 ring-red-50"
-                            : ""
-                        }`}
-                      >
-                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
-                          {/* Program Image */}
-                          <div className="w-full sm:w-32 h-40 sm:h-32 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center shrink-0 relative">
-                            {programImage ? (
-                              <Image
-                                src={programImage}
-                                alt={item.program?.name || "Program"}
-                                fill
-                                className="object-cover"
-                                sizes="128px"
-                                priority
-                              />
-                            ) : (
-                              <div className="absolute inset-0 bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center">
-                                <span className="text-white text-3xl font-bold">
-                                  {item.program?.type === "junior" ? "J" : "A"}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Program Details */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex-1">
-                                <h3 className="font-bold text-gray-800 text-lg md:text-xl">
-                                  {item.program?.name || "Program"}
-                                </h3>
-                                <p className="text-sm md:text-base text-gray-600 mt-1 md:mt-2">
-                                  {item.registrationType === "junior"
-                                    ? "Junior Program"
-                                    : "Adult Program"}
-                                </p>
-                                {item.session && (
-                                  <div className="mt-3 space-y-2">
-                                    <div className="flex items-center gap-2 text-sm text-gray-700">
-                                      <Calendar
-                                        size={16}
-                                        className="text-green-600"
-                                      />
-                                      <span className="font-semibold">
-                                        {item.session.name}
-                                        {scheduleInfo &&
-                                          ` - ${scheduleInfo.sessionCount} Sessions`}
-                                      </span>
-                                    </div>
-                                    {scheduleInfo && (
-                                      <div className="mt-4 space-y-3">
-                                        <div className="pl-1 space-y-3">
-                                          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-                                            Schedule:
-                                          </p>
-                                          {scheduleInfo.groupedSchedule.map(
-                                            (group: any, idx: number) => (
-                                              <div
-                                                key={idx}
-                                                className="border-l-2 border-green-200 pl-3 py-1"
-                                              >
-                                                <div className="flex items-baseline justify-between gap-4">
-                                                  <span className="font-bold text-gray-800 text-sm">
-                                                    {group.dayLabel} at{" "}
-                                                    {group.timeRange}
-                                                  </span>
-                                                </div>
-                                                <div className="text-xs text-gray-600 mt-1">
-                                                  {group.dateRange}
-                                                  {group.count > 1 && (
-                                                    <span className="text-gray-400 ml-1">
-                                                      ({group.count} sessions)
-                                                    </span>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            ),
-                                          )}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-
-                                {/* Private Instruction Metadata */}
-                                {privateInfo && (
-                                  <div className="mt-4 space-y-3">
-                                    <div className="flex items-center gap-2 text-sm text-gray-800 font-semibold bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-100 w-fit">
-                                      <Users
-                                        size={16}
-                                        className="text-orange-600"
-                                      />
-                                      <span>
-                                        {item.quantity} Player
-                                        {item.quantity !== 1 ? "s" : ""}
-                                      </span>
-                                      <span className="text-gray-400 mx-1">
-                                        •
-                                      </span>
-                                      <span className="text-green-700">
-                                        {privateInfo.totalHours ||
-                                          privateInfo.sessionCount}{" "}
-                                        hrs total
-                                      </span>
-                                    </div>
-
-                                    <div className="space-y-1.5 pl-1">
-                                      <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                                        Scheduled Sessions:
-                                      </p>
-                                      {privateInfo.slots.map(
-                                        (slot: any, idx: number) => (
-                                          <div
-                                            key={idx}
-                                            className="flex items-center gap-3 text-sm text-gray-700 group"
-                                          >
-                                            <div className="w-5 h-5 rounded-full bg-green-50 flex items-center justify-center text-[10px] font-bold text-green-700 border border-green-100 shrink-0">
-                                              {idx + 1}
-                                            </div>
-                                            <div className="flex gap-2 items-baseline">
-                                              <span className="font-medium">
-                                                {slot.date}
-                                              </span>
-                                              <span className="text-gray-400 text-xs">
-                                                at
-                                              </span>
-                                              <span className="text-gray-600 font-medium">
-                                                {slot.time}
-                                              </span>
-                                            </div>
-                                          </div>
-                                        ),
-                                      )}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                              <button
-                                onClick={() => removeItem(item.id)}
-                                className="text-gray-400 enabled:hover:text-red-600 transition-colors p-1 flex-shrink-0 cursor-pointer"
-                                aria-label="Remove item"
-                              >
-                                <Trash2 size={20} />
-                              </button>
-                            </div>
-
-                            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-4 md:mt-6 pt-4 md:pt-6 border-t border-gray-100 gap-4">
-                              {/* Quantity Controls */}
-                              <div className="flex items-center gap-3">
-                                {(() => {
-                                  // For private instructions, get the base player count from metadata
-                                  let minQuantity = 1;
-                                  if (isPrivate && item.metadata) {
-                                    try {
-                                      const meta = JSON.parse(item.metadata);
-                                      if (
-                                        meta.playersCount &&
-                                        meta.playersCount > 0
-                                      ) {
-                                        minQuantity = meta.playersCount;
-                                      }
-                                    } catch {}
-                                  }
-                                  const isAtMinimum =
-                                    item.quantity <= minQuantity;
-
-                                  return isAtMinimum ? (
-                                    <Tooltip>
-                                      <TooltipTrigger asChild>
-                                        <span
-                                          tabIndex={0}
-                                          className="inline-flex cursor-not-allowed"
-                                        >
-                                          <button
-                                            disabled
-                                            className="w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 border-gray-200 text-gray-300 pointer-events-none"
-                                            aria-label="Decrease quantity"
-                                          >
-                                            <Minus size={16} />
-                                          </button>
-                                        </span>
-                                      </TooltipTrigger>
-                                      <TooltipContent side="bottom">
-                                        <p>
-                                          {isPrivate
-                                            ? `Minimum ${minQuantity} player${minQuantity !== 1 ? "s" : ""} for this package`
-                                            : "Minimum quantity is 1"}
-                                        </p>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  ) : (
-                                    <button
-                                      onClick={() =>
-                                        updateQuantity(
-                                          item.id,
-                                          item.quantity - 1,
-                                        )
-                                      }
-                                      className="w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 border-gray-300 enabled:hover:bg-gray-100 cursor-pointer"
-                                      aria-label="Decrease quantity"
-                                    >
-                                      <Minus size={16} />
-                                    </button>
-                                  );
-                                })()}
-                                <div className="flex flex-col items-center justify-center min-w-[3.5rem]">
-                                  <div className="flex items-center justify-center">
-                                    <span className="font-bold text-lg">
-                                      {item.quantity}
-                                    </span>
-                                  </div>
-                                  <span className="text-xs text-gray-500 -mt-1 selection:bg-transparent">
-                                    Player{item.quantity !== 1 ? "s" : ""}
+                    return (
+                      <React.Fragment key={item.id}>
+                        {index > 0 ? (
+                          <Separator className="bg-border/80" />
+                        ) : null}
+                        <div
+                          className={`p-6 md:p-8 transition-colors ${
+                            hasError
+                              ? "bg-red-50/50 ring-2 ring-red-500 ring-inset"
+                              : ""
+                          }`}
+                        >
+                          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
+                            {/* Program Image */}
+                            <div className="w-full sm:w-32 h-40 sm:h-32 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center shrink-0 relative">
+                              {programImage ? (
+                                <Image
+                                  src={programImage}
+                                  alt={item.program?.name || "Program"}
+                                  fill
+                                  className="object-cover"
+                                  sizes="128px"
+                                  priority
+                                />
+                              ) : (
+                                <div className="absolute inset-0 bg-gradient-to-br from-green-600 to-green-800 flex items-center justify-center">
+                                  <span className="text-white text-3xl font-bold">
+                                    {item.program?.type === "junior"
+                                      ? "J"
+                                      : "A"}
                                   </span>
                                 </div>
-                                {(() => {
-                                  let isDisabled = false;
-                                  if (item.session) {
-                                    const enrolled =
-                                      item.session.enrolledCount ?? 0;
-                                    const maxAvailable =
-                                      item.session.capacity - enrolled;
-                                    isDisabled = item.quantity >= maxAvailable;
-                                  }
+                              )}
+                            </div>
 
-                                  if (isDisabled) {
-                                    return (
+                            {/* Program Details */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex-1">
+                                  <h3 className="font-bold text-gray-800 text-lg md:text-xl">
+                                    {item.program?.name || "Program"}
+                                  </h3>
+                                  <p className="text-sm md:text-base text-gray-600 mt-1 md:mt-2">
+                                    {item.registrationType === "junior"
+                                      ? "Junior Program"
+                                      : "Adult Program"}
+                                  </p>
+                                  {item.session && (
+                                    <div className="mt-3 space-y-2">
+                                      <div className="flex items-center gap-2 text-sm text-gray-700">
+                                        <Calendar
+                                          size={16}
+                                          className="text-green-600"
+                                        />
+                                        <span className="font-semibold">
+                                          {item.session.name}
+                                          {scheduleInfo &&
+                                            ` - ${scheduleInfo.sessionCount} Session${Number(scheduleInfo.sessionCount) === 1 ? "" : "s"}`}
+                                        </span>
+                                      </div>
+                                      {scheduleInfo && (
+                                        <div className="mt-4 space-y-3">
+                                          <div className="pl-1 space-y-3">
+                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                              Schedule:
+                                            </p>
+                                            {scheduleInfo.groupedSchedule.map(
+                                              (group: any, idx: number) => (
+                                                <div
+                                                  key={idx}
+                                                  className="border-l-2 border-green-200 pl-3 py-1"
+                                                >
+                                                  <div className="flex items-baseline justify-between gap-4">
+                                                    <span className="font-bold text-gray-800 text-sm">
+                                                      {group.dayLabel} at{" "}
+                                                      {group.timeRange}
+                                                    </span>
+                                                  </div>
+                                                  <div className="text-xs text-gray-600 mt-1">
+                                                    {group.dateRange}
+                                                    {group.count > 1 && (
+                                                      <span className="ml-1 text-gray-400">
+                                                        ({group.count} sessions)
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              ),
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Private Instruction Metadata */}
+                                  {privateInfo && (
+                                    <div className="mt-4 space-y-3">
+                                      <div className="flex items-center gap-2 text-sm text-gray-800 font-semibold bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-100 w-fit">
+                                        <Users
+                                          size={16}
+                                          className="text-orange-600"
+                                        />
+                                        <span>
+                                          {item.quantity} Player
+                                          {item.quantity !== 1 ? "s" : ""}
+                                        </span>
+                                        <span className="text-gray-400 mx-1">
+                                          •
+                                        </span>
+                                        <span className="text-green-700">
+                                          {Number(privateInfo.totalHours ||
+                                            privateInfo.sessionCount) === 1
+                                            ? "1 hr total"
+                                            : `${privateInfo.totalHours || privateInfo.sessionCount} hrs total`}
+                                        </span>
+                                      </div>
+
+                                      <div className="space-y-1.5 pl-1">
+                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                          Scheduled Session
+                                          {Number(privateInfo.slots.length) === 1
+                                            ? ""
+                                            : "s"}
+                                          :
+                                        </p>
+                                        {privateInfo.slots.map(
+                                          (slot: any, idx: number) => (
+                                            <div
+                                              key={idx}
+                                              className="flex items-center gap-3 text-sm text-gray-700 group"
+                                            >
+                                              <div className="w-5 h-5 rounded-full bg-green-50 flex items-center justify-center text-[10px] font-bold text-green-700 border border-green-100 shrink-0">
+                                                {idx + 1}
+                                              </div>
+                                              <div className="flex gap-2 items-baseline">
+                                                <span className="font-medium">
+                                                  {slot.date}
+                                                </span>
+                                                <span className="text-gray-400 text-xs">
+                                                  at
+                                                </span>
+                                                <span className="text-gray-600 font-medium">
+                                                  {slot.time}
+                                                </span>
+                                              </div>
+                                            </div>
+                                          ),
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={() => removeItem(item.id)}
+                                  className="text-gray-400 enabled:hover:text-red-600 transition-colors p-1 flex-shrink-0 cursor-pointer"
+                                  aria-label="Remove item"
+                                >
+                                  <Trash2 size={20} />
+                                </button>
+                              </div>
+
+                              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-4 md:mt-6 pt-4 md:pt-6 border-t border-gray-100 gap-4">
+                                {/* Quantity Controls */}
+                                <div className="flex items-center gap-3">
+                                  {(() => {
+                                    // For private instructions, get the base player count from metadata
+                                    let minQuantity = 1;
+                                    if (isPrivate && item.metadata) {
+                                      try {
+                                        const meta = JSON.parse(item.metadata);
+                                        if (
+                                          meta.playersCount &&
+                                          meta.playersCount > 0
+                                        ) {
+                                          minQuantity = meta.playersCount;
+                                        }
+                                      } catch {}
+                                    }
+                                    const isAtMinimum =
+                                      item.quantity <= minQuantity;
+
+                                    return isAtMinimum ? (
                                       <Tooltip>
                                         <TooltipTrigger asChild>
                                           <span
@@ -599,94 +558,158 @@ export default function CartContent() {
                                             <button
                                               disabled
                                               className="w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 border-gray-200 text-gray-300 pointer-events-none"
-                                              aria-label="Increase quantity"
+                                              aria-label="Decrease quantity"
                                             >
-                                              <Plus size={16} />
+                                              <Minus size={16} />
                                             </button>
                                           </span>
                                         </TooltipTrigger>
                                         <TooltipContent side="bottom">
-                                          <p>Session capacity reached</p>
+                                          <p>
+                                            {isPrivate
+                                              ? `Minimum ${minQuantity} player${minQuantity !== 1 ? "s" : ""} for this package`
+                                              : "Minimum quantity is 1"}
+                                          </p>
                                         </TooltipContent>
                                       </Tooltip>
-                                    );
-                                  }
-
-                                  return (
-                                    <button
-                                      onClick={() => {
-                                        if (item.session) {
-                                          const enrolled =
-                                            item.session.enrolledCount ?? 0;
-                                          const maxAvailable =
-                                            item.session.capacity - enrolled;
-                                          if (item.quantity + 1 > maxAvailable)
-                                            return;
+                                    ) : (
+                                      <button
+                                        onClick={() =>
+                                          updateQuantity(
+                                            item.id,
+                                            item.quantity - 1,
+                                          )
                                         }
-                                        updateQuantity(
-                                          item.id,
-                                          item.quantity + 1,
-                                        );
-                                      }}
-                                      className="w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 border-gray-300 enabled:hover:bg-gray-100 cursor-pointer"
-                                      aria-label="Increase quantity"
-                                    >
-                                      <Plus size={16} />
-                                    </button>
-                                  );
-                                })()}
-                              </div>
+                                        className="w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 border-gray-300 enabled:hover:bg-gray-100 cursor-pointer"
+                                        aria-label="Decrease quantity"
+                                      >
+                                        <Minus size={16} />
+                                      </button>
+                                    );
+                                  })()}
+                                  <div className="flex flex-col items-center justify-center min-w-[3.5rem]">
+                                    <div className="flex items-center justify-center">
+                                      <span className="font-bold text-lg">
+                                        {item.quantity}
+                                      </span>
+                                    </div>
+                                    <span className="text-xs text-gray-500 -mt-1 selection:bg-transparent">
+                                      Player{item.quantity !== 1 ? "s" : ""}
+                                    </span>
+                                  </div>
+                                  {(() => {
+                                    let isDisabled = false;
+                                    if (item.session) {
+                                      const enrolled =
+                                        item.session.enrolledCount ?? 0;
+                                      const maxAvailable =
+                                        item.session.capacity - enrolled;
+                                      isDisabled =
+                                        item.quantity >= maxAvailable;
+                                    }
 
-                              {/* Price */}
-                              <div className="flex flex-col items-end min-h-[3.5rem] justify-center">
-                                <p className="text-xl md:text-2xl font-bold text-green-700 leading-tight">
-                                  $
-                                  {(
-                                    Math.round(
-                                      parseFloat(item.priceAtAdd) *
-                                        item.quantity *
-                                        100,
-                                    ) / 100
-                                  ).toFixed(2)}
-                                </p>
-                                {item.quantity > 1 && (
-                                  <p className="text-sm text-gray-500 mt-1">
-                                    ${item.priceAtAdd} each
+                                    if (isDisabled) {
+                                      return (
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <span
+                                              tabIndex={0}
+                                              className="inline-flex cursor-not-allowed"
+                                            >
+                                              <button
+                                                disabled
+                                                className="w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 border-gray-200 text-gray-300 pointer-events-none"
+                                                aria-label="Increase quantity"
+                                              >
+                                                <Plus size={16} />
+                                              </button>
+                                            </span>
+                                          </TooltipTrigger>
+                                          <TooltipContent side="bottom">
+                                            <p>Session capacity reached</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      );
+                                    }
+
+                                    return (
+                                      <button
+                                        onClick={() => {
+                                          if (item.session) {
+                                            const enrolled =
+                                              item.session.enrolledCount ?? 0;
+                                            const maxAvailable =
+                                              item.session.capacity - enrolled;
+                                            if (
+                                              item.quantity + 1 >
+                                              maxAvailable
+                                            )
+                                              return;
+                                          }
+                                          updateQuantity(
+                                            item.id,
+                                            item.quantity + 1,
+                                          );
+                                        }}
+                                        className="w-10 h-10 rounded-full border flex items-center justify-center transition-colors shrink-0 border-gray-300 enabled:hover:bg-gray-100 cursor-pointer"
+                                        aria-label="Increase quantity"
+                                      >
+                                        <Plus size={16} />
+                                      </button>
+                                    );
+                                  })()}
+                                </div>
+
+                                {/* Price */}
+                                <div className="flex flex-col items-end min-h-[3.5rem] justify-center">
+                                  <p className="text-xl md:text-2xl font-bold text-green-700 leading-tight">
+                                    ${formatPrice(
+                                      Math.round(
+                                        parseFloat(item.priceAtAdd) *
+                                          item.quantity *
+                                          100,
+                                      ) / 100
+                                    )}
                                   </p>
-                                )}
+                                  {item.quantity > 1 && (
+                                    <p className="text-sm text-gray-500 mt-1">
+                                      ${item.priceAtAdd} each
+                                    </p>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                        {(validationErrors[item.id] ||
-                          hasInsufficientQuantity ||
-                          isSoldOut) && (
-                          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md flex items-start gap-3 text-red-700 animate-in fade-in slide-in-from-top-2">
-                            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                            <div>
-                              <p className="font-bold">
-                                {isSoldOut
-                                  ? "Item Unavailable"
-                                  : "Item Unavailable"}
-                              </p>
-                              <p className="text-sm mt-1">
-                                {item.availability?.error ||
-                                  validationErrors[item.id] ||
-                                  (isSoldOut
-                                    ? "This item is sold out or unavailable."
-                                    : `Only ${maxQuantity} spot${maxQuantity === 1 ? "" : "s"} available.`)}
-                              </p>
+                          {(validationErrors[item.id] ||
+                            hasInsufficientQuantity ||
+                            isSoldOut) && (
+                            <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md flex items-start gap-3 text-red-700 animate-in fade-in slide-in-from-top-2">
+                              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                              <div>
+                                <p className="font-bold">
+                                  {isSoldOut
+                                    ? "Item Unavailable"
+                                    : "Item Unavailable"}
+                                </p>
+                                <p className="text-sm mt-1">
+                                  {item.availability?.error ||
+                                    validationErrors[item.id] ||
+                                    (isSoldOut
+                                      ? "This item is sold out or unavailable."
+                                      : `Only ${maxQuantity} spot${maxQuantity === 1 ? "" : "s"} available.`)}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </Card>
-                    </div>
-                  );
-                })}
+                          )}
+                        </div>
+                      </React.Fragment>
+                    );
+                  })}
+                </Card>
               </div>
 
-              {/* Order Summary */}
-              <div className="lg:col-span-1">
+              {/* Order summary — desktop sidebar */}
+              <div className="hidden lg:block lg:col-span-1">
                 <Card className="p-8 bg-white sticky top-8 shadow-md">
                   <h2 className="text-2xl font-bold text-gray-800 mb-6">
                     Order Summary
@@ -694,17 +717,14 @@ export default function CartContent() {
 
                   <div className="space-y-4 mb-8">
                     <div className="flex justify-between text-base text-gray-600">
-                      <span>
-                        Subtotal (
-                        {items.reduce((sum, i) => sum + i.quantity, 0)} items)
-                      </span>
-                      <span className="font-semibold">${total.toFixed(2)}</span>
+                      <span>Subtotal ({totalItemQty} items)</span>
+                      <span className="font-semibold">${formatPrice(total)}</span>
                     </div>
                     <div className="border-t border-gray-200 pt-4">
                       <div className="flex justify-between text-2xl font-bold text-gray-800">
                         <span>Total</span>
                         <span className="text-green-700">
-                          ${total.toFixed(2)}
+                          ${formatPrice(total)}
                         </span>
                       </div>
                     </div>
@@ -735,6 +755,49 @@ export default function CartContent() {
                 </Card>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Order summary — mobile: fixed to bottom for quick checkout */}
+        <div
+          className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur-sm"
+          style={{
+            paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))",
+          }}
+        >
+          <div className="mx-auto w-[92%] max-w-6xl px-1 pt-3">
+            <div className="flex items-center gap-3">
+              <div className="min-w-0 shrink">
+                <p className="text-xs font-medium text-gray-500">Total</p>
+                <p className="text-xl font-bold text-green-700 tabular-nums">
+                  ${formatPrice(total)}
+                </p>
+                <p className="text-[11px] text-gray-400 truncate">
+                  {totalItemQty} item{totalItemQty === 1 ? "" : "s"}
+                </p>
+              </div>
+              <Button
+                onClick={handleProceedToCheckout}
+                disabled={isValidating}
+                className="min-h-12 flex-1 bg-orange-500 enabled:hover:bg-orange-600 text-white py-3 text-base font-semibold cursor-pointer shadow-md enabled:hover:shadow-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {isValidating ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin shrink-0" />
+                    Checking Availability…
+                  </>
+                ) : (
+                  <>
+                    Checkout
+                    <ArrowRight className="ml-2 w-5 h-5 shrink-0" />
+                  </>
+                )}
+              </Button>
+            </div>
+            <p className="text-center text-[11px] text-gray-500 mt-2 leading-snug">
+              You&apos;ll complete registration forms for each program at
+              checkout
+            </p>
           </div>
         </div>
       </div>

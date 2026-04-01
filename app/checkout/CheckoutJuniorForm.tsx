@@ -194,10 +194,10 @@ export function CheckoutJuniorForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 sm:space-y-6">
         {/* Copy Parent Info Callout */}
         {primaryFormData && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-5 mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-5 mb-4 sm:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
             <div>
               <h4 className="text-green-900 font-semibold mb-1 text-xs">
                 Repeat details from previous registration?
@@ -221,12 +221,12 @@ export function CheckoutJuniorForm({
         )}
 
         {/* Primary Contact Section */}
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold text-gray-900">
+        <div className="space-y-3 sm:space-y-4">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900">
             Parent/Guardian Information
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <FormField
               control={form.control}
               name="primaryContactFirstName"
@@ -296,7 +296,7 @@ export function CheckoutJuniorForm({
             )}
           />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <FormField
               control={form.control}
               name="phoneType"
@@ -383,12 +383,12 @@ export function CheckoutJuniorForm({
         </div>
 
         {/* Child Information Section */}
-        <div className="space-y-4 pt-4 border-t">
-          <h3 className="text-lg font-semibold text-gray-900">
+        <div className="space-y-3 sm:space-y-4 pt-4 border-t">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-900">
             Child Information
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <FormField
               control={form.control}
               name="childFirstName"
@@ -418,7 +418,7 @@ export function CheckoutJuniorForm({
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <FormField
               control={form.control}
               name="childAge"
@@ -426,16 +426,16 @@ export function CheckoutJuniorForm({
                 <FormItem>
                   <FormLabel>Child&apos;s Age *</FormLabel>
                   <FormControl>
-                    <Input
-                      type="number"
-                      min="4"
-                      max="18"
-                      placeholder=""
-                      className="h-12 bg-white"
-                      {...field}
-                      value={field.value} // childAge is now a string, so no need for || ""
-                      onChange={(e) => field.onChange(e.target.value)} // Keep it as a string in the form state
-                    />
+                      <Input
+                        type="number"
+                        min="4"
+                        max="18"
+                        placeholder=""
+                        className="bg-white"
+                        {...field}
+                        value={field.value} // childAge is now a string, so no need for || ""
+                        onChange={(e) => field.onChange(e.target.value)} // Keep it as a string in the form state
+                      />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -554,13 +554,13 @@ export function CheckoutJuniorForm({
 
         {/* Navigation Buttons */}
         <div className="flex flex-col gap-3 pt-4">
-          <div className="flex gap-4">
+          <div className="flex flex-col-reverse sm:flex-row gap-3 sm:gap-4">
             <Button
               type="button"
               variant="outline"
               onClick={onBack}
               disabled={isProcessing}
-              className="flex-1 border-green-600 text-green-700 enabled:hover:bg-green-50 enabled:hover:text-green-800 cursor-pointer"
+              className="w-full sm:flex-1 border-green-600 text-green-700 enabled:hover:bg-green-50 enabled:hover:text-green-800 cursor-pointer"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back
@@ -568,7 +568,7 @@ export function CheckoutJuniorForm({
             <Button
               type="submit"
               disabled={isProcessing}
-              className="flex-1 bg-green-700 enabled:hover:bg-green-800 text-white cursor-pointer"
+              className="w-full sm:flex-1 bg-green-700 enabled:hover:bg-green-800 text-white cursor-pointer"
             >
               {isProcessing ? (
                 <>

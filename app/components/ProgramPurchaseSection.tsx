@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { checkSessionAvailability } from "@/app/actions/cart";
 import { useCart } from "@/app/components/cart/CartContext";
+import { formatPrice } from "@/lib/utils";
 
 interface Session {
   id: string;
@@ -95,7 +96,7 @@ export function ProgramPurchaseSection({
       {/* Price Header */}
       <div className="text-center pb-4 border-b border-gray-100 mb-4">
         <p className="text-5xl font-bold text-green-700">
-          ${programPrice.toFixed(2)}
+          ${formatPrice(programPrice)}
         </p>
         <p className="text-sm text-gray-500 mt-1 font-medium">{duration}</p>
       </div>

@@ -13,6 +13,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { formatPrice } from "@/lib/utils";
 
 // Re-using the program image map (simplified for popup)
 const PROGRAM_IMAGE_MAP: Record<string, string> = {
@@ -81,10 +82,10 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="w-[90vw] max-w-96 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden"
+            className="w-[90vw] max-w-[400px] bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden"
           >
             {/* Items List */}
-            <div className="max-h-[250px] md:max-h-[300px] overflow-y-auto pt-2">
+            <div className="max-h-[450px] md:max-h-[500px] overflow-y-auto pt-2">
               {recentItems.map((item) => {
                 const programImage =
                   item.program?.imageUrl || PROGRAM_IMAGE_MAP[item.programId];
@@ -174,14 +175,13 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
                         </div>
                         <div className="flex items-center gap-2 mr-6">
                           <span className="text-sm font-bold text-gray-800">
-                            $
-                            {(
+                            ${formatPrice(
                               Math.round(
                                 parseFloat(item.priceAtAdd) *
                                   item.quantity *
                                   100,
                               ) / 100
-                            ).toFixed(2)}
+                            )}
                           </span>
                         </div>
                       </div>
@@ -293,7 +293,7 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
               <div className="flex justify-between items-center mb-4">
                 <span className="text-sm text-gray-600">Subtotal</span>
                 <span className="text-lg font-bold text-gray-900">
-                  ${total.toFixed(2)}
+                  ${formatPrice(total)}
                 </span>
               </div>
 

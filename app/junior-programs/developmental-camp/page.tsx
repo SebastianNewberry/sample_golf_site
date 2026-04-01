@@ -29,10 +29,7 @@ export default async function JuniorDevelopmentalGolfCamp(props: {
               imageUrl={program.imageUrl || undefined}
               defaultImage={defaultImage}
               title={program.name}
-              description={[
-                `Join us for our next <strong>JUNIOR DEVELOPMENTAL GOLF CAMP</strong> program. Our PGA certified instructors will teach you the fundamentals of golf.`,
-                `This PGA National program is designed for beginners to teach you everything you need to step onto a golf course with confidence.`,
-              ]}
+              description={program.description || ""}
               programId={program.id}
               programPrice={parseFloat(program.price)}
               duration={program.duration}

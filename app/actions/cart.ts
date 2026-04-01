@@ -159,17 +159,58 @@ export async function addToCart(data: {
           };
         }
 
+        // Extract slots for validation
+        let slotsToValidate: any[] = [];
+        if (Array.isArray(metadataObj.slots)) {
+          slotsToValidate = metadataObj.slots;
+        } else if (
+          metadataObj.date &&
+          metadataObj.startTime &&
+          metadataObj.endTime
+        ) {
+          slotsToValidate = [
+            {
+              date: metadataObj.date,
+              startTime: metadataObj.startTime,
+              endTime: metadataObj.endTime,
+            },
+          ];
+        }
+
+        const numSlots = slotsToValidate.length;
+
         // Validate session count
-        const numSlots = Array.isArray(metadataObj.slots)
-          ? metadataObj.slots.length
-          : metadataObj.date
-            ? 1
-            : 0;
         if (numSlots !== Number(matchedOption.sessionCount)) {
           return {
             success: false,
             error: `This package requires exactly ${matchedOption.sessionCount} sessions.`,
           };
+        }
+
+        // Strict Duration Validation
+        const expectedDurationMinutes =
+          Number(matchedOption.durationMinutes) || 60; // Default to 60 if missing
+
+        for (const slot of slotsToValidate) {
+          if (slot.startTime && slot.endTime) {
+            const [startHour, startMinute] = slot.startTime
+              .split(":")
+              .map(Number);
+            const [endHour, endMinute] = slot.endTime.split(":").map(Number);
+
+            const startTotalMinutes = startHour * 60 + startMinute;
+            const endTotalMinutes = endHour * 60 + endMinute;
+
+            let duration = endTotalMinutes - startTotalMinutes;
+            if (duration < 0) duration += 24 * 60; // Handle midnight crossing safely
+
+            if (duration !== expectedDurationMinutes) {
+              return {
+                success: false,
+                error: `Security Check Failed: Invalid session duration. Expected ${expectedDurationMinutes} minutes, but requested ${duration} minutes.`,
+              };
+            }
+          }
         }
 
         finalPrice = Number(matchedOption.price);
