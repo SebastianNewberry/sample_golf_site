@@ -30,7 +30,15 @@ import { createCheckoutPaymentIntent } from "@/app/actions/checkout";
 import { validateCartAvailability } from "@/app/actions/validation";
 import { EmbeddedPaymentForm } from "@/app/components/checkout/EmbeddedPaymentForm";
 import { verifyPaymentStatus } from "@/app/actions/verify-payment";
+import { validateDiscountCode } from "@/app/actions/gift-cards";
 import { formatPrice } from "@/lib/utils";
+import { Tag, X as XIcon, Gift } from "lucide-react";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+  InputOTPSeparator,
+} from "@/components/ui/input-otp";
 
 // Initialize Stripe
 const stripePromise = loadStripe(
@@ -202,6 +210,21 @@ export function CheckoutClient() {
   const [checkoutError, setCheckoutError] = useState<string>("");
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [paymentTotal, setPaymentTotal] = useState(0);
+
+  // Discount state
+  const [discountCode, setDiscountCode] = useState("");
+  const [isApplyingDiscount, setIsApplyingDiscount] = useState(false);
+  const [discountError, setDiscountError] = useState("");
+  const [showDiscountInput, setShowDiscountInput] = useState(false);
+  const [discountTypeTab, setDiscountTypeTab] = useState<"promo" | "gift_card">("promo");
+  const [appliedDiscount, setAppliedDiscount] = useState<{
+    type: "gift_card" | "promo";
+    discountId: string;
+    code: string;
+    discountType: "percentage" | "fixed";
+    discountValue: number;
+    balance?: number;
+  } | null>(null);
 
   // Check for success redirect
   const isSuccess = searchParams.get("success") === "true";
@@ -382,6 +405,53 @@ export function CheckoutClient() {
     return primaryForm?.formData || null;
   };
 
+  // Calculate discount amount
+  const calculateDiscountAmount = () => {
+    if (!appliedDiscount) return 0;
+    if (appliedDiscount.discountType === "percentage") {
+      return Math.min(total, (total * appliedDiscount.discountValue) / 100);
+    }
+    // Fixed amount or gift card balance
+    return Math.min(total, appliedDiscount.discountValue);
+  };
+
+  const discountAmount = calculateDiscountAmount();
+  const finalTotal = Math.max(0, total - discountAmount);
+
+  const handleApplyDiscount = async () => {
+    if (!discountCode.trim()) return;
+    setIsApplyingDiscount(true);
+    setDiscountError("");
+
+    try {
+      const result = await validateDiscountCode(discountCode.trim());
+      if (result.valid && result.type) {
+        setAppliedDiscount({
+          type: result.type,
+          discountId: result.discountId!,
+          code: result.code!,
+          discountType: result.discountType!,
+          discountValue: result.discountValue!,
+          balance: result.type === "gift_card" ? result.balance : undefined,
+        });
+        setDiscountCode("");
+        setShowDiscountInput(false);
+      } else {
+        setDiscountError(result.error || "Invalid code");
+      }
+    } catch {
+      setDiscountError("Failed to validate code. Please try again.");
+    } finally {
+      setIsApplyingDiscount(false);
+    }
+  };
+
+  const handleRemoveDiscount = () => {
+    setAppliedDiscount(null);
+    setDiscountCode("");
+    setDiscountError("");
+  };
+
   const handleProceedToPayment = async (allFormData: CartItemFormData[]) => {
     setIsProcessingCheckout(true);
     setCheckoutError("");
@@ -396,11 +466,23 @@ export function CheckoutClient() {
           formData: item.formData!,
         })),
         totalAmount: total,
+        discountCode: appliedDiscount?.code,
+        discountType: appliedDiscount?.type,
+        discountId: appliedDiscount?.discountId,
+        discountAmount: discountAmount > 0 ? discountAmount : undefined,
       });
+
+      if (result.success && result.skipPayment) {
+        // Gift card fully covers the order — no Stripe needed
+        localStorage.removeItem("checkout_form_data");
+        localStorage.removeItem("pending_checkout_id");
+        router.push("/checkout?success=true");
+        return;
+      }
 
       if (result.success && result.clientSecret) {
         setClientSecret(result.clientSecret);
-        setPaymentTotal(total);
+        setPaymentTotal(finalTotal);
         if (result.checkoutId) {
           localStorage.setItem("pending_checkout_id", result.checkoutId);
         }
@@ -746,11 +828,205 @@ export function CheckoutClient() {
                   </div>
                 ))}
               </div>
+
+              {/* Discount Code Section */}
+              <div className="border-t border-gray-200 pt-3 mb-3">
+                {appliedDiscount ? (
+                  <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <Tag className="w-4 h-4 text-green-600" />
+                      <div>
+                        <span className="text-sm font-semibold text-green-700">
+                          {appliedDiscount.code}
+                        </span>
+                        <span className="text-xs text-green-600 ml-1">
+                          {appliedDiscount.type === "gift_card"
+                            ? `Gift Card`
+                            : appliedDiscount.discountType === "percentage"
+                              ? `${appliedDiscount.discountValue}% off`
+                              : `$${formatPrice(appliedDiscount.discountValue)} off`}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleRemoveDiscount}
+                      className="p-1 rounded-full hover:bg-green-100 transition-colors"
+                      title="Remove discount"
+                    >
+                      <XIcon className="w-3.5 h-3.5 text-green-600" />
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    {!showDiscountInput ? (
+                      <button
+                        onClick={() => setShowDiscountInput(true)}
+                        className="text-sm text-[hsl(var(--golf-orange))] hover:text-[hsl(var(--golf-orange))]/80 font-medium transition-colors"
+                      >
+                        Have a gift card or promo code?
+                      </button>
+                    ) : (
+                      <div className="space-y-4">
+                        {/* Tab Switcher */}
+                        <div className="flex p-1 bg-gray-100 rounded-lg">
+                          <button
+                            onClick={() => {
+                              setDiscountTypeTab("promo");
+                              setDiscountCode("");
+                              setDiscountError("");
+                            }}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded-md transition-all ${
+                              discountTypeTab === "promo"
+                                ? "bg-white text-gray-900 shadow-sm"
+                                : "text-gray-500 hover:text-gray-700"
+                            }`}
+                          >
+                            <Tag className="w-3.5 h-3.5" />
+                            Promo Code
+                          </button>
+                          <button
+                            onClick={() => {
+                              setDiscountTypeTab("gift_card");
+                              setDiscountCode("");
+                              setDiscountError("");
+                            }}
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded-md transition-all ${
+                              discountTypeTab === "gift_card"
+                                ? "bg-white text-gray-900 shadow-sm"
+                                : "text-gray-500 hover:text-gray-700"
+                            }`}
+                          >
+                            <Gift className="w-3.5 h-3.5" />
+                            Gift Card
+                          </button>
+                        </div>
+
+                        <div className="space-y-3">
+                          {discountTypeTab === "promo" ? (
+                            <div className="flex gap-2 text-primary">
+                              <input
+                                type="text"
+                                value={discountCode}
+                                onChange={(e) => {
+                                  setDiscountCode(e.target.value.toUpperCase());
+                                  setDiscountError("");
+                                }}
+                                placeholder="Enter promo code"
+                                className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[hsl(var(--golf-orange))]/50 focus:border-[hsl(var(--golf-orange))] uppercase tracking-wider"
+                                onKeyDown={(e) => e.key === "Enter" && handleApplyDiscount()}
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center gap-2">
+                              <InputOTP
+                                maxLength={12}
+                                value={discountCode}
+                                onChange={(val) => {
+                                  setDiscountCode(val.toUpperCase());
+                                  setDiscountError("");
+                                }}
+                                className="text-primary"
+                              >
+                                <InputOTPGroup>
+                                  <InputOTPSlot index={0} />
+                                  <InputOTPSlot index={1} />
+                                  <InputOTPSlot index={2} />
+                                  <InputOTPSlot index={3} />
+                                </InputOTPGroup>
+                                <InputOTPSeparator />
+                                <InputOTPGroup>
+                                  <InputOTPSlot index={4} />
+                                  <InputOTPSlot index={5} />
+                                  <InputOTPSlot index={6} />
+                                  <InputOTPSlot index={7} />
+                                </InputOTPGroup>
+                                <InputOTPSeparator />
+                                <InputOTPGroup>
+                                  <InputOTPSlot index={8} />
+                                  <InputOTPSlot index={9} />
+                                  <InputOTPSlot index={10} />
+                                  <InputOTPSlot index={11} />
+                                </InputOTPGroup>
+                              </InputOTP>
+                              <p className="text-[10px] text-gray-400 uppercase tracking-widest">
+                                12-Character Code
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="flex flex-col gap-2">
+                            <Button
+                              size="sm"
+                              onClick={handleApplyDiscount}
+                              disabled={
+                                isApplyingDiscount || 
+                                !discountCode.trim() || 
+                                (discountTypeTab === "gift_card" && discountCode.length < 12)
+                              }
+                              className="bg-[hsl(var(--golf-orange))] hover:bg-[hsl(var(--golf-orange))]/90 text-xs w-full"
+                            >
+                              {isApplyingDiscount ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              ) : (
+                                `Apply ${discountTypeTab === "promo" ? "Promo" : "Gift Card"}`
+                              )}
+                            </Button>
+
+                            {discountError && (
+                              <p className="text-xs text-red-600 text-center">{discountError}</p>
+                            )}
+
+                            <button
+                              onClick={() => {
+                                setShowDiscountInput(false);
+                                setDiscountCode("");
+                                setDiscountError("");
+                              }}
+                              className="text-xs text-gray-400 hover:text-gray-600 text-center py-1"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Pricing Breakdown */}
               <div className="border-t border-gray-200 pt-3">
-                <div className="flex justify-between text-lg font-bold text-gray-800">
-                  <span>Total</span>
-                  <span className="text-green-700">${formatPrice(total)}</span>
-                </div>
+                {appliedDiscount && discountAmount > 0 ? (
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Subtotal</span>
+                      <span className="text-gray-800">${formatPrice(total)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-600">
+                        {appliedDiscount.type === "gift_card"
+                          ? `Gift Card (${appliedDiscount.code.slice(0, 4)}...)`
+                          : `Promo (${appliedDiscount.code})`}
+                        {appliedDiscount.discountType === "percentage" &&
+                          ` ${appliedDiscount.discountValue}%`}
+                      </span>
+                      <span className="text-green-600 font-medium">
+                        -${formatPrice(discountAmount)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-lg font-bold text-gray-800 pt-1 border-t border-gray-100">
+                      <span>Total</span>
+                      <span className="text-green-700">
+                        ${formatPrice(finalTotal)}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex justify-between text-lg font-bold text-gray-800">
+                    <span>Total</span>
+                    <span className="text-green-700">${formatPrice(total)}</span>
+                  </div>
+                )}
               </div>
             </Card>
           </div>

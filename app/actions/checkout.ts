@@ -7,6 +7,8 @@ import {
   createCheckoutSession,
   updateCheckoutSessionPaymentIntent,
 } from "@/db/queries/checkout-sessions";
+import { getGiftCardByCode, deductGiftCardBalance } from "@/db/queries/gift-cards";
+import { getPromoCodeByCode, incrementPromoCodeUses } from "@/db/queries/promo-codes";
 
 const CART_SESSION_COOKIE = "cart_session_id";
 
@@ -59,6 +61,10 @@ interface CheckoutItem {
 interface CheckoutData {
   items: CheckoutItem[];
   totalAmount: number;
+  discountCode?: string;
+  discountType?: "gift_card" | "promo";
+  discountId?: string;
+  discountAmount?: number;
 }
 
 /**
@@ -149,12 +155,61 @@ export async function createCheckoutPaymentIntent(data: CheckoutData) {
     // --------------------------------------------------------
     // STRICT TOTAL CALCULATION
     // --------------------------------------------------------
-    // Ignore data.totalAmount from the frontend.
-    // Calculate uniquely from validated cart items exactly as they are in the DB.
     const serverTotalAmount = cart.items.reduce((sum, item) => {
-      // priceAtAdd was already strictly validated when added to the cart
       return sum + Number(item.priceAtAdd) * item.quantity;
     }, 0);
+
+    // --------------------------------------------------------
+    // SERVER-SIDE DISCOUNT VALIDATION
+    // --------------------------------------------------------
+    let validatedDiscountAmount = 0;
+    let discountMetadata: Record<string, string> = {};
+
+    if (data.discountCode && data.discountType && data.discountId) {
+      if (data.discountType === "gift_card") {
+        const giftCard = await getGiftCardByCode(data.discountCode);
+        if (giftCard && giftCard.isActive && parseFloat(giftCard.currentBalance) > 0) {
+          const balance = parseFloat(giftCard.currentBalance);
+          validatedDiscountAmount = Math.min(balance, serverTotalAmount);
+          discountMetadata = {
+            giftCardId: giftCard.id,
+            giftCardAmount: validatedDiscountAmount.toFixed(2),
+            discountType: "gift_card",
+            discountCode: data.discountCode,
+          };
+        }
+      } else if (data.discountType === "promo") {
+        const promo = await getPromoCodeByCode(data.discountCode);
+        if (promo && promo.isActive) {
+          const isWithinLimits = promo.maxUses === null || promo.currentUses < promo.maxUses;
+          const isWithinDates =
+            (!promo.validFrom || new Date() >= promo.validFrom) &&
+            (!promo.validUntil || new Date() <= promo.validUntil);
+
+          if (isWithinLimits && isWithinDates) {
+            if (promo.discountType === "percentage") {
+              validatedDiscountAmount = Math.min(
+                serverTotalAmount,
+                (serverTotalAmount * parseFloat(promo.discountValue)) / 100,
+              );
+            } else {
+              validatedDiscountAmount = Math.min(
+                serverTotalAmount,
+                parseFloat(promo.discountValue),
+              );
+            }
+            discountMetadata = {
+              promoCodeId: promo.id,
+              promoAmount: validatedDiscountAmount.toFixed(2),
+              discountType: "promo",
+              discountCode: data.discountCode,
+            };
+          }
+        }
+      }
+    }
+
+    const chargeAmount = Math.max(0, serverTotalAmount - validatedDiscountAmount);
 
     // Store checkout data in database
     const savedSession = await createCheckoutSession({
@@ -177,27 +232,50 @@ export async function createCheckoutPaymentIntent(data: CheckoutData) {
           };
         }),
       },
-      totalAmount: serverTotalAmount.toFixed(2), // Use Server Total!
+      totalAmount: serverTotalAmount.toFixed(2),
     });
 
     console.log(
-      `[Checkout] Created session ${checkoutId} with ${data.items.length} items. DB ID: ${savedSession.id}. Total: $${serverTotalAmount}`,
+      `[Checkout] Created session ${checkoutId} with ${data.items.length} items. DB ID: ${savedSession.id}. Total: $${serverTotalAmount}. Discount: $${validatedDiscountAmount}. Charge: $${chargeAmount}`,
     );
 
+    // --------------------------------------------------------
+    // FULL COVERAGE: Gift card covers entire order
+    // --------------------------------------------------------
+    if (chargeAmount <= 0 && validatedDiscountAmount > 0) {
+      // Deduct gift card balance immediately (no Stripe involved)
+      if (data.discountType === "gift_card" && data.discountId) {
+        await deductGiftCardBalance(data.discountId, validatedDiscountAmount);
+      }
+      // Increment promo code uses immediately
+      if (data.discountType === "promo" && data.discountId) {
+        await incrementPromoCodeUses(data.discountId);
+      }
+
+      // Update checkout session as completed
+      await updateCheckoutSessionPaymentIntent(checkoutId, `gift_card_full_${checkoutId}`);
+
+      return {
+        success: true,
+        skipPayment: true,
+        checkoutId,
+      };
+    }
+
     // Create Stripe metadata
-    // Pass the booking IDs so the webhook can confirm them
     const metadata: Record<string, string> = {
       checkoutId,
       cartId: cart.id,
       type: "cart_checkout",
       itemCount: data.items.length.toString(),
-      reservationBookingIds: "[]", // No pre-created bookings
-      groupRegistrationIds: "[]", // No pre-created registrations
+      reservationBookingIds: "[]",
+      groupRegistrationIds: "[]",
+      ...discountMetadata,
     };
 
     // Create PaymentIntent (Embedded Checkout)
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(serverTotalAmount * 100), // Amount in cents using Server Total!
+      amount: Math.round(chargeAmount * 100), // Amount in cents — discounted!
       currency: "usd",
       metadata: metadata,
       automatic_payment_methods: {
@@ -214,7 +292,6 @@ export async function createCheckoutPaymentIntent(data: CheckoutData) {
     }
 
     // IMMEDIATELY save the Payment Intent ID to the session
-    // This ensures the webhook can find the session by PI ID
     await updateCheckoutSessionPaymentIntent(checkoutId, paymentIntent.id);
 
     return {

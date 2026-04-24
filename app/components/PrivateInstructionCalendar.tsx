@@ -257,11 +257,8 @@ export function PrivateInstructionCalendar({
         {/* Header */}
         <div className="flex-none p-6 border-b border-gray-100 flex items-center justify-between bg-white/50">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-[hsl(var(--golf-orange))]/10 rounded-lg text-[hsl(var(--golf-orange))]">
-              <CalendarIcon className="w-6 h-6" />
-            </div>
             <div>
-              <DialogTitle className="text-2xl font-bold text-gray-900">
+              <DialogTitle className="text-lg sm:text-2xl font-bold text-gray-900">
                 Pick a Time {programName ? `— ${programName}` : ""}
               </DialogTitle>
               <p className="text-sm text-gray-500 mt-1 flex items-center gap-2">
@@ -460,7 +457,7 @@ export function PrivateInstructionCalendar({
                                       !isSelected)
                                   }
                                   className={cn(
-                                    "px-2 py-3 rounded-lg text-sm font-bold border-2 transition-all shadow-sm cursor-pointer",
+                                    "px-1 sm:px-2 py-2 sm:py-3 rounded-lg text-[11px] sm:text-sm font-bold border-2 transition-all shadow-sm cursor-pointer",
                                     isSelected
                                       ? "bg-[hsl(var(--golf-green))] border-[hsl(var(--golf-green))] text-white shadow-md transform scale-105"
                                       : isInCart
@@ -495,9 +492,9 @@ export function PrivateInstructionCalendar({
           </div>
 
           {/* Sidebar */}
-          <div className="w-full md:w-80 md:border-l border-t md:border-t-0 bg-white flex flex-col z-20 shadow-xl">
+          <div className="w-full md:w-80 md:border-l border-t md:border-t-0 bg-white flex flex-col min-h-0 z-20 shadow-xl overflow-hidden">
             {/* Desktop sidebar (always visible) */}
-            <div className="hidden md:flex md:flex-col md:flex-1">
+            <div className="hidden md:flex md:flex-col md:flex-1 min-h-0 overflow-hidden">
               <div className="p-6 border-b">
                 <div className="flex items-center justify-between mb-1">
                   <h3 className="font-bold text-lg text-gray-900">
@@ -520,7 +517,7 @@ export function PrivateInstructionCalendar({
                 </p>
               </div>
 
-              <div className="flex-1 p-6 space-y-4 overflow-auto">
+              <div className="flex-1 p-6 space-y-4 overflow-y-auto min-h-0">
                 {selectedSlots.length > 0 || selectedSlot ? (
                   <>
                     {selectedSlots.map((slot, idx) => (
@@ -534,12 +531,8 @@ export function PrivateInstructionCalendar({
                         >
                           <X className="w-3 h-3" />
                         </button>
-                        <div className="flex items-start gap-3">
-                          <div className="p-2 bg-[hsl(var(--golf-green))] rounded-lg text-white">
-                            <CalendarIcon className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <p className="font-bold text-gray-900 text-lg">
+                        <div>
+                            <p className="font-bold text-gray-900 text-lg pr-10">
                               {format(
                                 normalizeFromUTC(slot.date),
                                 "EEEE, MMM d",
@@ -550,16 +543,11 @@ export function PrivateInstructionCalendar({
                               {formatTime12(slot.endTime)}
                             </p>
                           </div>
-                        </div>
                       </div>
                     ))}
                     {selectedSlot && selectedSlots.length === 0 && (
                       <div className="p-4 rounded-xl border-2 border-[hsl(var(--golf-green))] bg-[hsl(var(--golf-green))]/5">
-                        <div className="flex items-start gap-3">
-                          <div className="p-2 bg-[hsl(var(--golf-green))] rounded-lg text-white">
-                            <CalendarIcon className="w-5 h-5" />
-                          </div>
-                          <div>
+                      <div>
                             <p className="font-bold text-gray-900 text-lg">
                               {format(
                                 normalizeFromUTC(selectedSlot.date),
@@ -571,7 +559,6 @@ export function PrivateInstructionCalendar({
                               {formatTime12(selectedSlot.endTime)}
                             </p>
                           </div>
-                        </div>
                       </div>
                     )}
                   </>

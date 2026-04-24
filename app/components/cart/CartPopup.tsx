@@ -147,18 +147,19 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
                     >
                       <Trash2 size={14} />
                     </button>
-                    <div className="relative w-12 h-12 md:w-16 md:h-16 flex-shrink-0 bg-gray-100 rounded-md overflow-hidden">
+                    <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-md bg-gray-100 md:h-16 md:w-16">
                       <Image
                         src={programImage || "/placeholder.png"}
                         alt={item.program?.name || "Program"}
                         fill
-                        className="object-cover"
+                        className="object-contain"
+                        sizes="64px"
                       />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start gap-2">
-                        <div>
-                          <p className="font-bold text-gray-900 text-xs md:text-sm truncate pr-4">
+                        <div className="w-full pr-8">
+                          <p className="font-bold text-gray-900 text-xs md:text-sm">
                             {item.program?.name}
                           </p>
                           <p className="text-xs text-gray-500 truncate">
@@ -173,20 +174,9 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
                             </p>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 mr-6">
-                          <span className="text-sm font-bold text-gray-800">
-                            ${formatPrice(
-                              Math.round(
-                                parseFloat(item.priceAtAdd) *
-                                  item.quantity *
-                                  100,
-                              ) / 100
-                            )}
-                          </span>
-                        </div>
                       </div>
 
-                      <div className="flex items-center gap-3 mt-3">
+                      <div className="flex items-end justify-between mt-3">
                         <div className="flex items-center gap-2 border border-gray-200 rounded-md bg-white">
                           {(() => {
                             // For private instructions, get the base player count from metadata
@@ -280,6 +270,17 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
                               +
                             </button>
                           )}
+                        </div>
+                        <div className="flex items-center justify-end">
+                          <span className="text-sm font-bold text-gray-800">
+                            ${formatPrice(
+                              Math.round(
+                                parseFloat(item.priceAtAdd) *
+                                  item.quantity *
+                                  100,
+                              ) / 100
+                            )}
+                          </span>
                         </div>
                       </div>
                     </div>

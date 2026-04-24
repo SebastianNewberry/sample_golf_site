@@ -140,27 +140,35 @@ export default function Navigation() {
   const isContactActive = pathname === "/contact";
   const isHomeActive = pathname === "/";
   const isCalendarActive = pathname === "/calendar";
+  const isGiftCardsActive = pathname === "/gift-cards";
 
   return (
-    <nav className="w-full bg-gray-200 border-b border-gray-300 py-4">
+    <nav className="relative z-50 w-full border-b border-gray-300 bg-gray-200 py-3">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-20 items-center justify-between">
+        {/* Fixed-height bar so mobile height matches menu open vs closed */}
+        <div className="flex h-16 min-h-16 shrink-0 items-center justify-between">
           {/* Logo */}
           <div className="flex w-full items-center justify-between gap-3 xl:w-auto">
-            <Link href="/" className="flex items-center gap-2 group">
+            <Link
+              href="/"
+              className="group flex max-h-full shrink-0 items-center gap-2"
+            >
               <Image
                 src={logo}
                 alt="Toski Golf Academy"
-                className="w-[200px] h-auto"
+                className="h-10 w-auto max-h-10 max-w-[150px] object-contain object-left sm:h-11 sm:max-h-11 sm:max-w-[166px] xl:h-12 xl:max-h-12 xl:max-w-[176px]"
+                sizes="(max-width: 639px) 150px, (max-width: 1279px) 166px, 176px"
+                priority
               />
             </Link>
             <motion.button
               aria-label="Toggle menu"
-              className="hover:bg-gray-300 inline-flex size-10 items-center justify-center rounded-md border xl:hidden cursor-pointer"
+              type="button"
+              className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md border hover:bg-gray-300 xl:hidden"
               onClick={() => setOpen((s) => !s)}
               whileTap={{ scale: 0.92 }}
             >
-              {open ? <X size={20} /> : <Menu size={20} />}
+              {open ? <X size={18} /> : <Menu size={18} />}
             </motion.button>
           </div>
 
@@ -178,15 +186,17 @@ export default function Navigation() {
 
             {/* Junior Programs Dropdown */}
             <div className="relative">
-              <button
+              <Link
+                href="/junior-programs/beginner-series"
                 onMouseEnter={() => setJuniorProgramsOpen(true)}
                 onMouseLeave={() => setJuniorProgramsOpen(false)}
+                onClick={handleDesktopLinkClick}
                 className={`inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-bold cursor-pointer ${
                   isJuniorProgramsActive ? "text-orange-600" : "text-gray-800"
                 } ${juniorProgramsOpen ? "bg-gray-300" : "hover:bg-gray-300"}`}
               >
                 JUNIOR PROGRAMS <ChevronDown size={16} />
-              </button>
+              </Link>
               {/* Invisible hover bridge to prevent dropdown from closing when moving between button and dropdown */}
               <div
                 className="absolute top-full left-0 h-2 w-full"
@@ -331,15 +341,17 @@ export default function Navigation() {
 
             {/* Adult Programs Dropdown */}
             <div className="relative">
-              <button
+              <Link
+                href="/adult-programs/get-golf-ready-level-1"
                 onMouseEnter={() => setAdultProgramsOpen(true)}
                 onMouseLeave={() => setAdultProgramsOpen(false)}
+                onClick={handleDesktopLinkClick}
                 className={`inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-bold cursor-pointer ${
                   isAdultProgramsActive ? "text-orange-600" : "text-gray-800"
                 } ${adultProgramsOpen ? "bg-gray-300" : "hover:bg-gray-300"}`}
               >
                 ADULT PROGRAMS <ChevronDown size={16} />
-              </button>
+              </Link>
               {/* Invisible hover bridge to prevent dropdown from closing when moving between button and dropdown */}
               <div
                 className="absolute top-full left-0 h-2 w-full"
@@ -411,6 +423,16 @@ export default function Navigation() {
               }`}
             >
               CALENDAR
+            </Link>
+
+            <Link
+              href="/gift-cards"
+              onClick={handleDesktopLinkClick}
+              className={`hover:bg-gray-300 rounded-md px-4 py-2 text-sm font-bold ${
+                isGiftCardsActive ? "text-orange-600" : "text-gray-800"
+              }`}
+            >
+              GIFT CARDS
             </Link>
           </div>
 
@@ -637,6 +659,20 @@ export default function Navigation() {
                 }`}
               >
                 <span>CALENDAR</span>
+                <ChevronRight
+                  size={16}
+                  className="text-gray-600 ml-3 shrink-0"
+                />
+              </Link>
+
+              <Link
+                href="/gift-cards"
+                onClick={handleLinkClick}
+                className={`hover:bg-gray-300 flex items-center justify-between rounded-md px-3 py-2 text-sm font-bold ${
+                  isGiftCardsActive ? "text-orange-600" : "text-gray-800"
+                }`}
+              >
+                <span>GIFT CARDS</span>
                 <ChevronRight
                   size={16}
                   className="text-gray-600 ml-3 shrink-0"

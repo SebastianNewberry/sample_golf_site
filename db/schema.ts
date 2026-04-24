@@ -604,7 +604,71 @@ export const cartItemRelations = relations(cartItem, ({ one }) => ({
   }),
 }));
 
-// Contact Form Submissions
+// ============================================
+// GIFT CARD SYSTEM
+// ============================================
+
+/**
+ * Gift Card - stores purchased gift cards with balance tracking
+ * Cards are created as 'pending' and activated via webhook after payment succeeds
+ */
+export const giftCard = pgTable(
+  "gift_card",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    code: text("code").notNull().unique(), // 12-char alphanumeric (A-Z excl O/I, 2-9 excl 0/1)
+    initialAmount: decimal("initial_amount", { precision: 10, scale: 2 }).notNull(),
+    currentBalance: decimal("current_balance", { precision: 10, scale: 2 }).notNull(),
+    purchaserEmail: text("purchaser_email").notNull(),
+    purchaserName: text("purchaser_name").notNull(),
+    recipientEmail: text("recipient_email"), // Optional: who the card is gifted to
+    stripePaymentIntentId: text("stripe_payment_intent_id"),
+    status: text("status").notNull().default("pending"), // 'pending', 'active', 'depleted', 'cancelled'
+    isActive: boolean("is_active").default(false).notNull(), // Only true after payment confirmed
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("gift_card_code_idx").on(table.code),
+    index("gift_card_purchaser_email_idx").on(table.purchaserEmail),
+    index("gift_card_payment_intent_idx").on(table.stripePaymentIntentId),
+  ],
+);
+
+// ============================================
+// PROMO CODE SYSTEM
+// ============================================
+
+/**
+ * Promo Code - admin-created discount codes
+ * Supports percentage-based (e.g., 20% off) and fixed-dollar (e.g., $25 off) discounts
+ */
+export const promoCode = pgTable(
+  "promo_code",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    code: text("code").notNull().unique(), // Admin-created code like "SUMMER20"
+    discountType: text("discount_type").notNull(), // 'percentage' | 'fixed'
+    discountValue: decimal("discount_value", { precision: 10, scale: 2 }).notNull(), // e.g., 20 (for 20%) or 25.00 (for $25)
+    maxUses: integer("max_uses"), // null = unlimited
+    currentUses: integer("current_uses").default(0).notNull(),
+    isActive: boolean("is_active").default(true).notNull(),
+    validFrom: timestamp("valid_from"),
+    validUntil: timestamp("valid_until"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("promo_code_code_idx").on(table.code),
+  ],
+);
+
 export const contactSubmission = pgTable(
   "contact_submission",
   {
@@ -700,3 +764,7 @@ export type NewInstructorAvailability =
   typeof instructorAvailability.$inferInsert;
 export type Booking = typeof booking.$inferSelect;
 export type NewBooking = typeof booking.$inferInsert;
+export type GiftCard = typeof giftCard.$inferSelect;
+export type NewGiftCard = typeof giftCard.$inferInsert;
+export type PromoCode = typeof promoCode.$inferSelect;
+export type NewPromoCode = typeof promoCode.$inferInsert;

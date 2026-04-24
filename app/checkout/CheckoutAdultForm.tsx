@@ -93,7 +93,7 @@ export function CheckoutAdultForm({
       if (storageKey) {
         try {
           const allDataString = localStorage.getItem("checkout_form_data");
-          let allData = allDataString ? JSON.parse(allDataString) : {};
+          const allData = allDataString ? JSON.parse(allDataString) : {};
           allData[storageKey] = { ...allData[storageKey], ...value };
           localStorage.setItem("checkout_form_data", JSON.stringify(allData));
         } catch (e) {

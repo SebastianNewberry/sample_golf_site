@@ -124,80 +124,25 @@ export default function CartContent() {
       return new Date(year, month - 1, day);
     };
 
-    // Helper to format date in Eastern Time
-    const formatDateInEastern = (dateString: string): string => {
-      const date = parseDate(dateString);
-      return date.toLocaleDateString("en-US", {
+    // One line per occurrence: "Wednesday, Apr 22 at 9:00 AM - 10:00 AM"
+    const sessionLines = sortedSchedule.map((s) => {
+      const d = parseDate(s.date);
+      const weekday = d.toLocaleDateString("en-US", {
+        weekday: "long",
         timeZone: "America/New_York",
+      });
+      const monthDay = d.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
-        year: "numeric",
-      });
-    };
-
-    // Helper to get day of week in Eastern Time
-    const getDayOfWeekInEastern = (dateString: string): string => {
-      const date = parseDate(dateString);
-      return date.toLocaleDateString("en-US", {
         timeZone: "America/New_York",
-        weekday: "long",
       });
-    };
-
-    // Format date range
-    const dateRange = `${formatDateInEastern(sortedSchedule[0].date)} - ${formatDateInEastern(sortedSchedule[sortedSchedule.length - 1].date)}`;
-
-    // Group recurring sessions
-    const groups: Record<string, { day: string; time: string; dates: Date[] }> =
-      {};
-
-    sortedSchedule.forEach((s) => {
-      const date = parseDate(s.date);
-      const dayName = getDayOfWeekInEastern(s.date);
       const timeRange = `${formatTime12h(s.startTime)} - ${formatTime12h(s.endTime)}`;
-      const key = `${dayName}-${timeRange}`;
-
-      if (!groups[key]) {
-        groups[key] = {
-          day: dayName,
-          time: timeRange,
-          dates: [],
-        };
-      }
-      groups[key].dates.push(date);
-    });
-
-    const groupedSchedule = Object.values(groups).map((group) => {
-      group.dates.sort((a, b) => a.getTime() - b.getTime());
-      const firstDate = group.dates[0];
-      const lastDate = group.dates[group.dates.length - 1];
-
-      const formatDateShort = (d: Date) =>
-        d.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        });
-
-      const dateRangeStr =
-        group.dates.length > 1
-          ? `${formatDateShort(firstDate)} - ${formatDateShort(lastDate)}`
-          : formatDateShort(firstDate);
-
-      // Pluralize day if multiple
-      const dayLabel = group.dates.length > 1 ? group.day + "s" : group.day;
-
-      return {
-        dayLabel,
-        timeRange: group.time,
-        dateRange: dateRangeStr,
-        count: group.dates.length,
-      };
+      return `${weekday}, ${monthDay} at ${timeRange}`;
     });
 
     return {
       sessionCount: schedule.length,
-      dateRange,
-      groupedSchedule,
+      sessionLines,
     };
   };
 
@@ -208,35 +153,25 @@ export default function CartContent() {
       const metadata = JSON.parse(metadataJson);
       if (!metadata.slots || !Array.isArray(metadata.slots)) return null;
 
-      // Parse dates from metadata slots
+      // Parse dates from metadata slots — match program session schedule typography (Eastern)
       const formattedSlots = metadata.slots.map((slot: any) => {
-        // Parse date string (YYYY-MM-DD) to Local Date object to avoid UTC shifts
         const [year, month, day] = slot.date.split("-").map(Number);
         const date = new Date(year, month - 1, day);
 
-        return {
-          date: date.toLocaleDateString("en-US", {
-            // We use the date object which represents 00:00 local time on that day
-            // Displaying it with a timezone might shift it if the local machine is not in that timezone
-            // BUT since we manually constructed it as local 00:00, toLocaleDateString without timezone IANA
-            // might use browser's timezone.
-            // Ideally we want to just format it as the date string says.
-            // However, to be consistent with existing styling we use these options.
-            // Specifying 'America/New_York' on a manually constructed local date (which effectively usually means local to user)
-            // might shift it if user is NOT in EST?
-            // Actually, if we just want "Feb 18, 2026", and we have "2026-02-18",
-            // we can strictly format the string parts.
-            // But let's stick to the Date object method but ensure it doesn't shift.
-            // Simple fix: Add 12 hours to be in the middle of the day.
+        const dayLabel = date.toLocaleDateString("en-US", {
+          weekday: "long",
+          timeZone: "America/New_York",
+        });
+        const dateShort = date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          timeZone: "America/New_York",
+        });
+        const timeRange = `${formatTime12h(slot.startTime)} - ${formatTime12h(slot.endTime)}`;
+        const line = `${dayLabel}, ${dateShort} at ${timeRange}`;
 
-            // Revised approach:
-            // Just use the parsing logic which creates a local date.
-            // format options -> "short" month, numeric day.
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-          }),
-          time: `${formatTime12h(slot.startTime)} - ${formatTime12h(slot.endTime)}`,
+        return {
+          line,
         };
       });
 
@@ -245,6 +180,8 @@ export default function CartContent() {
         totalHours: metadata.totalHours,
         sessionCount: metadata.slots.length,
         slots: formattedSlots,
+        isOnCourse: metadata.isOnCourse,
+        coachesCount: metadata.coachesCount,
       };
     } catch (e) {
       return null;
@@ -294,8 +231,6 @@ export default function CartContent() {
       </div>
     );
   }
-
-  const totalItemQty = items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -380,14 +315,14 @@ export default function CartContent() {
                         >
                           <div className="flex flex-col sm:flex-row gap-4 sm:gap-6">
                             {/* Program Image */}
-                            <div className="w-full sm:w-32 h-40 sm:h-32 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center shrink-0 relative">
+                            <div className="relative flex h-40 w-full shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white sm:h-32 sm:w-32 sm:bg-gray-100">
                               {programImage ? (
                                 <Image
                                   src={programImage}
                                   alt={item.program?.name || "Program"}
                                   fill
-                                  className="object-cover"
-                                  sizes="128px"
+                                  className="object-contain sm:object-cover"
+                                  sizes="(max-width: 639px) 100vw, 128px"
                                   priority
                                 />
                               ) : (
@@ -399,6 +334,14 @@ export default function CartContent() {
                                   </span>
                                 </div>
                               )}
+                              <button
+                                type="button"
+                                onClick={() => removeItem(item.id)}
+                                className="absolute right-2 top-2 z-10 rounded-md bg-white/90 p-1.5 text-gray-500 shadow-sm backdrop-blur-sm transition-colors hover:bg-white hover:text-red-600 sm:hidden"
+                                aria-label="Remove item"
+                              >
+                                <Trash2 size={20} />
+                              </button>
                             </div>
 
                             {/* Program Details */}
@@ -415,16 +358,21 @@ export default function CartContent() {
                                   </p>
                                   {item.session && (
                                     <div className="mt-3 space-y-2">
-                                      <div className="flex items-center gap-2 text-sm text-gray-700">
-                                        <Calendar
-                                          size={16}
-                                          className="text-green-600"
-                                        />
-                                        <span className="font-semibold">
-                                          {item.session.name}
-                                          {scheduleInfo &&
-                                            ` - ${scheduleInfo.sessionCount} Session${Number(scheduleInfo.sessionCount) === 1 ? "" : "s"}`}
-                                        </span>
+                                      <div className="flex flex-col gap-1 text-sm text-gray-700">
+                                        <div className="flex items-start gap-2">
+                                          <Calendar
+                                            size={16}
+                                            className="text-green-600 shrink-0 mt-0.5"
+                                          />
+                                          <span className="font-semibold leading-tight">
+                                            {item.session.name}
+                                          </span>
+                                        </div>
+                                        {scheduleInfo && (
+                                          <div className="pl-6 text-xs font-medium text-gray-500">
+                                            {scheduleInfo.sessionCount} Session{Number(scheduleInfo.sessionCount) === 1 ? "" : "s"}
+                                          </div>
+                                        )}
                                       </div>
                                       {scheduleInfo && (
                                         <div className="mt-4 space-y-3">
@@ -432,26 +380,15 @@ export default function CartContent() {
                                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
                                               Schedule:
                                             </p>
-                                            {scheduleInfo.groupedSchedule.map(
-                                              (group: any, idx: number) => (
+                                            {scheduleInfo.sessionLines.map(
+                                              (line: string, idx: number) => (
                                                 <div
                                                   key={idx}
-                                                  className="border-l-2 border-green-200 pl-3 py-1"
+                                                  className="border-l-2 border-green-200 py-1 pl-3"
                                                 >
-                                                  <div className="flex items-baseline justify-between gap-4">
-                                                    <span className="font-bold text-gray-800 text-sm">
-                                                      {group.dayLabel} at{" "}
-                                                      {group.timeRange}
-                                                    </span>
-                                                  </div>
-                                                  <div className="text-xs text-gray-600 mt-1">
-                                                    {group.dateRange}
-                                                    {group.count > 1 && (
-                                                      <span className="ml-1 text-gray-400">
-                                                        ({group.count} sessions)
-                                                      </span>
-                                                    )}
-                                                  </div>
+                                                  <p className="text-sm font-bold text-gray-800">
+                                                    {line}
+                                                  </p>
                                                 </div>
                                               ),
                                             )}
@@ -461,7 +398,7 @@ export default function CartContent() {
                                     </div>
                                   )}
 
-                                  {/* Private Instruction Metadata */}
+                                  {/* Private instruction (adult + junior program IDs): shared schedule UI */}
                                   {privateInfo && (
                                     <div className="mt-4 space-y-3">
                                       <div className="flex items-center gap-2 text-sm text-gray-800 font-semibold bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-100 w-fit">
@@ -473,6 +410,29 @@ export default function CartContent() {
                                           {item.quantity} Player
                                           {item.quantity !== 1 ? "s" : ""}
                                         </span>
+                                        {privateInfo.isOnCourse && (
+                                          <>
+                                            <span className="text-gray-400 mx-1">
+                                              •
+                                            </span>
+                                            <span className="text-blue-700">
+                                              On-Course Coaching
+                                            </span>
+                                          </>
+                                        )}
+                                        {privateInfo.coachesCount &&
+                                          privateInfo.coachesCount > 0 && (
+                                            <>
+                                              <span className="text-gray-400 mx-1">
+                                                •
+                                              </span>
+                                              <span className="text-indigo-600">
+                                                {privateInfo.coachesCount === 1
+                                                  ? "1 Coach"
+                                                  : `${privateInfo.coachesCount} Coaches`}
+                                              </span>
+                                            </>
+                                          )}
                                         <span className="text-gray-400 mx-1">
                                           •
                                         </span>
@@ -484,34 +444,19 @@ export default function CartContent() {
                                         </span>
                                       </div>
 
-                                      <div className="space-y-1.5 pl-1">
-                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
-                                          Scheduled Session
-                                          {Number(privateInfo.slots.length) === 1
-                                            ? ""
-                                            : "s"}
-                                          :
+                                      <div className="pl-1 space-y-3">
+                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                          Schedule:
                                         </p>
                                         {privateInfo.slots.map(
-                                          (slot: any, idx: number) => (
+                                          (slot: { line: string }, idx: number) => (
                                             <div
                                               key={idx}
-                                              className="flex items-center gap-3 text-sm text-gray-700 group"
+                                              className="border-l-2 border-green-200 py-1 pl-3"
                                             >
-                                              <div className="w-5 h-5 rounded-full bg-green-50 flex items-center justify-center text-[10px] font-bold text-green-700 border border-green-100 shrink-0">
-                                                {idx + 1}
-                                              </div>
-                                              <div className="flex gap-2 items-baseline">
-                                                <span className="font-medium">
-                                                  {slot.date}
-                                                </span>
-                                                <span className="text-gray-400 text-xs">
-                                                  at
-                                                </span>
-                                                <span className="text-gray-600 font-medium">
-                                                  {slot.time}
-                                                </span>
-                                              </div>
+                                              <p className="text-sm font-bold text-gray-800">
+                                                {slot.line}
+                                              </p>
                                             </div>
                                           ),
                                         )}
@@ -520,15 +465,16 @@ export default function CartContent() {
                                   )}
                                 </div>
                                 <button
+                                  type="button"
                                   onClick={() => removeItem(item.id)}
-                                  className="text-gray-400 enabled:hover:text-red-600 transition-colors p-1 flex-shrink-0 cursor-pointer"
+                                  className="hidden shrink-0 cursor-pointer p-1 text-gray-400 transition-colors enabled:hover:text-red-600 sm:flex"
                                   aria-label="Remove item"
                                 >
                                   <Trash2 size={20} />
                                 </button>
                               </div>
 
-                              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-4 md:mt-6 pt-4 md:pt-6 border-t border-gray-100 gap-4">
+                              <div className="flex flex-row items-center justify-between w-full mt-4 md:mt-6 pt-4 md:pt-6 border-t border-gray-100 gap-4">
                                 {/* Quantity Controls */}
                                 <div className="flex items-center gap-3">
                                   {(() => {
@@ -661,7 +607,7 @@ export default function CartContent() {
                                 </div>
 
                                 {/* Price */}
-                                <div className="flex flex-col items-end min-h-[3.5rem] justify-center">
+                                <div className="flex flex-col items-end shrink-0 justify-center">
                                   <p className="text-xl md:text-2xl font-bold text-green-700 leading-tight">
                                     ${formatPrice(
                                       Math.round(
@@ -672,7 +618,7 @@ export default function CartContent() {
                                     )}
                                   </p>
                                   {item.quantity > 1 && (
-                                    <p className="text-sm text-gray-500 mt-1">
+                                    <p className="text-xs md:text-sm text-gray-500 mt-0.5 md:mt-1">
                                       ${item.priceAtAdd} each
                                     </p>
                                   )}
@@ -717,7 +663,7 @@ export default function CartContent() {
 
                   <div className="space-y-4 mb-8">
                     <div className="flex justify-between text-base text-gray-600">
-                      <span>Subtotal ({totalItemQty} items)</span>
+                      <span>Subtotal</span>
                       <span className="font-semibold">${formatPrice(total)}</span>
                     </div>
                     <div className="border-t border-gray-200 pt-4">
@@ -760,44 +706,41 @@ export default function CartContent() {
 
         {/* Order summary — mobile: fixed to bottom for quick checkout */}
         <div
-          className="lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur-sm"
+          className="fixed inset-x-0 bottom-0 z-40 m-0 border-t border-gray-200 bg-white shadow-[0_-8px_30px_rgba(0,0,0,0.08)] lg:hidden"
           style={{
-            paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0px))",
+            paddingBottom: "env(safe-area-inset-bottom, 0px)",
           }}
         >
-          <div className="mx-auto w-[92%] max-w-6xl px-1 pt-3">
-            <div className="flex items-center gap-3">
-              <div className="min-w-0 shrink">
+          <div className="mx-auto w-[92%] max-w-6xl px-1 pt-3 pb-3">
+            <div className="flex items-start gap-3">
+              <div className="min-w-0 shrink pt-1">
                 <p className="text-xs font-medium text-gray-500">Total</p>
-                <p className="text-xl font-bold text-green-700 tabular-nums">
+                <p className="text-xl font-bold text-green-700 tabular-nums leading-none mt-1">
                   ${formatPrice(total)}
                 </p>
-                <p className="text-[11px] text-gray-400 truncate">
-                  {totalItemQty} item{totalItemQty === 1 ? "" : "s"}
-                </p>
               </div>
-              <Button
-                onClick={handleProceedToCheckout}
-                disabled={isValidating}
-                className="min-h-12 flex-1 bg-orange-500 enabled:hover:bg-orange-600 text-white py-3 text-base font-semibold cursor-pointer shadow-md enabled:hover:shadow-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {isValidating ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin shrink-0" />
-                    Checking Availability…
-                  </>
-                ) : (
-                  <>
-                    Checkout
-                    <ArrowRight className="ml-2 w-5 h-5 shrink-0" />
-                  </>
-                )}
-              </Button>
+              <div className="flex-1 flex flex-col">
+                <Button
+                  onClick={handleProceedToCheckout}
+                  disabled={isValidating}
+                  className="w-full min-h-12 bg-orange-500 enabled:hover:bg-orange-600 text-white py-3 text-base font-semibold cursor-pointer shadow-md enabled:hover:shadow-lg transition-all disabled:bg-stone-200 disabled:text-stone-500 disabled:opacity-100 disabled:shadow-none disabled:cursor-not-allowed"
+                >
+                  Checkout
+                  <ArrowRight className={`ml-2 w-5 h-5 shrink-0 transition-opacity ${isValidating ? 'opacity-0' : 'opacity-100'}`} />
+                </Button>
+                <div
+                  className={`overflow-hidden text-[11px] font-medium text-stone-500 transition-all duration-200 ${
+                    isValidating
+                      ? "mt-1.5 flex h-4 items-center justify-center gap-1.5 opacity-100"
+                      : "mt-0 h-0 opacity-0 pointer-events-none"
+                  }`}
+                  aria-hidden={!isValidating}
+                >
+                  <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin" />
+                  <span>Checking availability...</span>
+                </div>
+              </div>
             </div>
-            <p className="text-center text-[11px] text-gray-500 mt-2 leading-snug">
-              You&apos;ll complete registration forms for each program at
-              checkout
-            </p>
           </div>
         </div>
       </div>

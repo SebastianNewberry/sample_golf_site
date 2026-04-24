@@ -185,7 +185,7 @@ async function addPrivateInstructionEvents(events: CalendarEvent[]) {
 
     events.push({
       id: `adult-private-${dateKey}`,
-      title: `Adult Private Instruction Availability`,
+      title: `Adult Private Instruction`,
       date: parseLocalDate(dateKey),
       programType: "adult",
       color: "#ea580c", // Dark Orange
@@ -232,7 +232,7 @@ async function addPrivateInstructionEvents(events: CalendarEvent[]) {
 
     events.push({
       id: `junior-private-${dateKey}`,
-      title: `Junior Private Instruction Availability`,
+      title: `Junior Private Instruction`,
       date: parseLocalDate(dateKey),
       programType: "junior",
       color: "#15803d", // Darker green
@@ -267,11 +267,11 @@ export default async function CalendarPage() {
           </div>
 
           <div className="mt-8 grid md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">
+            <div className="flex max-h-[min(320px,55vh)] flex-col rounded-xl bg-white p-6 shadow-sm md:max-h-[360px]">
+              <h2 className="mb-3 shrink-0 text-xl font-bold text-gray-800">
                 Adult Programs
               </h2>
-              <ul className="space-y-2 text-sm text-gray-700">
+              <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain pr-1 text-sm text-gray-700 [scrollbar-gutter:stable]">
                 <li className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-orange-500" />
                   <span>Get Golf Ready (Level I & II)</span>
@@ -297,11 +297,11 @@ export default async function CalendarPage() {
               </ul>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="text-xl font-bold text-gray-800 mb-4">
+            <div className="flex max-h-[min(320px,55vh)] flex-col rounded-xl bg-white p-6 shadow-sm md:max-h-[360px]">
+              <h2 className="mb-3 shrink-0 text-xl font-bold text-gray-800">
                 Junior Programs
               </h2>
-              <ul className="space-y-2 text-sm text-gray-700">
+              <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain pr-1 text-sm text-gray-700 [scrollbar-gutter:stable]">
                 <li className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-green-500" />
                   <span>Junior Beginner Series</span>

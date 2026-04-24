@@ -111,7 +111,7 @@ export function AdultProgramPageWrapper({
           <h1 className="text-2xl font-bold text-gray-800">{programName}</h1>
           <button
             onClick={() => setShowNav(!showNav)}
-            className="lg:hidden flex items-center self-center gap-0.5 text-[9px] font-semibold text-gray-500 hover:text-gray-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-gray-100 cursor-pointer whitespace-nowrap"
+            className="lg:hidden flex items-center self-center gap-0.5 text-[9px] font-semibold text-gray-500 hover:text-gray-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-gray-100 cursor-pointer whitespace-nowrap min-w-[90px] justify-center"
           >
             {showNav ? "Hide Programs" : "Show Programs"}
             {showNav ? (

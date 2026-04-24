@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { SafeHTML } from "@/app/components/SafeHTML";
 
 export interface CalendarEvent {
   id: string;
@@ -30,11 +31,6 @@ interface ProgramCalendarProps {
   maxHeight?: string;
 }
 
-// Helper to strip HTML tags from rich-text descriptions
-function stripHtml(html: string) {
-  if (!html) return "";
-  return html.replace(/<[^>]*>?/gm, "").replace(/&nbsp;/g, " ");
-}
 
 export function ProgramCalendar({
   events,
@@ -361,9 +357,10 @@ export function ProgramCalendar({
                                 {event.programType} Program
                               </p>
                               {event.programDescription && (
-                                <p className="line-clamp-3 leading-relaxed text-gray-500">
-                                  {stripHtml(event.programDescription)}
-                                </p>
+                                <SafeHTML 
+                                  html={event.programDescription} 
+                                  className="line-clamp-3 leading-relaxed text-gray-500 [&_*]:inline" 
+                                />
                               )}
                               {event.url && (
                                 <div className="pt-2 mt-1 border-t border-gray-100">
@@ -454,9 +451,10 @@ export function ProgramCalendar({
             </div>
             {tooltipEvent.programDescription && (
               <div className="pt-2 border-t border-gray-100 mt-2">
-                <p className="line-clamp-3 leading-relaxed text-gray-500">
-                  {stripHtml(tooltipEvent.programDescription)}
-                </p>
+                <SafeHTML 
+                  html={tooltipEvent.programDescription} 
+                  className="line-clamp-3 leading-relaxed text-gray-500 [&_*]:inline" 
+                />
               </div>
             )}
           </div>

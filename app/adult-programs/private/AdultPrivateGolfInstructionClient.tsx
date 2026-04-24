@@ -49,6 +49,8 @@ export function AdultPrivateGolfInstructionClient({
   const [selectedDurationMinutes, setSelectedDurationMinutes] =
     useState<number>(60);
   const [selectedPlayersCount, setSelectedPlayersCount] = useState<number>(1);
+  const [selectedIsOnCourse, setSelectedIsOnCourse] = useState<boolean>(false);
+  const [selectedCoachesCount, setSelectedCoachesCount] = useState<number>(0);
   const [selectedSlots, setSelectedSlots] = useState<any[]>([]); // Array of slots
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [showNav, setShowNav] = useState(false);
@@ -136,6 +138,8 @@ export function AdultPrivateGolfInstructionClient({
     setSelectedSessionCount(Number(pkg.sessionCount) || 1);
     setSelectedDurationMinutes(Number(pkg.durationMinutes) || 60);
     setSelectedPlayersCount(Number(pkg.playersCount) || 1);
+    setSelectedIsOnCourse(Boolean(pkg.isOnCourse));
+    setSelectedCoachesCount(Number(pkg.coachesCount) || 0);
     setSelectedSlots([]); // Reset upon package change
   };
 
@@ -210,6 +214,8 @@ export function AdultPrivateGolfInstructionClient({
       packageId: selectedPackageId,
       duration: selectedDuration,
       totalHours,
+      isOnCourse: selectedIsOnCourse,
+      coachesCount: selectedCoachesCount,
       slots: selectedSlots.map((s) => ({
         date: format(s.date, "yyyy-MM-dd"),
         startTime: s.startTime,
@@ -273,6 +279,8 @@ export function AdultPrivateGolfInstructionClient({
       packageId: selectedPackageId,
       duration: selectedDuration,
       totalHours,
+      isOnCourse: selectedIsOnCourse,
+      coachesCount: selectedCoachesCount,
       slots: selectedSlots.map((s) => ({
         date: format(s.date, "yyyy-MM-dd"),
         startTime: s.startTime,
@@ -569,6 +577,13 @@ export function AdultPrivateGolfInstructionClient({
                                       ? "Private Session"
                                       : `$${Math.round(pkg.price / pkg.playersCount)} / person`}
                                   </p>
+                                  {pkg.coachesCount && pkg.coachesCount > 0 && (
+                                    <p className="text-xs text-[hsl(var(--golf-green))] font-semibold mt-1">
+                                      {pkg.coachesCount === 1
+                                        ? "1 Coach"
+                                        : `${pkg.coachesCount} Coaches`}
+                                    </p>
+                                  )}
                                 </div>
                                 <p
                                   className={`text-2xl font-bold ${selectedPackageId === pkg.id ? "text-[hsl(var(--golf-orange))]" : "text-[hsl(var(--golf-green))]"}`}

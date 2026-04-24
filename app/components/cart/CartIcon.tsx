@@ -89,8 +89,10 @@ export function CartIcon() {
     >
       <Link
         href="/cart"
-        className="relative inline-flex items-center justify-center w-10 h-10 rounded-md hover:bg-gray-300 transition-colors"
-        aria-label={`Shopping cart with ${itemCount} items`}
+        className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-gray-300"
+        aria-label={
+          itemCount > 0 ? `Shopping cart (${itemCount})` : "Shopping cart"
+        }
       >
         <motion.div
           key={cartAnimationTrigger}
@@ -102,7 +104,7 @@ export function CartIcon() {
             ease: "easeInOut",
           }}
         >
-          <ShoppingCart size={22} className="text-gray-800" />
+          <ShoppingCart size={20} className="text-gray-800" />
         </motion.div>
         <AnimatePresence>
           {!isLoading && itemCount > 0 && (
@@ -119,7 +121,7 @@ export function CartIcon() {
       </Link>
 
       {/* Cart Popup - absolute, anchored to right edge */}
-      <div className="absolute top-full left-0 md:left-1/2 md:-translate-x-1/2 pt-6 z-50">
+      <div className="absolute top-full left-0 z-50 pt-2 md:left-1/2 md:-translate-x-1/2">
         <CartPopup
           isOpen={isOpen}
           setIsOpen={(open) => {
