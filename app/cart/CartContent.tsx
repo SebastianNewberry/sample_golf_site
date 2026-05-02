@@ -124,25 +124,50 @@ export default function CartContent() {
       return new Date(year, month - 1, day);
     };
 
-    // One line per occurrence: "Wednesday, Apr 22 at 9:00 AM - 10:00 AM"
-    const sessionLines = sortedSchedule.map((s) => {
+    // Group sessions by day of week and time range
+    const groups: Record<string, { day: string; time: string; dates: Date[] }> = {};
+
+    sortedSchedule.forEach((s) => {
       const d = parseDate(s.date);
       const weekday = d.toLocaleDateString("en-US", {
         weekday: "long",
         timeZone: "America/New_York",
       });
-      const monthDay = d.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        timeZone: "America/New_York",
-      });
       const timeRange = `${formatTime12h(s.startTime)} - ${formatTime12h(s.endTime)}`;
-      return `${weekday}, ${monthDay} at ${timeRange}`;
+      const key = `${weekday}-${timeRange}`;
+
+      if (!groups[key]) {
+        groups[key] = { day: weekday, time: timeRange, dates: [] };
+      }
+      groups[key].dates.push(d);
+    });
+
+    const sessionGroups = Object.values(groups).map((group) => {
+      group.dates.sort((a, b) => a.getTime() - b.getTime());
+      const firstDate = group.dates[0];
+      const lastDate = group.dates[group.dates.length - 1];
+
+      const formatDateShort = (d: Date) =>
+        d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" });
+
+      const dateRangeStr =
+        group.dates.length > 1
+          ? `${formatDateShort(firstDate)} - ${formatDateShort(lastDate)}`
+          : formatDateShort(firstDate);
+
+      const dayLabel = group.dates.length > 1 ? group.day + "s" : group.day;
+
+      return {
+        dayLabel,
+        timeRange: group.time,
+        dateRange: dateRangeStr,
+        count: group.dates.length,
+      };
     });
 
     return {
       sessionCount: schedule.length,
-      sessionLines,
+      sessionGroups,
     };
   };
 
@@ -153,25 +178,46 @@ export default function CartContent() {
       const metadata = JSON.parse(metadataJson);
       if (!metadata.slots || !Array.isArray(metadata.slots)) return null;
 
-      // Parse dates from metadata slots — match program session schedule typography (Eastern)
-      const formattedSlots = metadata.slots.map((slot: any) => {
+      // Parse and group dates from metadata slots
+      const groups: Record<string, { day: string; time: string; dates: Date[] }> = {};
+
+      metadata.slots.forEach((slot: any) => {
         const [year, month, day] = slot.date.split("-").map(Number);
         const date = new Date(year, month - 1, day);
 
-        const dayLabel = date.toLocaleDateString("en-US", {
+        const weekday = date.toLocaleDateString("en-US", {
           weekday: "long",
           timeZone: "America/New_York",
         });
-        const dateShort = date.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          timeZone: "America/New_York",
-        });
         const timeRange = `${formatTime12h(slot.startTime)} - ${formatTime12h(slot.endTime)}`;
-        const line = `${dayLabel}, ${dateShort} at ${timeRange}`;
+        const key = `${weekday}-${timeRange}`;
+
+        if (!groups[key]) {
+          groups[key] = { day: weekday, time: timeRange, dates: [] };
+        }
+        groups[key].dates.push(date);
+      });
+
+      const formattedGroups = Object.values(groups).map((group) => {
+        group.dates.sort((a, b) => a.getTime() - b.getTime());
+        const firstDate = group.dates[0];
+        const lastDate = group.dates[group.dates.length - 1];
+
+        const formatDateShort = (d: Date) =>
+          d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" });
+
+        const dateRangeStr =
+          group.dates.length > 1
+            ? `${formatDateShort(firstDate)} - ${formatDateShort(lastDate)}`
+            : formatDateShort(firstDate);
+
+        const dayLabel = group.dates.length > 1 ? group.day + "s" : group.day;
 
         return {
-          line,
+          dayLabel,
+          timeRange: group.time,
+          dateRange: dateRangeStr,
+          count: group.dates.length,
         };
       });
 
@@ -179,7 +225,7 @@ export default function CartContent() {
         duration: metadata.duration,
         totalHours: metadata.totalHours,
         sessionCount: metadata.slots.length,
-        slots: formattedSlots,
+        groups: formattedGroups,
         isOnCourse: metadata.isOnCourse,
         coachesCount: metadata.coachesCount,
       };
@@ -380,14 +426,22 @@ export default function CartContent() {
                                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
                                               Schedule:
                                             </p>
-                                            {scheduleInfo.sessionLines.map(
-                                              (line: string, idx: number) => (
+                                            {scheduleInfo.sessionGroups.map(
+                                              (group: any, idx: number) => (
                                                 <div
                                                   key={idx}
                                                   className="border-l-2 border-green-200 py-1 pl-3"
                                                 >
                                                   <p className="text-sm font-bold text-gray-800">
-                                                    {line}
+                                                    {group.dayLabel} at {group.timeRange}
+                                                  </p>
+                                                  <p className="text-xs text-gray-500 mt-0.5">
+                                                    {group.dateRange}
+                                                    {group.count > 1 && (
+                                                      <span className="text-gray-400 ml-1">
+                                                        ({group.count} sessions)
+                                                      </span>
+                                                    )}
                                                   </p>
                                                 </div>
                                               ),
@@ -448,14 +502,22 @@ export default function CartContent() {
                                         <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
                                           Schedule:
                                         </p>
-                                        {privateInfo.slots.map(
-                                          (slot: { line: string }, idx: number) => (
+                                        {privateInfo.groups.map(
+                                          (group: any, idx: number) => (
                                             <div
                                               key={idx}
                                               className="border-l-2 border-green-200 py-1 pl-3"
                                             >
                                               <p className="text-sm font-bold text-gray-800">
-                                                {slot.line}
+                                                {group.dayLabel} at {group.timeRange}
+                                              </p>
+                                              <p className="text-xs text-gray-500 mt-0.5">
+                                                {group.dateRange}
+                                                {group.count > 1 && (
+                                                  <span className="text-gray-400 ml-1">
+                                                    ({group.count} sessions)
+                                                  </span>
+                                                )}
                                               </p>
                                             </div>
                                           ),
