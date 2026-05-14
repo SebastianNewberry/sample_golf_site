@@ -182,10 +182,13 @@ export const program = pgTable("program", {
    */
   details: text("details"), // JSON string of structured details
 
-  // Scheduling Type: 'session' (Group Classes) or 'appointment' (Private Lessons)
+  // Scheduling Type: 'session' (Group Classes), 'appointment' (Private Lessons), or 'series' (Series)
   schedulingType: text("scheduling_type").notNull().default("session"),
 
-  // Dynamic pricing packages with validation rules (for Private Instruction, etc.)
+  // For series programs: max enrollment per individual time slot
+  seriesCapacityPerSlot: integer("series_capacity_per_slot"),
+
+  // Dynamic pricing packages with validation rules (for Private Instruction, Series, etc.)
   pricingOptions: json("pricing_options"),
 
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -418,6 +421,7 @@ export const programSessionRelations = relations(
     }),
     adultRegistrations: many(adultRegistration),
     juniorProgramRegistrations: many(juniorProgramRegistration),
+    seriesSlotEnrollments: many(seriesSlotEnrollment),
   }),
 );
 
@@ -460,7 +464,7 @@ export const juniorRegistrationRelations = relations(
 
 export const juniorProgramRegistrationRelations = relations(
   juniorProgramRegistration,
-  ({ one }) => ({
+  ({ one, many }) => ({
     juniorRegistration: one(juniorRegistration, {
       fields: [juniorProgramRegistration.juniorRegistrationId],
       references: [juniorRegistration.id],
@@ -472,6 +476,66 @@ export const juniorProgramRegistrationRelations = relations(
     programSession: one(programSession, {
       fields: [juniorProgramRegistration.programSessionId],
       references: [programSession.id],
+    }),
+    seriesSlotEnrollments: many(seriesSlotEnrollment),
+  }),
+);
+
+// ============================================
+// SERIES SLOT ENROLLMENT
+// ============================================
+
+/**
+ * Tracks per-slot enrollment for Series programs.
+ * Each row represents one customer's booking for one specific slot
+ * within a Series session's schedule.
+ */
+export const seriesSlotEnrollment = pgTable(
+  "series_slot_enrollment",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    programSessionId: uuid("program_session_id")
+      .notNull()
+      .references(() => programSession.id, { onDelete: "cascade" }),
+    // Slot identity from the session's schedule JSON
+    slotDate: text("slot_date").notNull(), // "YYYY-MM-DD"
+    slotStartTime: text("slot_start_time").notNull(), // "HH:MM"
+    slotEndTime: text("slot_end_time").notNull(), // "HH:MM"
+    // Link to the registration (one of these will be set)
+    adultRegistrationId: uuid("adult_registration_id").references(
+      () => adultRegistration.id,
+      { onDelete: "cascade" },
+    ),
+    juniorProgramRegistrationId: uuid(
+      "junior_program_registration_id",
+    ).references(() => juniorProgramRegistration.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("confirmed"), // 'confirmed', 'cancelled'
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("series_slot_enrollment_session_idx").on(table.programSessionId),
+    index("series_slot_enrollment_slot_idx").on(
+      table.programSessionId,
+      table.slotDate,
+      table.slotStartTime,
+    ),
+  ],
+);
+
+export const seriesSlotEnrollmentRelations = relations(
+  seriesSlotEnrollment,
+  ({ one }) => ({
+    programSession: one(programSession, {
+      fields: [seriesSlotEnrollment.programSessionId],
+      references: [programSession.id],
+    }),
+    adultRegistration: one(adultRegistration, {
+      fields: [seriesSlotEnrollment.adultRegistrationId],
+      references: [adultRegistration.id],
+    }),
+    juniorProgramRegistration: one(juniorProgramRegistration, {
+      fields: [seriesSlotEnrollment.juniorProgramRegistrationId],
+      references: [juniorProgramRegistration.id],
     }),
   }),
 );
@@ -768,3 +832,5 @@ export type GiftCard = typeof giftCard.$inferSelect;
 export type NewGiftCard = typeof giftCard.$inferInsert;
 export type PromoCode = typeof promoCode.$inferSelect;
 export type NewPromoCode = typeof promoCode.$inferInsert;
+export type SeriesSlotEnrollment = typeof seriesSlotEnrollment.$inferSelect;
+export type NewSeriesSlotEnrollment = typeof seriesSlotEnrollment.$inferInsert;

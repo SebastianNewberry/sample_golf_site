@@ -19,6 +19,7 @@ import {
   Sparkles,
   Copy,
   CheckCircle2,
+  Lock,
 } from "lucide-react";
 import { purchaseGiftCard } from "@/app/actions/gift-cards";
 import { formatPrice } from "@/lib/utils";
@@ -168,10 +169,10 @@ function StepOne({
               key={preset}
               onClick={() => {
                 setAmount(preset);
-                setCustomAmount("");
+                setCustomAmount(preset.toString());
               }}
               className={`relative py-3 px-2 rounded-xl border-2 transition-all duration-200 w-full flex items-center justify-center font-bold text-base tracking-tight cursor-pointer ${
-                amount === preset
+                selectedAmount === preset
                   ? "border-[hsl(var(--golf-orange))] shadow-md bg-[hsl(var(--golf-orange))]/5 text-[hsl(var(--golf-orange))] scale-[1.04]"
                   : "border-gray-200 bg-white hover:border-[hsl(var(--golf-orange))]/40 hover:shadow-sm text-gray-800"
               }`}
@@ -424,9 +425,11 @@ function StepOne({
 function PaymentForm({
   onSuccess,
   onBack,
+  hasRecipient,
 }: {
   onSuccess: () => void;
   onBack: () => void;
+  hasRecipient: boolean;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -461,17 +464,25 @@ function PaymentForm({
       <button
         type="button"
         onClick={onBack}
-        className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+        className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to details
       </button>
 
-      <PaymentElement
-        options={{
-          layout: "tabs",
-        }}
-      />
+      <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm text-blue-800 font-medium">
+        {hasRecipient
+          ? "Both you and the recipient will receive an email with a code to activate this gift card."
+          : "You will receive an email with a code to activate this gift card."}
+      </div>
+
+      <div className="bg-white p-3 sm:p-6 rounded-lg border border-gray-200 shadow-sm">
+        <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+          <Lock className="w-4 h-4 text-[hsl(var(--golf-green-dark))]" />
+          Secure Payment
+        </h3>
+        <PaymentElement />
+      </div>
 
       {errorMessage && (
         <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
@@ -586,6 +597,7 @@ export default function GiftCardPurchaseClient() {
   const [purchaseAmount, setPurchaseAmount] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasRecipient, setHasRecipient] = useState(false);
 
   const handleStepOneComplete = async (data: {
     amount: number;
@@ -614,6 +626,7 @@ export default function GiftCardPurchaseClient() {
         setClientSecret(result.clientSecret);
         setGiftCardCode(result.code);
         setPurchaseAmount(data.amount);
+        setHasRecipient(!!data.recipientEmail);
         setStep(2);
       }
     } catch (err) {
@@ -730,6 +743,7 @@ export default function GiftCardPurchaseClient() {
                     setStep(1);
                     setClientSecret(null);
                   }}
+                  hasRecipient={hasRecipient}
                 />
               </Elements>
             )}

@@ -11,7 +11,7 @@ import {
   getCartItemCount,
   getCartTotal,
 } from "@/db/queries/cart";
-import { getProgramById } from "@/db/queries/programs";
+import { getProgramById, getSlotEnrollmentCount } from "@/db/queries/programs";
 
 const CART_SESSION_COOKIE = "cart_session_id";
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
@@ -80,9 +80,10 @@ export async function addToCart(data: {
 
     console.log("PROGRAM DATA IS", programData);
 
-    // Determine if this is a Private Instruction / Appointment
+    // Determine if this is a Private Instruction / Appointment or Series
     const isPrivateInstruction =
       programData.schedulingType === "appointment" ||
+      programData.schedulingType === "series" ||
       programData.type === "private" ||
       programData.type === "junior_private" ||
       programData.id === "f89b62ee-ffda-421d-a525-8bd2a580f24e" || // Adult Private ID
@@ -187,27 +188,47 @@ export async function addToCart(data: {
           };
         }
 
-        // Strict Duration Validation
-        const expectedDurationMinutes =
-          Number(matchedOption.durationMinutes) || 60; // Default to 60 if missing
+        // Strict Duration Validation (skip for series - series slots are pre-defined whole sessions)
+        if (programData.schedulingType !== "series") {
+          const expectedDurationMinutes =
+            Number(matchedOption.durationMinutes) || 60; // Default to 60 if missing
 
-        for (const slot of slotsToValidate) {
-          if (slot.startTime && slot.endTime) {
-            const [startHour, startMinute] = slot.startTime
-              .split(":")
-              .map(Number);
-            const [endHour, endMinute] = slot.endTime.split(":").map(Number);
+          for (const slot of slotsToValidate) {
+            if (slot.startTime && slot.endTime) {
+              const [startHour, startMinute] = slot.startTime
+                .split(":")
+                .map(Number);
+              const [endHour, endMinute] = slot.endTime.split(":").map(Number);
 
-            const startTotalMinutes = startHour * 60 + startMinute;
-            const endTotalMinutes = endHour * 60 + endMinute;
+              const startTotalMinutes = startHour * 60 + startMinute;
+              const endTotalMinutes = endHour * 60 + endMinute;
 
-            let duration = endTotalMinutes - startTotalMinutes;
-            if (duration < 0) duration += 24 * 60; // Handle midnight crossing safely
+              let duration = endTotalMinutes - startTotalMinutes;
+              if (duration < 0) duration += 24 * 60; // Handle midnight crossing safely
 
-            if (duration !== expectedDurationMinutes) {
+              if (duration !== expectedDurationMinutes) {
+                return {
+                  success: false,
+                  error: `Security Check Failed: Invalid session duration. Expected ${expectedDurationMinutes} minutes, but requested ${duration} minutes.`,
+                };
+              }
+            }
+          }
+        }
+
+        // Per-slot capacity validation for Series programs
+        if (programData.schedulingType === "series" && data.programSessionId) {
+          const capacity = programData.seriesCapacityPerSlot || 999;
+          for (const slot of slotsToValidate) {
+            const enrolledCount = await getSlotEnrollmentCount(
+              data.programSessionId,
+              slot.date,
+              slot.startTime,
+            );
+            if (enrolledCount >= capacity) {
               return {
                 success: false,
-                error: `Security Check Failed: Invalid session duration. Expected ${expectedDurationMinutes} minutes, but requested ${duration} minutes.`,
+                error: `The session on ${slot.date} at ${slot.startTime} is full (${capacity}/${capacity} spots taken).`,
               };
             }
           }

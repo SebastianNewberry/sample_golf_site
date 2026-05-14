@@ -7,8 +7,9 @@ import {
   instructorAvailability,
   adultRegistration,
   juniorProgramRegistration,
+  seriesSlotEnrollment,
 } from "@/db/schema";
-import { eq, or, like, and, gt, count, not } from "drizzle-orm";
+import { eq, or, like, and, gt, count, not, sql } from "drizzle-orm";
 
 // Get all programs with their sessions
 export async function getProgramsWithSessions(type: "adult" | "junior") {
@@ -285,4 +286,60 @@ export async function getProgramSessionById(id: string) {
     .from(programSession)
     .where(eq(programSession.id, id));
   return result[0] || null;
+}
+
+// ============================================
+// SERIES SLOT ENROLLMENT QUERIES
+// ============================================
+
+/**
+ * Get enrollment counts per slot for a series program session.
+ * Returns an array of { slotDate, slotStartTime, slotEndTime, enrolledCount }.
+ */
+export async function getSeriesSlotEnrollment(programSessionId: string) {
+  const result = await db
+    .select({
+      slotDate: seriesSlotEnrollment.slotDate,
+      slotStartTime: seriesSlotEnrollment.slotStartTime,
+      slotEndTime: seriesSlotEnrollment.slotEndTime,
+      enrolledCount: count(seriesSlotEnrollment.id),
+    })
+    .from(seriesSlotEnrollment)
+    .where(
+      and(
+        eq(seriesSlotEnrollment.programSessionId, programSessionId),
+        eq(seriesSlotEnrollment.status, "confirmed"),
+      ),
+    )
+    .groupBy(
+      seriesSlotEnrollment.slotDate,
+      seriesSlotEnrollment.slotStartTime,
+      seriesSlotEnrollment.slotEndTime,
+    );
+
+  return result;
+}
+
+/**
+ * Get enrollment count for a specific slot in a series session.
+ * Used for per-slot capacity validation when adding to cart.
+ */
+export async function getSlotEnrollmentCount(
+  programSessionId: string,
+  slotDate: string,
+  slotStartTime: string,
+) {
+  const [result] = await db
+    .select({ count: count() })
+    .from(seriesSlotEnrollment)
+    .where(
+      and(
+        eq(seriesSlotEnrollment.programSessionId, programSessionId),
+        eq(seriesSlotEnrollment.slotDate, slotDate),
+        eq(seriesSlotEnrollment.slotStartTime, slotStartTime),
+        eq(seriesSlotEnrollment.status, "confirmed"),
+      ),
+    );
+
+  return result.count;
 }
