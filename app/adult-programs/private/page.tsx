@@ -20,16 +20,20 @@ import { getActiveBookingsByType } from "@/db/queries/bookings";
 import { addDays } from "date-fns";
 
 export default async function AdultPrivateGolfInstruction() {
-  const program = await getProgramById("f89b62ee-ffda-421d-a525-8bd2a580f24e");
+  const programId = "f89b62ee-ffda-421d-a525-8bd2a580f24e";
+
+  // Fetch program, bookings, and availability in parallel to avoid sequential delay
+  const [program, realBookings, availabilityData] = await Promise.all([
+    getProgramById(programId),
+    getActiveBookingsByType("adult"),
+    getInstructorAvailability("adult"),
+  ]);
+
+  // Fetch sessions only if program exists
   const sessions = program ? await getProgramSessions(program.id) : [];
 
   // Parse existing sessions into BookedSession format (from program_session table - likely empty for private)
   const programSessionBookings = extractBookedSessions(sessions);
-
-  // Fetch real private bookings from the 'booking' table
-  // Fetch real private bookings from the 'booking' table
-  // Use getActiveBookingsByType to ensure we only block Confirmed or Valid Holds
-  const realBookings = await getActiveBookingsByType("adult");
 
   // Map real bookings to BookedSession format (normalizing UTC to EST)
   const mappedRealBookings = realBookings.map((b) => ({
@@ -39,8 +43,6 @@ export default async function AdultPrivateGolfInstruction() {
   }));
 
   const bookedSessions = [...programSessionBookings, ...mappedRealBookings];
-  // Get instructor availability (now contains a specific schedule JSON)
-  const availabilityData = await getInstructorAvailability("adult");
 
   // Flatten all schedules
   const rawSlots: any[] = availabilityData.flatMap((entry) => {

@@ -13,10 +13,11 @@ export default async function JuniorDevelopmentalSeries(props: {
     typeof searchParams.sessionId === "string"
       ? searchParams.sessionId
       : undefined;
-  const program = await getProgramById("cc6a73ca-95fb-4acb-be01-6cee4ce44475");
-  const sessions = program
-    ? await getProgramSessionsWithEnrollment(program.id, "junior")
-    : [];
+  const programId = "cc6a73ca-95fb-4acb-be01-6cee4ce44475";
+  const [program, sessions] = await Promise.all([
+    getProgramById(programId),
+    getProgramSessionsWithEnrollment(programId, "junior"),
+  ]);
 
   return (
     <>

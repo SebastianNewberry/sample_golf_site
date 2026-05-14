@@ -16,10 +16,11 @@ export default async function GetGolfReadyLevel2(props: {
     typeof searchParams.sessionId === "string"
       ? searchParams.sessionId
       : undefined;
-  const program = await getProgramById("eb15499e-b573-4027-a2dc-1335bc7613b1");
-  const sessions = program
-    ? await getProgramSessionsWithEnrollment(program.id, "adult")
-    : [];
+  const programId = "eb15499e-b573-4027-a2dc-1335bc7613b1";
+  const [program, sessions] = await Promise.all([
+    getProgramById(programId),
+    getProgramSessionsWithEnrollment(programId, "adult"),
+  ]);
 
   return (
     <>

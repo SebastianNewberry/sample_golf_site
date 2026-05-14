@@ -17,10 +17,11 @@ export default async function AdultOpenPractice(props: {
     typeof searchParams.sessionId === "string"
       ? searchParams.sessionId
       : undefined;
-  const program = await getProgramById("0dc3ac70-8346-44c4-9ef6-b638ccbb9082");
-  const sessions = program
-    ? await getProgramSessionsWithEnrollment(program.id, "adult")
-    : [];
+  const programId = "0dc3ac70-8346-44c4-9ef6-b638ccbb9082";
+  const [program, sessions] = await Promise.all([
+    getProgramById(programId),
+    getProgramSessionsWithEnrollment(programId, "adult"),
+  ]);
 
   return (
     <>
