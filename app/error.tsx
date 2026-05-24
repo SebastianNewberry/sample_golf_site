@@ -16,9 +16,11 @@ export default function Error({
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
-      <h2 className="text-3xl font-bold text-gray-900 mb-4 font-serif">Something went wrong!</h2>
+      <h2 className="text-3xl font-bold text-gray-900 mb-4 font-serif">
+        Something went wrong!
+      </h2>
       <p className="text-gray-600 mb-8 max-w-md">
-        We encountered an error while loading the page data. This can sometimes happen due to a temporary database connection issue.
+        We encountered an error while loading this page.
       </p>
       <div className="flex gap-4">
         <Button
