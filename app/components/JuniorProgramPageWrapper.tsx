@@ -111,7 +111,7 @@ export function JuniorProgramPageWrapper({
           <h1 className="text-2xl font-bold text-gray-800">{programName}</h1>
           <button
             onClick={() => setShowNav(!showNav)}
-            className="lg:hidden flex items-center self-center gap-0.5 text-[9px] font-semibold text-gray-500 hover:text-gray-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-gray-100 cursor-pointer whitespace-nowrap"
+            className="lg:hidden flex items-center self-center gap-0.5 text-[8px] font-semibold text-gray-500 hover:text-gray-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-gray-100 cursor-pointer whitespace-nowrap"
           >
             {showNav ? "Hide Programs" : "Show Programs"}
             {showNav ? (
@@ -126,31 +126,28 @@ export function JuniorProgramPageWrapper({
         <div className="hidden lg:block space-y-0">
           <Link
             href="/junior-programs/beginner-series"
-            className={`block px-4 py-3 text-sm ${
-              currentPage === "beginner-series"
+            className={`block px-4 py-3 text-sm ${currentPage === "beginner-series"
                 ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
                 : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-            }`}
+              }`}
           >
             JUNIOR BEGINNER SERIES
           </Link>
           <Link
             href="/junior-programs/developmental-series"
-            className={`block px-4 py-3 text-sm ${
-              currentPage === "developmental-series"
+            className={`block px-4 py-3 text-sm ${currentPage === "developmental-series"
                 ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
                 : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-            }`}
+              }`}
           >
             JUNIOR DEVELOPMENTAL SERIES
           </Link>
           <Link
             href="/junior-programs/private-instruction"
-            className={`block px-4 py-3 text-sm ${
-              currentPage === "private-instruction"
+            className={`block px-4 py-3 text-sm ${currentPage === "private-instruction"
                 ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
                 : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-            }`}
+              }`}
           >
             JUNIOR PRIVATE GOLF INSTRUCTION
           </Link>
@@ -168,31 +165,28 @@ export function JuniorProgramPageWrapper({
             >
               <Link
                 href="/junior-programs/beginner-series"
-                className={`block px-4 py-2.5 text-sm ${
-                  currentPage === "beginner-series"
+                className={`block px-4 py-2.5 text-sm ${currentPage === "beginner-series"
                     ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
                     : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-                }`}
+                  }`}
               >
                 JUNIOR BEGINNER SERIES
               </Link>
               <Link
                 href="/junior-programs/developmental-series"
-                className={`block px-4 py-2.5 text-sm ${
-                  currentPage === "developmental-series"
+                className={`block px-4 py-2.5 text-sm ${currentPage === "developmental-series"
                     ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
                     : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-                }`}
+                  }`}
               >
                 JUNIOR DEVELOPMENTAL SERIES
               </Link>
               <Link
                 href="/junior-programs/private-instruction"
-                className={`block px-4 py-2.5 text-sm ${
-                  currentPage === "private-instruction"
+                className={`block px-4 py-2.5 text-sm ${currentPage === "private-instruction"
                     ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
                     : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-                }`}
+                  }`}
               >
                 JUNIOR PRIVATE GOLF INSTRUCTION
               </Link>
@@ -271,11 +265,11 @@ export function JuniorProgramPageWrapper({
             const isStarted = startDate ? new Date() > startDate : false;
             return isStarted || (s.isBooked ?? false);
           }) && (
-            <p className="text-xs text-red-500 mt-2 font-medium">
-              * Call to inquire about joining past sessions that have already
-              started or are sold out
-            </p>
-          )}
+              <p className="text-xs text-red-500 mt-2 font-medium">
+                * Call to inquire about joining past sessions that have already
+                started or are sold out
+              </p>
+            )}
         </div>
       </div>
 
@@ -283,9 +277,9 @@ export function JuniorProgramPageWrapper({
       <div className="lg:col-span-6">
         {isRenderFunction
           ? (children as (props: RenderProps) => ReactElement)({
-              selectedSessionId: purchaseSessionId,
-              onSessionChange: handlePurchaseChange,
-            })
+            selectedSessionId: purchaseSessionId,
+            onSessionChange: handlePurchaseChange,
+          })
           : children}
       </div>
     </>

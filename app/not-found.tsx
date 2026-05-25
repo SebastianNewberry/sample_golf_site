@@ -6,7 +6,7 @@ import logo from "@/public/logo.webp";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-white relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-start pt-16 sm:pt-24 bg-gradient-to-br from-green-50 to-white relative overflow-hidden">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 opacity-10">
         <Image

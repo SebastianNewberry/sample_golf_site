@@ -469,18 +469,18 @@ export default function CartContent() {
                                             <span className="text-gray-400 mx-1">
                                               •
                                             </span>
-                                            <span className="text-blue-700">
+                                            <span className="text-gray-800">
                                               On-Course Coaching
                                             </span>
                                           </>
                                         )}
-                                        {privateInfo.coachesCount &&
+                                        {privateInfo.isOnCourse && privateInfo.coachesCount &&
                                           privateInfo.coachesCount > 0 && (
                                             <>
                                               <span className="text-gray-400 mx-1">
                                                 •
                                               </span>
-                                              <span className="text-indigo-600">
+                                              <span className="text-gray-800">
                                                 {privateInfo.coachesCount === 1
                                                   ? "1 Coach"
                                                   : `${privateInfo.coachesCount} Coaches`}
@@ -679,11 +679,9 @@ export default function CartContent() {
                                       ) / 100
                                     )}
                                   </p>
-                                  {item.quantity > 1 && (
-                                    <p className="text-xs md:text-sm text-gray-500 mt-0.5 md:mt-1">
-                                      ${item.priceAtAdd} each
-                                    </p>
-                                  )}
+                                  <p className={`text-xs md:text-sm text-gray-500 mt-0.5 md:mt-1 ${item.quantity > 1 ? 'visible' : 'invisible'}`}>
+                                    ${item.priceAtAdd} each
+                                  </p>
                                 </div>
                               </div>
                             </div>

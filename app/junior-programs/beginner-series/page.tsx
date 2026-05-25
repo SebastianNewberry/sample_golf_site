@@ -14,10 +14,11 @@ export default async function JuniorBeginnerSeries(props: {
     typeof searchParams.sessionId === "string"
       ? searchParams.sessionId
       : undefined;
-  const program = await getProgramById("0284e4eb-fd96-4626-9009-272b7d985d88");
-  const sessions = program
-    ? await getProgramSessionsWithEnrollment(program.id, "junior")
-    : [];
+  const programId = "0284e4eb-fd96-4626-9009-272b7d985d88";
+  const [program, sessions] = await Promise.all([
+    getProgramById(programId),
+    getProgramSessionsWithEnrollment(programId, "junior"),
+  ]);
 
   return (
     <>
@@ -46,7 +47,7 @@ export default async function JuniorBeginnerSeries(props: {
                   Junior Beginner Series
                 </h1>
               </div>
-              <div className="lg:col-span-6">
+              <div className="lg:col-span-7">
                 <ProgramComingSoonCard programName="Junior Beginner Series" />
               </div>
             </>

@@ -1,7 +1,6 @@
 "use client";
+import { motion } from "motion/react";
 
-import { useState } from "react";
-import Link from "next/link";
 import { BeginnerSeriesClient } from "./BeginnerSeriesClient";
 import { JuniorProgramPageWrapper } from "@/app/components/JuniorProgramPageWrapper";
 import { ProgramFeaturesAndDetails } from "@/app/components/ProgramFeaturesAndDetails";
@@ -45,7 +44,12 @@ export function BeginnerSeriesPageClient({
   });
 
   return (
-    <>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="lg:col-span-13 grid lg:grid-cols-13 gap-6"
+    >
       <JuniorProgramPageWrapper
         programName="Junior Beginner Series"
         currentPage="beginner-series"
@@ -72,6 +76,6 @@ export function BeginnerSeriesPageClient({
       <div className="lg:col-span-4 space-y-6">
         <ProgramFeaturesAndDetails features={features} details={details} />
       </div>
-    </>
+    </motion.div>
   );
 }

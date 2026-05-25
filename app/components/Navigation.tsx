@@ -97,24 +97,12 @@ const tapProps = {
 export default function Navigation() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [adultProgramsOpen, setAdultProgramsOpen] = useState(false);
   const [juniorProgramsOpen, setJuniorProgramsOpen] = useState(false);
-  const [juniorCooldown, setJuniorCooldown] = useState(false);
-  const [adultCooldown, setAdultCooldown] = useState(false);
+  const [adultProgramsOpen, setAdultProgramsOpen] = useState(false);
 
-  // Refs for details elements and cooldown timers
+  // Refs for details elements
   const juniorDetailsRef = useRef<HTMLDetailsElement>(null);
   const adultDetailsRef = useRef<HTMLDetailsElement>(null);
-  const juniorCooldownRef = useRef<NodeJS.Timeout | null>(null);
-  const adultCooldownRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Cleanup cooldown timers on unmount
-  useEffect(() => {
-    return () => {
-      if (juniorCooldownRef.current) clearTimeout(juniorCooldownRef.current);
-      if (adultCooldownRef.current) clearTimeout(adultCooldownRef.current);
-    };
-  }, []);
 
   // Function to close all dropdowns
   const closeAllDropdowns = () => {
@@ -207,19 +195,18 @@ export default function Navigation() {
                 {juniorProgramsOpen && (
                   <motion.div
                     onMouseEnter={() => setJuniorProgramsOpen(true)}
-                    onMouseLeave={() => {
-                      setJuniorProgramsOpen(false);
-                      setJuniorCooldown(true);
-                      juniorCooldownRef.current = setTimeout(() => {
-                        setJuniorCooldown(false);
-                      }, 500);
-                    }}
+                    onMouseLeave={() => setJuniorProgramsOpen(false)}
                     initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0, transition: { duration: 0.35 } }}
+                    exit={{ opacity: 0, y: -6, transition: { duration: 0.35 } }}
                     className="bg-gray-200 absolute top-full left-0 z-20 mt-2 w-[800px] rounded-xl p-4 shadow-lg ring ring-gray-300"
                   >
-                    <div className="flex flex-col gap-5">
+                    <motion.div
+                      initial={{ pointerEvents: "none" }}
+                      animate={{ pointerEvents: "auto", transition: { delay: 0.35 } }}
+                      exit={{ pointerEvents: "none", transition: { duration: 0 } }}
+                      className="flex flex-col gap-5"
+                    >
                       {/* Top Row - Program Links */}
                       <div className="grid grid-cols-3 gap-4">
                         {juniorPrograms
@@ -333,7 +320,7 @@ export default function Navigation() {
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -362,19 +349,18 @@ export default function Navigation() {
                 {adultProgramsOpen && (
                   <motion.div
                     onMouseEnter={() => setAdultProgramsOpen(true)}
-                    onMouseLeave={() => {
-                      setAdultProgramsOpen(false);
-                      setAdultCooldown(true);
-                      adultCooldownRef.current = setTimeout(() => {
-                        setAdultCooldown(false);
-                      }, 500);
-                    }}
+                    onMouseLeave={() => setAdultProgramsOpen(false)}
                     initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0, transition: { duration: 0.35 } }}
+                    exit={{ opacity: 0, y: -6, transition: { duration: 0.35 } }}
                     className="bg-gray-200 absolute top-full left-0 z-20 mt-2 w-[520px] rounded-xl p-4 shadow-lg ring ring-gray-300"
                   >
-                    <ul className="grid grid-cols-2 gap-2">
+                    <motion.ul
+                      initial={{ pointerEvents: "none" }}
+                      animate={{ pointerEvents: "auto", transition: { delay: 0.35 } }}
+                      exit={{ pointerEvents: "none", transition: { duration: 0 } }}
+                      className="grid grid-cols-2 gap-2"
+                    >
                       {adultPrograms.map((program) => (
                         <li key={program.title}>
                           <Link
@@ -399,7 +385,7 @@ export default function Navigation() {
                           </Link>
                         </li>
                       ))}
-                    </ul>
+                    </motion.ul>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -456,7 +442,7 @@ export default function Navigation() {
             <motion.div
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
+              exit={{ opacity: 0, y: -6, pointerEvents: "none" }}
               className="border-t border-gray-300 py-2 xl:hidden"
             >
               <details ref={juniorDetailsRef} className="px-3">

@@ -13,13 +13,20 @@ import {
 import { getActiveBookingsByType } from "@/db/queries/bookings";
 
 export default async function JuniorPrivateGolfInstruction() {
-  const program = await getProgramById("754bf4be-0ef6-4123-b5ff-b107e03c2f10");
+  const programId = "754bf4be-0ef6-4123-b5ff-b107e03c2f10";
+
+  // Fetch program, bookings, and availability in parallel to avoid sequential delay
+  const [program, realBookings, availabilityData] = await Promise.all([
+    getProgramById(programId),
+    getActiveBookingsByType("junior"),
+    getInstructorAvailability("junior"),
+  ]);
+
+  // Fetch sessions only if program exists
   const sessions = program ? await getProgramSessions(program.id) : [];
+
   // Parse existing sessions into BookedSession format
   const programSessionBookings = extractBookedSessions(sessions);
-
-  // Fetch real private bookings from the 'booking' table
-  const realBookings = await getActiveBookingsByType("junior");
 
   // Map real bookings to BookedSession format (normalizing UTC to EST)
   const mappedRealBookings = realBookings.map((b) => ({
@@ -29,9 +36,6 @@ export default async function JuniorPrivateGolfInstruction() {
   }));
 
   const bookedSessions = [...programSessionBookings, ...mappedRealBookings];
-
-  // Get instructor availability (now contains a specific schedule JSON)
-  const availabilityData = await getInstructorAvailability("junior");
 
   // Flatten all schedules from all matching rows (likely just one)
   const rawSlots: any[] = availabilityData.flatMap((entry) => {
@@ -54,7 +58,7 @@ export default async function JuniorPrivateGolfInstruction() {
               Junior Private Golf Instruction
             </h1>
           </div>
-          <div className="lg:col-span-6">
+          <div className="lg:col-span-7">
             <ProgramComingSoonCard programName="Junior Private Golf Instruction" />
           </div>
         </div>

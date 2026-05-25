@@ -328,7 +328,12 @@ export function AdultPrivateGolfInstructionClient({
 
       {/* Main Content Grid - Centered */}
       <div className="max-w-[1400px] mx-auto">
-        <div className="grid lg:grid-cols-13 gap-6">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className="grid lg:grid-cols-13 gap-6"
+        >
           {/* Left Sidebar - Program Links + Calendar */}
           <div className="lg:col-span-3 space-y-2">
             {/* Header with program name */}
@@ -338,7 +343,7 @@ export function AdultPrivateGolfInstructionClient({
               </h1>
               <button
                 onClick={() => setShowNav(!showNav)}
-                className="lg:hidden flex items-center self-center gap-0.5 text-[9px] font-semibold text-gray-500 hover:text-gray-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-gray-100 cursor-pointer whitespace-nowrap"
+                className="lg:hidden flex items-center self-center gap-0.5 text-[8px] font-semibold text-gray-500 hover:text-gray-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-gray-100 cursor-pointer whitespace-nowrap"
               >
                 {showNav ? "Hide Programs" : "Show Programs"}
                 {showNav ? (
@@ -459,7 +464,7 @@ export function AdultPrivateGolfInstructionClient({
           </div>
 
           {/* Main Card: Image + Description + Price */}
-          <div className="lg:col-span-6">
+          <div className="lg:col-span-7">
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
               {/* Two-column layout: Image + Description | Pricing */}
               <div className="flex flex-col">
@@ -505,96 +510,94 @@ export function AdultPrivateGolfInstructionClient({
 
                     {pricingOptions.filter((p: any) => !p.isOnCourse).length >
                       0 && (
-                      <div className="mb-8">
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                          {pricingOptions
-                            .filter((p: any) => !p.isOnCourse)
-                            .map((pkg: any) => (
-                              <div
-                                key={pkg.id}
-                                onClick={() => handlePriceSelect(pkg)}
-                                className={`p-2 rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-1 min-h-[8rem]
-                                  ${
-                                    selectedPackageId === pkg.id
+                        <div className="mb-8">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {pricingOptions
+                              .filter((p: any) => !p.isOnCourse)
+                              .map((pkg: any) => (
+                                <div
+                                  key={pkg.id}
+                                  onClick={() => handlePriceSelect(pkg)}
+                                  className={`p-2 rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-1 min-h-[8rem]
+                                  ${selectedPackageId === pkg.id
                                       ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))] shadow-sm"
                                       : "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
-                                  }`}
-                              >
-                                <p className="text-gray-600 font-medium">
-                                  {pkg.title}
-                                </p>
-                                <p
-                                  className={`text-2xl font-bold my-1 ${selectedPackageId === pkg.id ? "text-[hsl(var(--golf-orange))]" : "text-[hsl(var(--golf-green))]"}`}
+                                    }`}
                                 >
-                                  ${pkg.price}
-                                </p>
-                                <p className="text-xs text-gray-400">
-                                  {pkg.sessionCount === 1
-                                    ? "Single Session"
-                                    : `${pkg.sessionCount} Sessions`}
-                                </p>
-                              </div>
-                            ))}
+                                  <p className="text-gray-600 font-medium">
+                                    {pkg.title}
+                                  </p>
+                                  <p
+                                    className={`text-2xl font-bold my-1 ${selectedPackageId === pkg.id ? "text-[hsl(var(--golf-orange))]" : "text-[hsl(var(--golf-green))]"}`}
+                                  >
+                                    ${pkg.price}
+                                  </p>
+                                  <p className="text-xs text-gray-400">
+                                    {pkg.sessionCount === 1
+                                      ? "Single Session"
+                                      : `${pkg.sessionCount} Sessions`}
+                                  </p>
+                                </div>
+                              ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
                     {pricingOptions.filter((p: any) => p.isOnCourse).length >
                       0 && (
-                      <div className="bg-gray-50/80 rounded-2xl p-6 lg:p-8 border border-gray-100 mt-8 mb-4">
-                        <h4 className="text-lg font-bold text-gray-900 mb-3">
-                          On-Course Coaching (9 Hole Lesson)
-                        </h4>
-                        <p className="text-sm text-gray-600 leading-relaxed mb-6">
-                          Our <strong>on-course coaching session</strong> takes
-                          your game from the practice area to the golf course.
-                          You will learn under real playing conditions and
-                          receive invaluable instruction on all aspects of your
-                          game. Includes 30-minute evaluation, improvement plan,
-                          green fees, cart, and practice balls.{" "}
-                          <strong>Approx. 3 Hours.</strong>
-                        </p>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {pricingOptions
-                            .filter((p: any) => p.isOnCourse)
-                            .map((pkg: any) => (
-                              <div
-                                key={pkg.id}
-                                onClick={() => handlePriceSelect(pkg)}
-                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between
-                                  ${
-                                    selectedPackageId === pkg.id
+                        <div className="bg-gray-50/80 rounded-2xl p-6 lg:p-8 border border-gray-100 mt-8 mb-4">
+                          <h4 className="text-lg font-bold text-gray-900 mb-3">
+                            On-Course Coaching (9 Hole Lesson)
+                          </h4>
+                          <p className="text-sm text-gray-600 leading-relaxed mb-6">
+                            Our <strong>on-course coaching session</strong> takes
+                            your game from the practice area to the golf course.
+                            You will learn under real playing conditions and
+                            receive invaluable instruction on all aspects of your
+                            game. Includes 30-minute evaluation, improvement plan,
+                            green fees, cart, and practice balls.{" "}
+                            <strong>Approx. 3 Hours.</strong>
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {pricingOptions
+                              .filter((p: any) => p.isOnCourse)
+                              .map((pkg: any) => (
+                                <div
+                                  key={pkg.id}
+                                  onClick={() => handlePriceSelect(pkg)}
+                                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between
+                                  ${selectedPackageId === pkg.id
                                       ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))] shadow-sm"
                                       : "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
-                                  }`}
-                              >
-                                <div>
-                                  <p className="text-gray-900 font-bold text-lg">
-                                    {pkg.title}
-                                  </p>
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    {pkg.playersCount === 1
-                                      ? "Private Session"
-                                      : `$${Math.round(pkg.price / pkg.playersCount)} / person`}
-                                  </p>
-                                  {pkg.coachesCount && pkg.coachesCount > 0 && (
-                                    <p className="text-xs text-[hsl(var(--golf-green))] font-semibold mt-1">
-                                      {pkg.coachesCount === 1
-                                        ? "1 Coach"
-                                        : `${pkg.coachesCount} Coaches`}
-                                    </p>
-                                  )}
-                                </div>
-                                <p
-                                  className={`text-2xl font-bold ${selectedPackageId === pkg.id ? "text-[hsl(var(--golf-orange))]" : "text-[hsl(var(--golf-green))]"}`}
+                                    }`}
                                 >
-                                  ${pkg.price}
-                                </p>
-                              </div>
-                            ))}
+                                  <div>
+                                    <p className="text-gray-900 font-bold text-lg">
+                                      {pkg.title}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      {pkg.playersCount === 1
+                                        ? "Private Session"
+                                        : `$${Math.round(pkg.price / pkg.playersCount)} / person`}
+                                    </p>
+                                    {pkg.coachesCount && pkg.coachesCount > 0 && (
+                                      <p className="text-xs text-[hsl(var(--golf-green))] font-semibold mt-1">
+                                        {pkg.coachesCount === 1
+                                          ? "1 Coach"
+                                          : `${pkg.coachesCount} Coaches`}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <p
+                                    className={`text-2xl font-bold ${selectedPackageId === pkg.id ? "text-[hsl(var(--golf-orange))]" : "text-[hsl(var(--golf-green))]"}`}
+                                  >
+                                    ${pkg.price}
+                                  </p>
+                                </div>
+                              ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
 
                     {pricingOptions.length === 0 && (
                       <p className="text-sm text-gray-500 italic col-span-full">
@@ -746,13 +749,13 @@ export function AdultPrivateGolfInstructionClient({
           </div>
 
           {/* Right: Features & Details */}
-          <div className="lg:col-span-4 space-y-6">
+          <div className="lg:col-span-3 space-y-6">
             <ProgramFeaturesAndDetails
               features={program.features || []}
               details={program.details || []}
             />
           </div>
-        </div>
+        </motion.div>
       </div>
     </>
   );

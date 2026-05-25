@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import logo from "@/public/logo.webp";
-import { AlertCircle, RefreshCw, Home } from "lucide-react";
+import { RefreshCw, Home } from "lucide-react";
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -19,7 +19,7 @@ export default function Error({ error, reset }: ErrorProps) {
   }, [error]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-green-50 to-white relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-start pt-16 sm:pt-24 bg-gradient-to-br from-green-50 to-white relative overflow-hidden">
       {/* Background Image with Overlay */}
       <div className="absolute inset-0 opacity-10">
         <Image
@@ -40,10 +40,6 @@ export default function Error({ error, reset }: ErrorProps) {
 
         {/* Error Header */}
         <div className="mb-10">
-          <div className="relative inline-flex items-center justify-center p-4 bg-red-50 rounded-full mb-6 border border-red-200 shadow-sm">
-            <AlertCircle className="w-16 h-16 text-red-500" />
-          </div>
-
           <h2 className="text-4xl font-bold text-gray-800 mb-4">
             Something Went Wrong
           </h2>

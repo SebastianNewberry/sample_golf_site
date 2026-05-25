@@ -16,10 +16,11 @@ export default async function AdultShortGameSeries(props: {
     typeof searchParams.sessionId === "string"
       ? searchParams.sessionId
       : undefined;
-  const program = await getProgramById("9bc2b2b7-2774-4971-b469-4ce2a8d3a707");
-  const sessions = program
-    ? await getProgramSessionsWithEnrollment(program.id, "adult")
-    : [];
+  const programId = "9bc2b2b7-2774-4971-b469-4ce2a8d3a707";
+  const [program, sessions] = await Promise.all([
+    getProgramById(programId),
+    getProgramSessionsWithEnrollment(programId, "adult"),
+  ]);
 
   return (
     <>
@@ -48,7 +49,7 @@ export default async function AdultShortGameSeries(props: {
                   Adult Short Game Series
                 </h1>
               </div>
-              <div className="lg:col-span-6">
+              <div className="lg:col-span-7">
                 <ProgramComingSoonCard programName="Adult Short Game Series" />
               </div>
             </>

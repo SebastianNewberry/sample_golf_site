@@ -15,7 +15,7 @@ export function PrivateInstructionSkeleton() {
         {/* Left: nav + availability calendar */}
         <div className="space-y-2 lg:col-span-3">
           {/* Program name heading + mobile toggle button */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 gap-4">
             <div className="h-8 min-h-[2rem] w-full max-w-[min(100%,24rem)] flex-1 rounded bg-gray-300/70 animate-pulse motion-reduce:animate-none" />
             <div className="h-6 min-w-[90px] w-[90px] shrink-0 rounded bg-gray-300/70 animate-pulse motion-reduce:animate-none lg:hidden" />
           </div>
@@ -120,17 +120,17 @@ export function PrivateInstructionSkeleton() {
 
             <div className="space-y-8 p-6 lg:p-8">
               {/* Title */}
-              <Shimmer className="h-5 w-3/5 max-w-xs rounded" />
+              <Shimmer className="h-5 w-3/5 max-w-md rounded" />
 
               {/* Description */}
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <Shimmer className="h-3.5 w-full rounded" />
                 <Shimmer className="h-3.5 w-full rounded" />
-                <Shimmer className="h-3.5 w-[90%] rounded" />
+                <Shimmer className="h-3.5 w-[96%] rounded" />
               </div>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <Shimmer className="h-3.5 w-full rounded" />
-                <Shimmer className="h-3.5 w-3/4 rounded" />
+                <Shimmer className="h-3.5 w-5/6 rounded" />
               </div>
 
               {/* Step 1: Select Package */}
@@ -203,8 +203,8 @@ export function PrivateInstructionSkeleton() {
         {/* Right: features + details */}
         <div className="min-w-0 space-y-7 lg:col-span-4">
           <div className="rounded-xl border border-border/60 bg-white p-8 shadow-sm sm:p-9">
-            <Shimmer className="mb-7 h-8 w-[min(100%,18rem)] rounded" />
-            <div className="space-y-5">
+            <Shimmer className="mb-7 h-8 w-[min(100%,22rem)] rounded" />
+            <div className="space-y-6">
               {[1, 2, 3, 4, 5, 6, 7].map((i) => (
                 <div key={i} className="flex items-center gap-3.5">
                   <Shimmer className="h-5 w-5 shrink-0 rounded-full sm:h-6 sm:w-6" />
@@ -215,13 +215,13 @@ export function PrivateInstructionSkeleton() {
           </div>
 
           <div className="rounded-xl border border-border/60 bg-white p-8 shadow-sm sm:p-9">
-            <Shimmer className="mb-7 h-8 w-[min(100%,15rem)] rounded" />
-            <div className="space-y-7">
+            <Shimmer className="mb-7 h-8 w-[min(100%,18rem)] rounded" />
+            <div className="space-y-8">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="flex gap-3.5">
                   <Shimmer className="mt-0.5 h-7 w-7 shrink-0 rounded" />
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <Shimmer className="h-5 w-[min(100%,11rem)] rounded" />
+                  <div className="min-w-0 flex-1 space-y-3">
+                    <Shimmer className="h-5 w-[min(100%,14rem)] rounded" />
                     <Shimmer className="h-4 w-full rounded" />
                   </div>
                 </div>

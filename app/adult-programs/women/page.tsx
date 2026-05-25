@@ -17,10 +17,11 @@ export default async function GolfForWomenProgram(props: {
     typeof searchParams.sessionId === "string"
       ? searchParams.sessionId
       : undefined;
-  const program = await getProgramById("9160a3a8-a652-4ddf-a13f-298336168e04");
-  const sessions = program
-    ? await getProgramSessionsWithEnrollment(program.id, "adult")
-    : [];
+  const programId = "9160a3a8-a652-4ddf-a13f-298336168e04";
+  const [program, sessions] = await Promise.all([
+    getProgramById(programId),
+    getProgramSessionsWithEnrollment(programId, "adult"),
+  ]);
 
   return (
     <>
@@ -49,7 +50,7 @@ export default async function GolfForWomenProgram(props: {
                   Golf For Women
                 </h1>
               </div>
-              <div className="lg:col-span-6">
+              <div className="lg:col-span-7">
                 <ProgramComingSoonCard programName="Golf For Women" />
               </div>
             </>

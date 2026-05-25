@@ -1,7 +1,6 @@
 "use client";
+import { motion } from "motion/react";
 
-import { useState } from "react";
-import Link from "next/link";
 import { DevelopmentalCampClient } from "./DevelopmentalCampClient";
 import { JuniorProgramPageWrapper } from "@/app/components/JuniorProgramPageWrapper";
 import { ProgramFeaturesAndDetails } from "@/app/components/ProgramFeaturesAndDetails";
@@ -38,7 +37,12 @@ export function DevelopmentalCampPageClient({
   initialSessionId,
 }: DevelopmentalCampPageClientProps) {
   return (
-    <>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="lg:col-span-13 grid lg:grid-cols-13 gap-6"
+    >
       <JuniorProgramPageWrapper
         programName="Junior Developmental Golf Camp"
         currentPage="developmental-camp"
@@ -65,6 +69,6 @@ export function DevelopmentalCampPageClient({
       <div className="lg:col-span-4 space-y-6">
         <ProgramFeaturesAndDetails features={features} details={details} />
       </div>
-    </>
+    </motion.div>
   );
 }

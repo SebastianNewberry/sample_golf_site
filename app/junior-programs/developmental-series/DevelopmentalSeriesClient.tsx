@@ -1,4 +1,5 @@
 "use client";
+import { motion, AnimatePresence } from "motion/react";
 
 import { useState, useMemo } from "react";
 import {
@@ -15,7 +16,6 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/app/components/cart/CartContext";
 import { addToCart } from "@/app/actions/cart";
 import { Loader2, Check, ShoppingCart, CreditCard } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
 import { ProgramFeaturesAndDetails } from "@/app/components/ProgramFeaturesAndDetails";
 import { SessionCalendar } from "@/app/components/SessionCalendar";
 import {
@@ -263,7 +263,12 @@ export function DevelopmentalSeriesClient({
   };
 
   return (
-    <>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="lg:col-span-13 grid lg:grid-cols-13 gap-6"
+    >
       <SeriesCalendar
         open={isCalendarOpen}
         onOpenChange={setIsCalendarOpen}
@@ -285,7 +290,7 @@ export function DevelopmentalSeriesClient({
           </h1>
           <button
             onClick={() => setShowNav(!showNav)}
-            className="lg:hidden flex items-center self-center gap-0.5 text-[9px] font-semibold text-gray-500 hover:text-gray-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-gray-100 cursor-pointer whitespace-nowrap"
+            className="lg:hidden flex items-center self-center gap-0.5 text-[8px] font-semibold text-gray-500 hover:text-gray-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-gray-100 cursor-pointer whitespace-nowrap"
           >
             {showNav ? "Hide Programs" : "Show Programs"}
             {showNav ? (
@@ -423,10 +428,9 @@ export function DevelopmentalSeriesClient({
                         key={pkg.id}
                         onClick={() => handlePriceSelect(pkg)}
                         className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-1 min-h-[8rem]
-                          ${
-                            selectedPackageId === pkg.id
-                              ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))] shadow-sm"
-                              : "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
+                          ${selectedPackageId === pkg.id
+                            ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))] shadow-sm"
+                            : "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
                           }`}
                       >
                         <p className="text-gray-600 font-medium">
@@ -601,6 +605,6 @@ export function DevelopmentalSeriesClient({
           details={program.details}
         />
       </div>
-    </>
+    </motion.div>
   );
 }

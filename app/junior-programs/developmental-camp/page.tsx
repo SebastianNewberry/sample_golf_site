@@ -45,7 +45,7 @@ export default async function JuniorDevelopmentalGolfCamp(props: {
                   Junior Developmental Golf Camp
                 </h1>
               </div>
-              <div className="lg:col-span-6">
+              <div className="lg:col-span-7">
                 <ProgramComingSoonCard programName="Junior Developmental Golf Camp" />
               </div>
             </>

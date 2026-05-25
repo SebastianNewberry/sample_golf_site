@@ -1,7 +1,6 @@
 "use client";
+import { motion } from "motion/react";
 
-import { useState } from "react";
-import Link from "next/link";
 import { GetGolfReadyLevel1Client } from "./GetGolfReadyLevel1Client";
 import { AdultProgramPageWrapper } from "@/app/components/AdultProgramPageWrapper";
 import { ProgramFeaturesAndDetails } from "@/app/components/ProgramFeaturesAndDetails";
@@ -38,7 +37,12 @@ export function GetGolfReadyLevel1PageClient({
   initialSessionId,
 }: GetGolfReadyLevel1PageClientProps) {
   return (
-    <>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="lg:col-span-13 grid lg:grid-cols-13 gap-6"
+    >
       <AdultProgramPageWrapper
         programName="Get Golf Ready Level I"
         currentPage="get-golf-ready-level-1"
@@ -75,6 +79,6 @@ export function GetGolfReadyLevel1PageClient({
       <div className="lg:col-span-4 space-y-6">
         <ProgramFeaturesAndDetails features={features} details={details} />
       </div>
-    </>
+    </motion.div>
   );
 }
