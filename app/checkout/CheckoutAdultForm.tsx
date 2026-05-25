@@ -56,9 +56,19 @@ export function CheckoutAdultForm({
   onGoToCart,
 }: CheckoutAdultFormProps) {
   const router = useRouter();
+  // Normalize initialData to ensure phoneNumber is properly formatted
+  const normalizedInitialData = initialData
+    ? {
+        ...initialData,
+        phoneNumber: initialData.phoneNumber
+          ? formatPhoneNumber(initialData.phoneNumber)
+          : "",
+      }
+    : null;
+
   const form = useForm<AdultFormData>({
     resolver: zodResolver(adultCheckoutSchema),
-    defaultValues: initialData || {
+    defaultValues: normalizedInitialData || {
       firstName: "",
       lastName: "",
       email: "",
@@ -76,6 +86,9 @@ export function CheckoutAdultForm({
           const allData = JSON.parse(allDataString);
           const draftData = allData[storageKey];
           if (draftData) {
+            if (draftData.phoneNumber) {
+              draftData.phoneNumber = formatPhoneNumber(draftData.phoneNumber);
+            }
             Object.keys(draftData).forEach((key) => {
               form.setValue(key as any, draftData[key]);
             });

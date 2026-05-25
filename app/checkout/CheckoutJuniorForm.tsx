@@ -87,9 +87,23 @@ export function CheckoutJuniorForm({
   onGoToCart,
 }: CheckoutJuniorFormProps) {
   const router = useRouter();
+  // Normalize initialData to ensure childAge is always a string for the form
+  const normalizedInitialData = initialData
+    ? {
+        ...initialData,
+        childAge:
+          initialData.childAge == null || initialData.childAge === 0
+            ? ""
+            : String(initialData.childAge),
+        primaryContactPhone: initialData.primaryContactPhone
+          ? formatPhoneNumber(initialData.primaryContactPhone)
+          : "",
+      }
+    : null;
+
   const form = useForm<JuniorFormData>({
     resolver: zodResolver(juniorCheckoutSchema),
-    defaultValues: initialData || {
+    defaultValues: normalizedInitialData || {
       primaryContactFirstName: "",
       primaryContactLastName: "",
       primaryContactEmail: "",
@@ -98,7 +112,7 @@ export function CheckoutJuniorForm({
       preferredContactMethod: "email",
       childFirstName: "",
       childLastName: "",
-      childAge: "", // Default to empty string
+      childAge: "",
       childExperienceLevel: "",
       hasOwnClubs: false,
       friendsToGroupWith: "",
@@ -115,8 +129,18 @@ export function CheckoutJuniorForm({
           const allData = JSON.parse(allDataString);
           const draftData = allData[storageKey];
           if (draftData) {
-            // Reset form with draft data
-            // We need to be careful with types here, looping keys is safest
+            // Normalize childAge to string before restoring
+            if (draftData.childAge != null) {
+              draftData.childAge =
+                Number(draftData.childAge) === 0
+                  ? ""
+                  : String(draftData.childAge);
+            }
+            if (draftData.primaryContactPhone) {
+              draftData.primaryContactPhone = formatPhoneNumber(
+                draftData.primaryContactPhone,
+              );
+            }
             Object.keys(draftData).forEach((key) => {
               form.setValue(key as any, draftData[key]);
             });

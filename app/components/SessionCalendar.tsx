@@ -103,7 +103,7 @@ export function SessionCalendar({
       {};
 
     sortedDates.forEach((s) => {
-      const dayName = s.date.toLocaleDateString("en-US", { weekday: "long" });
+      const dayName = s.date.toLocaleDateString("en-US", { weekday: "long", timeZone: "America/New_York" });
       const timeRange = `${formatTime12h(s.startTime)} - ${formatTime12h(s.endTime)}`;
       const key = `${dayName}-${timeRange}`;
 
@@ -119,7 +119,7 @@ export function SessionCalendar({
       const lastDate = group.dates[group.dates.length - 1];
 
       const formatDateShort = (d: Date) =>
-        d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+        d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" });
 
       const dateRangeStr =
         group.dates.length > 1
@@ -152,6 +152,7 @@ export function SessionCalendar({
 
           const monthName = monthDate.toLocaleDateString("en-US", {
             month: "short",
+            timeZone: "America/New_York",
           });
 
           const calendarDays = [];
@@ -222,6 +223,7 @@ export function SessionCalendar({
                                 weekday: "short",
                                 month: "short",
                                 day: "numeric",
+                                timeZone: "America/New_York",
                               })}
                             </div>
                             <div className="space-y-0.5">

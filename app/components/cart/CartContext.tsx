@@ -15,6 +15,15 @@ import {
   emptyCart,
 } from "@/app/actions/cart";
 
+export interface AppliedDiscount {
+  type: string;
+  discountId: string;
+  code: string;
+  discountType: string;
+  discountValue: number;
+  balance?: number;
+}
+
 interface CartItem {
   id: string;
   cartId: string;
@@ -53,6 +62,8 @@ interface CartContextType {
   items: CartItem[];
   itemCount: number;
   total: number;
+  discountAmount: number;
+  finalTotal: number;
   isLoading: boolean;
   isAddingToCart: boolean;
   cartAnimationTrigger: number;
@@ -68,6 +79,8 @@ interface CartContextType {
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
   refreshCart: () => Promise<void>;
+  appliedDiscount: AppliedDiscount | null;
+  setAppliedDiscount: React.Dispatch<React.SetStateAction<AppliedDiscount | null>>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -79,6 +92,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [cartAnimationTrigger, setCartAnimationTrigger] = useState(0);
+  const [appliedDiscount, setAppliedDiscount] = useState<AppliedDiscount | null>(null);
 
   const refreshCart = useCallback(async () => {
     try {
@@ -196,12 +210,26 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
   }, [refreshCart]);
 
+  // Calculate discount amount
+  const discountAmount = React.useMemo(() => {
+    if (!appliedDiscount) return 0;
+    if (appliedDiscount.discountType === "percentage") {
+      return Math.min(total, (total * appliedDiscount.discountValue) / 100);
+    }
+    // Fixed amount or gift card balance
+    return Math.min(total, appliedDiscount.discountValue);
+  }, [appliedDiscount, total]);
+
+  const finalTotal = Math.max(0, total - discountAmount);
+
   return (
     <CartContext.Provider
       value={{
         items,
         itemCount,
         total,
+        discountAmount,
+        finalTotal,
         isLoading,
         isAddingToCart,
         cartAnimationTrigger,
@@ -210,6 +238,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         updateQuantity,
         clearCart: clearCartItems,
         refreshCart,
+        appliedDiscount,
+        setAppliedDiscount,
       }}
     >
       {children}

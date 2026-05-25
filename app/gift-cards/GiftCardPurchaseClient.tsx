@@ -16,10 +16,10 @@ import {
   CreditCard,
   Check,
   ArrowLeft,
-  Sparkles,
   Copy,
   CheckCircle2,
   Lock,
+  Mail,
 } from "lucide-react";
 import { purchaseGiftCard } from "@/app/actions/gift-cards";
 import { formatPrice } from "@/lib/utils";
@@ -41,8 +41,18 @@ interface ProgramSuggestion {
 // ============================================
 // STEP 1: Amount Selection + Details
 // ============================================
+export interface GiftCardFormData {
+  amount: number | null;
+  customAmount: string;
+  name: string;
+  email: string;
+  recipientEmail: string;
+  isForSomeoneElse: boolean;
+}
 function StepOne({
   onNext,
+  formData,
+  setFormData,
 }: {
   onNext: (data: {
     amount: number;
@@ -50,13 +60,10 @@ function StepOne({
     email: string;
     recipientEmail?: string;
   }) => void;
+  formData: GiftCardFormData;
+  setFormData: React.Dispatch<React.SetStateAction<GiftCardFormData>>;
 }) {
-  const [amount, setAmount] = useState<number | null>(null);
-  const [customAmount, setCustomAmount] = useState("");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [recipientEmail, setRecipientEmail] = useState("");
-  const [isForSomeoneElse, setIsForSomeoneElse] = useState(false);
+  const { amount, customAmount, name, email, recipientEmail, isForSomeoneElse } = formData;
   const [programs, setPrograms] = useState<ProgramSuggestion[]>([]);
 
   const presetAmounts = [50, 100, 150, 200, 500];
@@ -168,8 +175,7 @@ function StepOne({
             <button
               key={preset}
               onClick={() => {
-                setAmount(preset);
-                setCustomAmount(preset.toString());
+                setFormData({ ...formData, amount: preset, customAmount: preset.toString() });
               }}
               className={`relative py-3 px-2 rounded-xl border-2 transition-all duration-200 w-full flex items-center justify-center font-bold text-base tracking-tight cursor-pointer ${
                 selectedAmount === preset
@@ -198,8 +204,7 @@ function StepOne({
               placeholder="Enter amount"
               value={customAmount}
               onChange={(e) => {
-                setCustomAmount(e.target.value);
-                setAmount(null);
+                setFormData({ ...formData, customAmount: e.target.value, amount: null });
               }}
               className="pl-7"
             />
@@ -220,7 +225,7 @@ function StepOne({
             <Input
               placeholder="John Doe"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
             />
           </div>
           <div>
@@ -231,7 +236,7 @@ function StepOne({
               type="email"
               placeholder="john@example.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             />
           </div>
         </div>
@@ -242,7 +247,7 @@ function StepOne({
             <input
               type="checkbox"
               checked={isForSomeoneElse}
-              onChange={(e) => setIsForSomeoneElse(e.target.checked)}
+              onChange={(e) => setFormData({ ...formData, isForSomeoneElse: e.target.checked })}
               className="rounded border-gray-300 text-[hsl(var(--golf-orange))] focus:ring-[hsl(var(--golf-orange))]"
             />
             <span className="text-sm text-gray-700">
@@ -260,7 +265,7 @@ function StepOne({
               type="email"
               placeholder="recipient@example.com"
               value={recipientEmail}
-              onChange={(e) => setRecipientEmail(e.target.value)}
+              onChange={(e) => setFormData({ ...formData, recipientEmail: e.target.value })}
             />
             <p className="text-xs text-gray-500 mt-1">
               The gift card code will also be sent to this email.
@@ -426,10 +431,12 @@ function PaymentForm({
   onSuccess,
   onBack,
   hasRecipient,
+  amount,
 }: {
   onSuccess: () => void;
   onBack: () => void;
   hasRecipient: boolean;
+  amount: number;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -470,17 +477,30 @@ function PaymentForm({
         Back to details
       </button>
 
-      <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 text-sm text-blue-800 font-medium">
-        {hasRecipient
-          ? "Both you and the recipient will receive an email with a code to activate this gift card."
-          : "You will receive an email with a code to activate this gift card."}
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-800 font-medium">
+        <p>
+          {hasRecipient
+            ? "Both you and the recipient will receive an email with a code to activate this gift card."
+            : "You will receive an email with a code to activate this gift card."}
+        </p>
       </div>
 
       <div className="bg-white p-3 sm:p-6 rounded-lg border border-gray-200 shadow-sm">
-        <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
-          <Lock className="w-4 h-4 text-[hsl(var(--golf-green-dark))]" />
-          Secure Payment
-        </h3>
+        <div className="flex justify-between items-center mb-5 pb-5 border-b border-gray-100">
+          <div>
+            <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+              <Lock className="w-4 h-4 text-[hsl(var(--golf-green-dark))]" />
+              Secure Payment
+            </h3>
+            <p className="text-sm text-gray-500 mt-1">
+              You are purchasing a ${formatPrice(amount)} gift card
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Total Due</p>
+            <p className="text-2xl font-bold text-green-700">${formatPrice(amount)}</p>
+          </div>
+        </div>
         <PaymentElement />
       </div>
 
@@ -591,6 +611,14 @@ function SuccessScreen({ code, amount }: { code: string; amount: number }) {
 // MAIN CLIENT COMPONENT
 // ============================================
 export default function GiftCardPurchaseClient() {
+  const [formData, setFormData] = useState<GiftCardFormData>({
+    amount: null,
+    customAmount: "",
+    name: "",
+    email: "",
+    recipientEmail: "",
+    isForSomeoneElse: false,
+  });
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [giftCardCode, setGiftCardCode] = useState("");
@@ -721,7 +749,7 @@ export default function GiftCardPurchaseClient() {
             )}
 
             {!isCreating && step === 1 && (
-              <StepOne onNext={handleStepOneComplete} />
+              <StepOne onNext={handleStepOneComplete} formData={formData} setFormData={setFormData} />
             )}
 
             {step === 2 && clientSecret && (
@@ -744,6 +772,7 @@ export default function GiftCardPurchaseClient() {
                     setClientSecret(null);
                   }}
                   hasRecipient={hasRecipient}
+                  amount={purchaseAmount}
                 />
               </Elements>
             )}

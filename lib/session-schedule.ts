@@ -57,11 +57,12 @@ export function formatSessionDate(sessionDate: SessionDate): string {
   const startTime = formatTime12h(sessionDate.startTime);
   const endTime = formatTime12h(sessionDate.endTime);
   
-  const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+  const dayName = date.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'America/New_York' });
   const monthDayYear = date.toLocaleDateString('en-US', { 
     month: 'short', 
     day: 'numeric', 
-    year: 'numeric' 
+    year: 'numeric',
+    timeZone: 'America/New_York'
   });
   
   return `${dayName}, ${monthDayYear} - ${startTime} - ${endTime}`;
@@ -77,8 +78,8 @@ export function formatSessionDateShort(sessionDate: SessionDate): string {
   const startTime = formatTime12h(sessionDate.startTime);
   const endTime = formatTime12h(sessionDate.endTime);
   
-  const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-  const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const dayName = date.toLocaleDateString('en-US', { weekday: 'short', timeZone: 'America/New_York' });
+  const monthDay = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' });
   
   return `${dayName}, ${monthDay} - ${startTime}-${endTime}`;
 }
@@ -190,14 +191,16 @@ export function getScheduleSummary(schedule: ProgramSessionSchedule | null): str
     weekday: 'short',
     month: 'short',
     day: 'numeric',
-    year: 'numeric'
+    year: 'numeric',
+    timeZone: 'America/New_York'
   });
   
   const endDateStr = dateRange.lastDate.toLocaleDateString('en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
-    year: 'numeric'
+    year: 'numeric',
+    timeZone: 'America/New_York'
   });
   
   return `${sessionCount} session${sessionCount !== 1 ? 's' : ''}: ${startDateStr} - ${endDateStr}`;

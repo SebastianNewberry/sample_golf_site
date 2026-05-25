@@ -178,7 +178,7 @@ async function addPrivateInstructionEvents(events: CalendarEvent[]) {
         const [h, m] = t.split(":").map(Number);
         const d = new Date();
         d.setHours(h, m);
-        return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+        return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
       };
       return `${formatTime(start)} - ${formatTime(end)}`;
     }).join(", ");
@@ -225,7 +225,7 @@ async function addPrivateInstructionEvents(events: CalendarEvent[]) {
         const [h, m] = t.split(":").map(Number);
         const d = new Date();
         d.setHours(h, m);
-        return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+        return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
       };
       return `${formatTime(start)} - ${formatTime(end)}`;
     }).join(", ");

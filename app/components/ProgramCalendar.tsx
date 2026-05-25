@@ -67,6 +67,7 @@ export function ProgramCalendar({
     return currentDate.toLocaleDateString("en-US", {
       month: "long",
       year: "numeric",
+      timeZone: "America/New_York",
     });
   }, [currentDate]);
 
@@ -305,10 +306,12 @@ export function ProgramCalendar({
               );
               const dayName = date.toLocaleDateString("en-US", {
                 weekday: "short",
+                timeZone: "America/New_York",
               });
               const monthDay = date.toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
+                timeZone: "America/New_York",
               });
 
               return (

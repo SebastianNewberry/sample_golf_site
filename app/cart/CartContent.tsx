@@ -7,6 +7,7 @@ import { useCart } from "@/app/components/cart/CartContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { DiscountSection } from "@/app/components/cart/DiscountSection";
 import {
   Trash2,
   Minus,
@@ -55,7 +56,7 @@ const PRIVATE_INSTRUCTION_IDS = [
 ];
 
 export default function CartContent() {
-  const { items, total, isLoading, removeItem, updateQuantity, clearCart } =
+  const { items, total, discountAmount, finalTotal, isLoading, removeItem, updateQuantity, clearCart } =
     useCart();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -712,6 +713,8 @@ export default function CartContent() {
                     );
                   })}
                 </Card>
+
+
               </div>
 
               {/* Order summary — desktop sidebar */}
@@ -722,18 +725,35 @@ export default function CartContent() {
                   </h2>
 
                   <div className="space-y-4 mb-8">
-                    <div className="flex justify-between text-base text-gray-600">
-                      <span>Subtotal</span>
-                      <span className="font-semibold">${formatPrice(total)}</span>
-                    </div>
-                    <div className="border-t border-gray-200 pt-4">
-                      <div className="flex justify-between text-2xl font-bold text-gray-800">
+                    <DiscountSection />
+                    
+                    {discountAmount > 0 ? (
+                      <div className="space-y-2 pt-2">
+                        <div className="flex justify-between text-sm text-gray-600">
+                          <span>Subtotal</span>
+                          <span>${formatPrice(total)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm text-green-600">
+                          <span>Discount</span>
+                          <span className="font-medium">-${formatPrice(discountAmount)}</span>
+                        </div>
+                        <div className="border-t border-gray-200 pt-3">
+                          <div className="flex justify-between text-2xl font-bold text-gray-800">
+                            <span>Total</span>
+                            <span className="text-green-700">
+                              ${formatPrice(finalTotal)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between text-2xl font-bold text-gray-800 border-t border-gray-200 pt-4">
                         <span>Total</span>
                         <span className="text-green-700">
                           ${formatPrice(total)}
                         </span>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   <Button
@@ -771,12 +791,15 @@ export default function CartContent() {
             paddingBottom: "env(safe-area-inset-bottom, 0px)",
           }}
         >
+          <div className="px-4 py-2 border-b border-gray-200 bg-gray-50/80">
+            <DiscountSection />
+          </div>
           <div className="mx-auto w-[92%] max-w-6xl px-1 pt-3 pb-3">
             <div className="flex items-start gap-3">
               <div className="min-w-0 shrink pt-1">
                 <p className="text-xs font-medium text-gray-500">Total</p>
                 <p className="text-xl font-bold text-green-700 tabular-nums leading-none mt-1">
-                  ${formatPrice(total)}
+                  ${formatPrice(finalTotal)}
                 </p>
               </div>
               <div className="flex-1 flex flex-col">
