@@ -92,7 +92,7 @@ export function CheckoutJuniorForm({
     ? {
         ...initialData,
         childAge:
-          initialData.childAge == null || initialData.childAge === 0
+          initialData.childAge == null || Number(initialData.childAge) === 0
             ? ""
             : String(initialData.childAge),
         primaryContactPhone: initialData.primaryContactPhone

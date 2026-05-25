@@ -16,7 +16,7 @@ import {
 } from "@/app/actions/cart";
 
 export interface AppliedDiscount {
-  type: string;
+  type: "gift_card" | "promo";
   discountId: string;
   code: string;
   discountType: string;
