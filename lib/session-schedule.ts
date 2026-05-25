@@ -5,15 +5,20 @@
  */
 
 /**
- * Parse an ISO date string (YYYY-MM-DD) as a local date.
- * This prevents the off-by-one day issue when parsing dates.
+ * Parse an ISO date string (YYYY-MM-DD) into a Date that represents that
+ * calendar day in America/New_York.
+ *
+ * We anchor the moment at 12:00 UTC. Noon UTC is always the same calendar
+ * day in any timezone from UTC-11 through UTC+11 (including ET, which is
+ * UTC-4/-5). Anchoring at midnight (either local- or UTC-midnight) breaks
+ * when the runtime timezone differs from America/New_York: e.g. on a UTC
+ * server, `new Date(2025, 3, 14)` is 2025-04-14T00:00Z, which formats as
+ * Apr 13 in America/New_York — the off-by-one bug.
+ *
  * @param isoDate Date string in YYYY-MM-DD format
- * @returns Date object interpreted in local time
  */
 export function parseLocalDate(isoDate: string): Date {
-  const [year, month, day] = isoDate.split('-').map(Number);
-  // Month is 0-indexed in JavaScript Date
-  return new Date(year, month - 1, day);
+  return new Date(`${isoDate}T12:00:00Z`);
 }
 
 /**
