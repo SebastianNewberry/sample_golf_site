@@ -12,6 +12,7 @@ interface AddToCartButtonProps {
   programSessionId?: string;
   registrationType: "adult" | "junior";
   price: number;
+  quantity?: number;
   className?: string;
   variant?: "default" | "outline";
   size?: "default" | "sm" | "lg";
@@ -29,6 +30,7 @@ export function AddToCartButton({
   size = "default",
   children,
   disabled = false,
+  quantity = 1,
 }: AddToCartButtonProps) {
   const { addItem, isAddingToCart, items } = useCart();
   const [showSuccess, setShowSuccess] = useState(false);
@@ -39,13 +41,13 @@ export function AddToCartButton({
     setError(null);
 
     // If adding a specific session, check capacity
+    const addQuantity = Math.max(1, Math.floor(quantity));
+
     if (programSessionId) {
-      // 1. Calculate how many we already have in cart
       const inCartQuantity = items
         .filter((item) => item.programSessionId === programSessionId)
         .reduce((sum, item) => sum + item.quantity, 0);
 
-      // 2. Check server for availability
       const availability = await checkSessionAvailability(programSessionId);
 
       if (!availability.success) {
@@ -54,13 +56,18 @@ export function AddToCartButton({
       }
 
       const { available, remaining } = availability;
+      const maxCanAdd = (remaining ?? 0) - inCartQuantity;
 
-      // 3. Validate
-      // If we confirm it's available, remaining includes the DB count.
-      // We need to ensure remaining > inCartQuantity
-      if (!available || remaining <= inCartQuantity) {
-        setError("No more spots available");
-        // Clear error after 3 seconds
+      if (
+        !available ||
+        maxCanAdd <= 0 ||
+        addQuantity > maxCanAdd
+      ) {
+        setError(
+          maxCanAdd <= 0
+            ? "No more spots available"
+            : `Only ${maxCanAdd} ${maxCanAdd === 1 ? "spot is" : "spots are"} available`,
+        );
         setTimeout(() => setError(null), 3000);
         return;
       }
@@ -71,6 +78,7 @@ export function AddToCartButton({
       programSessionId,
       registrationType,
       price,
+      quantity: addQuantity,
     });
 
     if (result.success) {

@@ -12,6 +12,7 @@ interface BuyNowButtonProps {
   programSessionId?: string;
   registrationType: "adult" | "junior";
   price: number;
+  quantity?: number;
   className?: string;
   size?: "default" | "sm" | "lg" | "icon";
   children?: React.ReactNode;
@@ -27,6 +28,7 @@ export function BuyNowButton({
   size = "default",
   children,
   disabled = false,
+  quantity = 1,
 }: BuyNowButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -39,8 +41,9 @@ export function BuyNowButton({
 
     try {
       // If adding a specific session, check capacity
+      const addQuantity = Math.max(1, Math.floor(quantity));
+
       if (programSessionId) {
-        // 1. Check server for availability
         const availability = await checkSessionAvailability(programSessionId);
 
         if (!availability.success) {
@@ -51,27 +54,29 @@ export function BuyNowButton({
 
         const { available, remaining } = availability;
 
-        // 3. Validate
-        // Check if we have hit the capacity limit including what's in cart
-        // 1. Calculate how many we already have in cart
         const inCartQuantity = items
           .filter((item) => item.programSessionId === programSessionId)
           .reduce((sum, item) => sum + item.quantity, 0);
 
-        // We are trying to add 1 more
-        if (!available || remaining <= inCartQuantity) {
-          alert("Sorry, no more spots available.");
+        const maxCanAdd = (remaining ?? 0) - inCartQuantity;
+
+        if (!available || maxCanAdd <= 0 || addQuantity > maxCanAdd) {
+          alert(
+            maxCanAdd <= 0
+              ? "Sorry, no more spots available."
+              : `Only ${maxCanAdd} ${maxCanAdd === 1 ? "spot is" : "spots are"} available.`,
+          );
           setIsLoading(false);
           return;
         }
       }
 
-      // Add item to cart
       const result = await addToCart({
         programId,
         programSessionId,
         registrationType,
         price,
+        quantity: addQuantity,
       });
 
       if (result.success) {

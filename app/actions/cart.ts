@@ -284,25 +284,38 @@ export async function addToCart(data: {
     }
 
     // Capacity validation for sessions
+    const requestedQuantity = Math.max(
+      1,
+      Math.floor(Number(data.quantity) || 1),
+    );
+
     if (data.programSessionId) {
       const { available, remaining } = await checkProgramSessionCapacity(
         data.programSessionId,
       );
 
-      // Also check if they already have this in their cart and how many
       const cartItems = await getCartWithItems(sessionId);
       const currentInCart =
         cartItems?.items
           .filter((i) => i.programSessionId === data.programSessionId)
           .reduce((sum, i) => sum + i.quantity, 0) || 0;
 
-      if (!available || currentInCart >= remaining) {
+      const maxCanAdd = remaining - currentInCart;
+
+      if (!available || maxCanAdd <= 0) {
         return {
           success: false,
           error:
             remaining <= 0
               ? "This session is currently full."
               : `Only ${remaining} ${remaining === 1 ? "spot is" : "spots are"} available for this session, and you already have ${currentInCart} in your cart.`,
+        };
+      }
+
+      if (requestedQuantity > maxCanAdd) {
+        return {
+          success: false,
+          error: `Only ${maxCanAdd} ${maxCanAdd === 1 ? "spot is" : "spots are"} available for this session${currentInCart > 0 ? ` (${currentInCart} already in your cart)` : ""}.`,
         };
       }
     }
@@ -314,7 +327,7 @@ export async function addToCart(data: {
       registrationType: data.registrationType,
       priceAtAdd: finalPrice.toFixed(2), // Use strictly backend validated price
       metadata: data.metadata,
-      quantity: data.quantity || 1,
+      quantity: requestedQuantity,
     });
 
     return {

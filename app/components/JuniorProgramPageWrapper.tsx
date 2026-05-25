@@ -237,7 +237,7 @@ export function JuniorProgramPageWrapper({
                             )}
                             {!isStarted && session.isBooked && (
                               <span className="text-red-600 ml-1">
-                                (Booked)
+                                (Sold Out)
                               </span>
                             )}
                           </span>

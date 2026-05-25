@@ -545,40 +545,48 @@ export function AdultPrivateGolfInstructionClient({
 
                     {pricingOptions.filter((p: any) => p.isOnCourse).length >
                       0 && (
-                        <div className="bg-gray-50/80 rounded-xl px-4 py-4 border border-gray-100 mt-6 mb-4">
-                          <div className="flex items-center gap-2 mb-3">
-                            <h4 className="text-sm font-bold text-gray-800">
-                              On-Course Coaching
-                            </h4>
-                            <span className="text-xs text-gray-400 font-normal">(9 Hole Lesson · Approx. 3 hrs)</span>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div className="bg-gray-50/80 rounded-2xl p-6 lg:p-8 border border-gray-100 mt-8 mb-4">
+                          <h4 className="text-lg font-bold text-gray-900 mb-3">
+                            On-Course Coaching (9 Hole Lesson)
+                          </h4>
+                          <p className="text-sm text-gray-600 leading-relaxed mb-6">
+                            Our <strong>on-course coaching session</strong> takes
+                            your game from the practice area to the golf course.
+                            You will learn under real playing conditions and
+                            receive invaluable instruction on all aspects of your
+                            game. Includes 30-minute evaluation, improvement plan,
+                            green fees, cart, and practice balls.{" "}
+                            <strong>Approx. 3 Hours.</strong>
+                          </p>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {pricingOptions
                               .filter((p: any) => p.isOnCourse)
                               .map((pkg: any) => (
                                 <div
                                   key={pkg.id}
                                   onClick={() => handlePriceSelect(pkg)}
-                                  className={`px-4 py-3 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between
+                                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between
                                   ${selectedPackageId === pkg.id
                                       ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))] shadow-sm"
                                       : "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
                                     }`}
                                 >
                                   <div>
-                                    <p className="text-gray-500 text-xs font-medium uppercase tracking-wide">On Course Coaching</p>
-                                    {pkg.coachesCount && pkg.coachesCount > 0 && (
-                                      <p className="text-xs text-gray-400 mt-0.5">
-                                        {pkg.coachesCount === 1
-                                          ? "1 Coach"
-                                          : `${pkg.coachesCount} Coaches`}
-                                      </p>
-                                    )}
-                                    <p className="text-xs text-gray-400 mt-1">
+                                    <p className="text-gray-900 font-bold text-lg">
+                                      {pkg.title}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">
                                       {pkg.playersCount === 1
                                         ? "Private Session"
                                         : `$${Math.round(pkg.price / pkg.playersCount)} / person`}
                                     </p>
+                                    {(pkg.coachesCount ?? 0) > 0 ? (
+                                      <p className="text-xs text-[hsl(var(--golf-green))] font-semibold mt-1">
+                                        {pkg.coachesCount === 1
+                                          ? "1 Coach"
+                                          : `${pkg.coachesCount} Coaches`}
+                                      </p>
+                                    ) : null}
                                   </div>
                                   <p
                                     className={`text-2xl font-bold ${selectedPackageId === pkg.id ? "text-[hsl(var(--golf-orange))]" : "text-[hsl(var(--golf-green))]"}`}

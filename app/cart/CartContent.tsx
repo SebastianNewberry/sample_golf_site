@@ -315,6 +315,10 @@ export default function CartContent() {
                       ? formatPrivateInstructionMetadata(item.metadata)
                       : null;
 
+                    const showMiddle = privateInfo
+                      ? privateInfo.isOnCourse || (privateInfo.coachesCount ?? 0) > 0
+                      : false;
+
                     const isPrivate = PRIVATE_INSTRUCTION_IDS.includes(
                       item.programId,
                     );
@@ -454,50 +458,51 @@ export default function CartContent() {
                                   )}
 
                                   {/* Private instruction (adult + junior program IDs): shared schedule UI */}
-                                  {privateInfo && (
-                                    <div className="mt-4 space-y-3">
-                                      <div className="flex items-center gap-2 text-sm text-gray-800 font-semibold bg-orange-50 px-3 py-1.5 rounded-lg border border-orange-100 w-fit">
-                                        <Users
-                                          size={16}
-                                          className="text-orange-600"
-                                        />
-                                        <span>
-                                          {item.quantity} Player
-                                          {item.quantity !== 1 ? "s" : ""}
-                                        </span>
-                                        {privateInfo.isOnCourse && (
-                                          <>
-                                            <span className="text-gray-400 mx-1">
-                                              •
-                                            </span>
-                                            <span className="text-gray-800">
-                                              On-Course Coaching
-                                            </span>
-                                          </>
-                                        )}
-                                        {privateInfo.isOnCourse && privateInfo.coachesCount &&
-                                          privateInfo.coachesCount > 0 && (
-                                            <>
-                                              <span className="text-gray-400 mx-1">
-                                                •
-                                              </span>
-                                              <span className="text-gray-800">
-                                                {privateInfo.coachesCount === 1
-                                                  ? "1 Coach"
-                                                  : `${privateInfo.coachesCount} Coaches`}
-                                              </span>
-                                            </>
-                                          )}
-                                        <span className="text-gray-400 mx-1">
-                                          •
-                                        </span>
-                                        <span className="text-green-700">
-                                          {Number(privateInfo.totalHours ||
-                                            privateInfo.sessionCount) === 1
-                                            ? "1 hr total"
-                                            : `${privateInfo.totalHours || privateInfo.sessionCount} hrs total`}
-                                        </span>
-                                      </div>
+                                   {privateInfo && (
+                                     <div className="mt-4 space-y-3">
+                                       <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-sm text-gray-800 font-semibold bg-orange-50 px-3 py-2 rounded-lg border border-orange-100 w-fit">
+                                         <Users
+                                           size={16}
+                                           className="text-orange-600 shrink-0"
+                                         />
+                                         <span>
+                                           {item.quantity} Player
+                                           {item.quantity !== 1 ? "s" : ""}
+                                         </span>
+                                         
+                                         <span className="text-gray-400 mx-1">•</span>
+                                         
+                                         {showMiddle && (
+                                           <>
+                                             {privateInfo.isOnCourse ? (
+                                               <div className="flex flex-col">
+                                                 <span>On-Course Coaching</span>
+                                                 {(privateInfo.coachesCount ?? 0) > 0 ? (
+                                                   <span className="text-xs text-gray-500 font-normal -mt-0.5">
+                                                     {privateInfo.coachesCount === 1
+                                                       ? "1 Coach"
+                                                       : `${privateInfo.coachesCount} Coaches`}
+                                                   </span>
+                                                 ) : null}
+                                               </div>
+                                             ) : (
+                                               <span>
+                                                 {privateInfo.coachesCount === 1
+                                                   ? "1 Coach"
+                                                   : `${privateInfo.coachesCount} Coaches`}
+                                               </span>
+                                             )}
+                                             <span className="text-gray-400 mx-1">•</span>
+                                           </>
+                                         )}
+                                         
+                                         <span className="text-green-700">
+                                           {Number(privateInfo.totalHours ||
+                                             privateInfo.sessionCount) === 1
+                                             ? "1 hr total"
+                                             : `${privateInfo.totalHours || privateInfo.sessionCount} hrs total`}
+                                         </span>
+                                       </div>
 
                                       <div className="pl-1 space-y-3">
                                         <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">

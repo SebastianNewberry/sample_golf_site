@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { AddToCartButton } from "@/app/components/AddToCartButton";
 import { BuyNowButton } from "@/app/components/BuyNowButton";
+import { QuantitySelect } from "@/app/components/QuantitySelect";
 import { CalendarClock, Phone, AlertCircle, Loader2 } from "lucide-react";
 import {
   Select,
@@ -48,6 +49,7 @@ export function ProgramPurchaseSection({
   onSessionChange,
 }: ProgramPurchaseSectionProps) {
   const [internalSessionId, setInternalSessionId] = useState<string>("");
+  const [quantity, setQuantity] = useState(1);
   const [availability, setAvailability] = useState<{
     available: boolean;
     remaining: number;
@@ -88,8 +90,35 @@ export function ProgramPurchaseSection({
       .filter((i) => i.programSessionId === selectedSession)
       .reduce((sum, i) => sum + i.quantity, 0) || 0;
 
-  const isFull = availability ? availability.remaining <= currentInCart : false;
-  const isDisabled = !isSessionSelected || isFull || isCheckingAvailability;
+  const maxQuantity = availability
+    ? Math.max(0, availability.remaining - currentInCart)
+    : 0;
+
+  const selectedSessionMeta = sessions.find((s) => s.id === selectedSession);
+  const isSelectedStarted = selectedSessionMeta?.startDate
+    ? new Date() > new Date(selectedSessionMeta.startDate)
+    : false;
+  const isSelectedSoldOut = selectedSessionMeta?.isBooked ?? false;
+  const isSessionUnavailable = isSelectedStarted || isSelectedSoldOut;
+
+  const isFull =
+    maxQuantity <= 0 && isSessionSelected && !isCheckingAvailability;
+  const isDisabled =
+    !isSessionSelected ||
+    isFull ||
+    isCheckingAvailability ||
+    isSessionUnavailable;
+
+  const isQuantityDisabled = isDisabled || maxQuantity <= 0;
+
+  // Reset quantity when session or available spots change
+  useEffect(() => {
+    if (maxQuantity <= 0) {
+      setQuantity(1);
+      return;
+    }
+    setQuantity((prev) => (prev > maxQuantity ? maxQuantity : prev < 1 ? 1 : prev));
+  }, [selectedSession, maxQuantity]);
 
   return (
     <>
@@ -103,35 +132,57 @@ export function ProgramPurchaseSection({
 
       {hasSessions ? (
         <div className="mb-5">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Select Session:
-          </label>
-          <Select value={selectedSession} onValueChange={setSelectedSession}>
-            <SelectTrigger className="w-full bg-gray-50 focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:bg-white">
-              <SelectValue placeholder="Choose your dates..." />
-            </SelectTrigger>
-            <SelectContent>
-              {sessions.map((session) => {
-                const isStarted = session.startDate
-                  ? new Date() > new Date(session.startDate)
-                  : false;
-                const isBooked = session.isBooked ?? false;
-                const isUnavailable = isStarted || isBooked;
-                return (
-                  <SelectItem
-                    key={session.id}
-                    value={session.id}
-                    disabled={isUnavailable}
-                    className={isUnavailable ? "text-gray-400" : ""}
-                  >
-                    {session.name}
-                    {isStarted && " (Started)"}
-                    {!isStarted && isBooked && " (Booked)"}
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Select Session:
+              </label>
+              <Select
+                value={selectedSession}
+                onValueChange={setSelectedSession}
+              >
+                <SelectTrigger className="w-full bg-gray-50 focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:bg-white">
+                  <SelectValue placeholder="Choose your dates..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {sessions.map((session) => {
+                    const isStarted = session.startDate
+                      ? new Date() > new Date(session.startDate)
+                      : false;
+                    const isBooked = session.isBooked ?? false;
+                    const isUnavailable = isStarted || isBooked;
+                    return (
+                      <SelectItem
+                        key={session.id}
+                        value={session.id}
+                        disabled={isUnavailable}
+                        className={isUnavailable ? "text-gray-400" : ""}
+                      >
+                        {session.name}
+                        {isStarted && " (Started)"}
+                        {!isStarted && isBooked && " (Sold Out)"}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="w-24 shrink-0">
+              <label
+                htmlFor="quantity"
+                className="block text-sm font-semibold text-gray-700 mb-2"
+              >
+                Quantity:
+              </label>
+              <QuantitySelect
+                inline
+                value={quantity}
+                onChange={setQuantity}
+                maxQuantity={Math.max(maxQuantity, 1)}
+                disabled={isQuantityDisabled}
+              />
+            </div>
+          </div>
         </div>
       ) : (
         <div className="mb-5 p-4 bg-amber-50 border border-amber-200 rounded-xl">
@@ -192,6 +243,7 @@ export function ProgramPurchaseSection({
             programSessionId={selectedSession || undefined}
             registrationType={registrationType}
             price={programPrice}
+            quantity={quantity}
             className={`w-full py-3.5 font-bold text-base rounded-xl shadow-md enabled:hover:shadow-lg transition-all ${
               !isDisabled
                 ? "bg-orange-500 enabled:hover:bg-orange-600 text-white"
@@ -208,6 +260,7 @@ export function ProgramPurchaseSection({
             programSessionId={selectedSession || undefined}
             registrationType={registrationType}
             price={programPrice}
+            quantity={quantity}
             className={`w-full py-3.5 font-bold text-base border-2 rounded-xl transition-all ${
               !isDisabled
                 ? "bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 border-green-600"
