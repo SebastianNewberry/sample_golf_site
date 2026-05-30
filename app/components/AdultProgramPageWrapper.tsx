@@ -13,6 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SessionCalendar } from "@/app/components/SessionCalendar";
 import { parseSchedule } from "@/lib/session-schedule";
+import { useProgramSidebarNav } from "@/lib/use-program-sidebar-nav";
 import type { ProgramSession } from "@/db/schema";
 
 type RenderProps = {
@@ -47,7 +48,7 @@ export function AdultProgramPageWrapper({
   const [purchaseSessionId, setPurchaseSessionId] = useState<string>(
     initialSessionId || "",
   );
-  const [showNav, setShowNav] = useState(false);
+  const { showNav, toggleNav, closeNav } = useProgramSidebarNav();
 
   // Initialize checks on mount/updates if initialSessionId is provided
   useEffect(() => {
@@ -110,7 +111,7 @@ export function AdultProgramPageWrapper({
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-gray-800">{programName}</h1>
           <button
-            onClick={() => setShowNav(!showNav)}
+            onClick={toggleNav}
             className="lg:hidden flex items-center self-center gap-0.5 text-[8px] font-semibold text-gray-500 hover:text-gray-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-gray-100 cursor-pointer whitespace-nowrap min-w-[90px] justify-center"
           >
             {showNav ? "Hide Programs" : "Show Programs"}
@@ -192,6 +193,7 @@ export function AdultProgramPageWrapper({
             >
               <Link
                 href="/adult-programs/get-golf-ready-level-1"
+                onClick={closeNav}
                 className={`block px-4 py-2.5 text-sm ${currentPage === "get-golf-ready-level-1"
                     ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
                     : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
@@ -201,6 +203,7 @@ export function AdultProgramPageWrapper({
               </Link>
               <Link
                 href="/adult-programs/get-golf-ready-level-2"
+                onClick={closeNav}
                 className={`block px-4 py-2.5 text-sm ${currentPage === "get-golf-ready-level-2"
                     ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
                     : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
@@ -210,6 +213,7 @@ export function AdultProgramPageWrapper({
               </Link>
               <Link
                 href="/adult-programs/short-game"
+                onClick={closeNav}
                 className={`block px-4 py-2.5 text-sm ${currentPage === "short-game"
                     ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
                     : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
@@ -219,6 +223,7 @@ export function AdultProgramPageWrapper({
               </Link>
               <Link
                 href="/adult-programs/women"
+                onClick={closeNav}
                 className={`block px-4 py-2.5 text-sm ${currentPage === "women"
                     ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
                     : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
@@ -228,6 +233,7 @@ export function AdultProgramPageWrapper({
               </Link>
               <Link
                 href="/adult-programs/private"
+                onClick={closeNav}
                 className={`block px-4 py-2.5 text-sm ${currentPage === "private"
                     ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
                     : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
@@ -237,6 +243,7 @@ export function AdultProgramPageWrapper({
               </Link>
               <Link
                 href="/adult-programs/open-practice"
+                onClick={closeNav}
                 className={`block px-4 py-2.5 text-sm rounded-md ${currentPage === "open-practice"
                     ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
                     : "bg-white text-gray-700 hover:bg-gray-50 font-medium"

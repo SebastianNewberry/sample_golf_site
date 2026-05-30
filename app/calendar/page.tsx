@@ -1,5 +1,8 @@
 import React from "react";
-import { ProgramCalendar, CalendarEvent } from "@/app/components/ProgramCalendar";
+import {
+  ProgramCalendar,
+  CalendarEvent,
+} from "@/app/components/ProgramCalendar";
 import { parseSchedule, parseLocalDate } from "@/lib/session-schedule";
 import {
   getInstructorAvailability,
@@ -167,21 +170,30 @@ async function addPrivateInstructionEvents(events: CalendarEvent[]) {
     })),
   ];
 
-  const adultAvailableSlots = filterAvailableSlots(adultRawSlots, adultBookedSessions);
+  const adultAvailableSlots = filterAvailableSlots(
+    adultRawSlots,
+    adultBookedSessions,
+  );
   const adultIntervals = mergeSlotsToIntervals(adultAvailableSlots);
 
   Object.entries(adultIntervals).forEach(([dateKey, intervals]) => {
     // Format intervals to "h:mm AM/PM - h:mm AM/PM"
-    const formattedIntervals = intervals.map(interval => {
-      const [start, end] = interval.split("-");
-      const formatTime = (t: string) => {
-        const [h, m] = t.split(":").map(Number);
-        const d = new Date();
-        d.setHours(h, m);
-        return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
-      };
-      return `${formatTime(start)} - ${formatTime(end)}`;
-    }).join(", ");
+    const formattedIntervals = intervals
+      .map((interval) => {
+        const [start, end] = interval.split("-");
+        const formatTime = (t: string) => {
+          const [h, m] = t.split(":").map(Number);
+          const d = new Date();
+          d.setHours(h, m);
+          return d.toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            timeZone: "America/New_York",
+          });
+        };
+        return `${formatTime(start)} - ${formatTime(end)}`;
+      })
+      .join(", ");
 
     events.push({
       id: `adult-private-${dateKey}`,
@@ -214,21 +226,30 @@ async function addPrivateInstructionEvents(events: CalendarEvent[]) {
     })),
   ];
 
-  const juniorAvailableSlots = filterAvailableSlots(juniorRawSlots, juniorBookedSessions);
+  const juniorAvailableSlots = filterAvailableSlots(
+    juniorRawSlots,
+    juniorBookedSessions,
+  );
   const juniorIntervals = mergeSlotsToIntervals(juniorAvailableSlots);
 
   Object.entries(juniorIntervals).forEach(([dateKey, intervals]) => {
     // Format intervals
-    const formattedIntervals = intervals.map(interval => {
-      const [start, end] = interval.split("-");
-      const formatTime = (t: string) => {
-        const [h, m] = t.split(":").map(Number);
-        const d = new Date();
-        d.setHours(h, m);
-        return d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
-      };
-      return `${formatTime(start)} - ${formatTime(end)}`;
-    }).join(", ");
+    const formattedIntervals = intervals
+      .map((interval) => {
+        const [start, end] = interval.split("-");
+        const formatTime = (t: string) => {
+          const [h, m] = t.split(":").map(Number);
+          const d = new Date();
+          d.setHours(h, m);
+          return d.toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            timeZone: "America/New_York",
+          });
+        };
+        return `${formatTime(start)} - ${formatTime(end)}`;
+      })
+      .join(", ");
 
     events.push({
       id: `junior-private-${dateKey}`,
@@ -258,7 +279,7 @@ export default async function CalendarPage() {
               Program Schedule Calendar
             </h1>
             <p className="text-gray-600">
-              View all upcoming program sessions at a glance
+              View all upcoming program and private instruction sessions
             </p>
           </div>
 

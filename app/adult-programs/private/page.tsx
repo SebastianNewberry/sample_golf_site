@@ -10,6 +10,7 @@ import {
 import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
 import type { ProgramDetail } from "@/lib/program-details";
 import type { ProgramSession } from "@/db/schema";
+import { programPageContent } from "@/app/components/program-page-layout";
 import { AdultPrivateGolfInstructionClient } from "./AdultPrivateGolfInstructionClient";
 import {
   filterAvailableSlots,
@@ -57,7 +58,7 @@ export default async function AdultPrivateGolfInstruction() {
 
   if (!program) {
     return (
-      <div className="max-w-[1400px] mx-auto">
+      <div className={programPageContent}>
         <div className="grid lg:grid-cols-13 gap-6">
           <div className="lg:col-span-3 space-y-2">
             <h1 className="text-2xl font-bold text-gray-800 mb-4">

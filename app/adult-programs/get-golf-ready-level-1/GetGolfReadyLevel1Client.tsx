@@ -41,6 +41,7 @@ export function GetGolfReadyLevel1Client({
       registrationType="adult"
       selectedSessionId={selectedSessionId}
       onSessionChange={onSessionChange}
+      imageFit="contain"
     />
   );
 }

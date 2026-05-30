@@ -4,6 +4,11 @@ import Image from "next/image";
 import { ReactNode } from "react";
 import { ProgramPurchaseSection } from "@/app/components/ProgramPurchaseSection";
 import { SafeHTML } from "@/app/components/SafeHTML";
+import {
+  programCardImageContainer,
+  programCardImageFrame,
+  programCardImageFrameTall,
+} from "@/app/components/program-page-layout";
 
 interface ProgramCardProps {
   imageUrl?: string;
@@ -21,6 +26,9 @@ interface ProgramCardProps {
   showContactButton?: boolean;
   extraContent?: ReactNode;
   imageClassName?: string;
+  /** Golf for Women — taller hero than standard program pages */
+  tallImage?: boolean;
+  imageFit?: "cover" | "contain";
 }
 
 export function ProgramCard({
@@ -39,19 +47,29 @@ export function ProgramCard({
   showContactButton = false,
   extraContent,
   imageClassName,
+  tallImage = false,
+  imageFit = "cover",
 }: ProgramCardProps) {
+  const imageFrame = tallImage
+    ? programCardImageFrameTall
+    : programCardImageFrame;
+  const imageFitClass =
+    imageFit === "contain" ? "object-contain" : "object-cover";
+
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden">
       {/* Image */}
-      <div className="relative w-full">
-        <Image
-          src={imageUrl || defaultImage}
-          alt={alt}
-          width={600}
-          height={400}
-          className={`w-full max-h-[400px] object-cover bg-gray-100 ${imageClassName || ""}`}
-          priority
-        />
+      <div className={programCardImageContainer}>
+        <div className={imageFrame}>
+          <Image
+            src={imageUrl || defaultImage}
+            alt={alt}
+            width={600}
+            height={480}
+            className={`h-full w-full ${imageFitClass} ${imageClassName || ""}`}
+            priority
+          />
+        </div>
       </div>
 
       {/* Description and Price below image */}

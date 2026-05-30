@@ -1,6 +1,7 @@
 "use client";
 import { motion } from "motion/react";
 
+import { programPageClientGrid } from "@/app/components/program-page-layout";
 import { GetGolfReadyLevel2Client } from "./GetGolfReadyLevel2Client";
 import { AdultProgramPageWrapper } from "@/app/components/AdultProgramPageWrapper";
 import { ProgramFeaturesAndDetails } from "@/app/components/ProgramFeaturesAndDetails";
@@ -41,7 +42,7 @@ export function GetGolfReadyLevel2PageClient({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="lg:col-span-13 grid lg:grid-cols-13 gap-6"
+      className={programPageClientGrid}
     >
       <AdultProgramPageWrapper
         programName="Get Golf Ready Level II"

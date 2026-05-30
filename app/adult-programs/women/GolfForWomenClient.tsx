@@ -42,6 +42,7 @@ export function GolfForWomenClient({
       registrationType="adult"
       selectedSessionId={selectedSessionId}
       onSessionChange={onSessionChange}
+      tallImage
     />
   );
 }

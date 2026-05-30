@@ -4,6 +4,10 @@ import {
   getSeriesSlotEnrollment,
 } from "@/db/queries/programs";
 import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
+import {
+  programPageContent,
+  programPageGrid,
+} from "@/app/components/program-page-layout";
 import { DevelopmentalSeriesClient } from "./DevelopmentalSeriesClient";
 import { DevelopmentalSeriesPageWrapper } from "@/app/components/DevelopmentalSeriesPageWrapper";
 
@@ -24,7 +28,12 @@ export default async function JuniorDevelopmentalSeries(props: {
   // For series programs, fetch per-slot enrollment for all active sessions
   let slotEnrollmentData: Record<
     string,
-    { slotDate: string; slotStartTime: string; slotEndTime: string; enrolledCount: number }[]
+    {
+      slotDate: string;
+      slotStartTime: string;
+      slotEndTime: string;
+      enrolledCount: number;
+    }[]
   > = {};
 
   if (program?.schedulingType === "series") {
@@ -50,8 +59,8 @@ export default async function JuniorDevelopmentalSeries(props: {
   return (
     <>
       {/* Main Content Grid - Centered */}
-      <div className="max-w-[1400px] mx-auto">
-        <div className="grid lg:grid-cols-13 gap-6">
+      <div className={programPageContent}>
+        <div className={programPageGrid}>
           {program ? (
             <>
               {program.schedulingType === "series" ? (

@@ -7,6 +7,10 @@ import {
 import { ProgramDetailsSection } from "@/app/components/ProgramDetailsSection";
 import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
 import type { ProgramDetail } from "@/lib/program-details";
+import {
+  programPageContent,
+  programPageGrid,
+} from "@/app/components/program-page-layout";
 import { OpenPracticePageClient } from "./OpenPracticePageClient";
 
 export default async function AdultOpenPractice(props: {
@@ -26,8 +30,8 @@ export default async function AdultOpenPractice(props: {
   return (
     <>
       {/* Main Content Grid - Centered */}
-      <div className="max-w-[1400px] mx-auto">
-        <div className="grid lg:grid-cols-13 gap-6">
+      <div className={programPageContent}>
+        <div className={programPageGrid}>
           {program ? (
             <OpenPracticePageClient
               imageUrl={program.imageUrl || undefined}

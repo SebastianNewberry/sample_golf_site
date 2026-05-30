@@ -23,6 +23,22 @@ interface Session {
   isBooked?: boolean;
 }
 
+function isSessionUnavailable(session: Session): boolean {
+  const isStarted = session.startDate
+    ? new Date() > new Date(session.startDate)
+    : false;
+  return isStarted || (session.isBooked ?? false);
+}
+
+function sortSessionsAvailableFirst(sessions: Session[]): Session[] {
+  return [...sessions].sort((a, b) => {
+    const aUnavailable = isSessionUnavailable(a);
+    const bUnavailable = isSessionUnavailable(b);
+    if (aUnavailable === bUnavailable) return 0;
+    return aUnavailable ? 1 : -1;
+  });
+}
+
 interface ProgramPurchaseSectionProps {
   programId: string;
   programName: string;
@@ -95,11 +111,9 @@ export function ProgramPurchaseSection({
     : 0;
 
   const selectedSessionMeta = sessions.find((s) => s.id === selectedSession);
-  const isSelectedStarted = selectedSessionMeta?.startDate
-    ? new Date() > new Date(selectedSessionMeta.startDate)
+  const selectedSessionUnavailable = selectedSessionMeta
+    ? isSessionUnavailable(selectedSessionMeta)
     : false;
-  const isSelectedSoldOut = selectedSessionMeta?.isBooked ?? false;
-  const isSessionUnavailable = isSelectedStarted || isSelectedSoldOut;
 
   const isFull =
     maxQuantity <= 0 && isSessionSelected && !isCheckingAvailability;
@@ -107,7 +121,7 @@ export function ProgramPurchaseSection({
     !isSessionSelected ||
     isFull ||
     isCheckingAvailability ||
-    isSessionUnavailable;
+    selectedSessionUnavailable;
 
   const isQuantityDisabled = isDisabled || maxQuantity <= 0;
 
@@ -145,18 +159,18 @@ export function ProgramPurchaseSection({
                   <SelectValue placeholder="Choose your dates..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {sessions.map((session) => {
+                  {sortSessionsAvailableFirst(sessions).map((session) => {
                     const isStarted = session.startDate
                       ? new Date() > new Date(session.startDate)
                       : false;
                     const isBooked = session.isBooked ?? false;
-                    const isUnavailable = isStarted || isBooked;
+                    const unavailable = isSessionUnavailable(session);
                     return (
                       <SelectItem
                         key={session.id}
                         value={session.id}
-                        disabled={isUnavailable}
-                        className={isUnavailable ? "text-gray-400" : ""}
+                        disabled={unavailable}
+                        className={unavailable ? "text-gray-400" : ""}
                       >
                         {session.name}
                         {isStarted && " (Started)"}

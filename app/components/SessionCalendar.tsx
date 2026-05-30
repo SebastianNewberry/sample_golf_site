@@ -103,7 +103,10 @@ export function SessionCalendar({
       {};
 
     sortedDates.forEach((s) => {
-      const dayName = s.date.toLocaleDateString("en-US", { weekday: "long", timeZone: "America/New_York" });
+      const dayName = s.date.toLocaleDateString("en-US", {
+        weekday: "long",
+        timeZone: "America/New_York",
+      });
       const timeRange = `${formatTime12h(s.startTime)} - ${formatTime12h(s.endTime)}`;
       const key = `${dayName}-${timeRange}`;
 
@@ -119,7 +122,11 @@ export function SessionCalendar({
       const lastDate = group.dates[group.dates.length - 1];
 
       const formatDateShort = (d: Date) =>
-        d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" });
+        d.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          timeZone: "America/New_York",
+        });
 
       const dateRangeStr =
         group.dates.length > 1
@@ -143,7 +150,7 @@ export function SessionCalendar({
         Session Schedule
       </h3>
 
-      <div className="grid grid-cols-3 md:grid-cols-2 gap-2 overflow-visible">
+      <div className="grid grid-cols-2 gap-2 overflow-visible">
         {months.map((monthDate, monthIndex) => {
           const year = monthDate.getFullYear();
           const month = monthDate.getMonth();

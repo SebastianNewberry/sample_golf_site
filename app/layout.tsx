@@ -4,6 +4,7 @@ import { Montserrat, Playfair_Display } from "next/font/google";
 import Navigation from "./components/Navigation";
 import { CartProvider } from "./components/cart/CartContext";
 import Footer from "./components/Footer";
+import logo from "@/public/logo.webp";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -30,6 +31,10 @@ export const metadata: Metadata = {
   title: "Toski Golf Academy - Premier Golf Instruction in Troy, Michigan",
   description:
     "Toski Golf Academy offers premier golf instruction for adults and juniors in Troy, Michigan. Private lessons, junior programs, and golf camps at Sanctuary Lake Golf Course and Evolution SportsPlex.",
+  icons: {
+    icon: [{ url: logo.src, type: "image/webp" }],
+    apple: [{ url: logo.src, type: "image/webp" }],
+  },
 };
 
 export default function RootLayout({

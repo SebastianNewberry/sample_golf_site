@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { BeginnerSeriesClient } from "./BeginnerSeriesClient";
 import { JuniorProgramPageWrapper } from "@/app/components/JuniorProgramPageWrapper";
 import { ProgramFeaturesAndDetails } from "@/app/components/ProgramFeaturesAndDetails";
+import { programPageClientGrid } from "@/app/components/program-page-layout";
 import { parseSchedule } from "@/lib/session-schedule";
 import type { ProgramSession } from "@/db/schema";
 
@@ -48,7 +49,7 @@ export function BeginnerSeriesPageClient({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="lg:col-span-13 grid lg:grid-cols-13 gap-6"
+      className={programPageClientGrid}
     >
       <JuniorProgramPageWrapper
         programName="Junior Beginner Series"

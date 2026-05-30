@@ -13,6 +13,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SessionCalendar } from "@/app/components/SessionCalendar";
 import { parseSchedule } from "@/lib/session-schedule";
+import { useProgramSidebarNav } from "@/lib/use-program-sidebar-nav";
 import type { ProgramSession } from "@/db/schema";
 
 type RenderProps = {
@@ -47,7 +48,7 @@ export function JuniorProgramPageWrapper({
   const [purchaseSessionId, setPurchaseSessionId] = useState<string>(
     initialSessionId || "",
   );
-  const [showNav, setShowNav] = useState(false);
+  const { showNav, toggleNav, closeNav } = useProgramSidebarNav();
 
   // Initialize checks on mount/updates if initialSessionId is provided
   useEffect(() => {
@@ -110,7 +111,7 @@ export function JuniorProgramPageWrapper({
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-gray-800">{programName}</h1>
           <button
-            onClick={() => setShowNav(!showNav)}
+            onClick={toggleNav}
             className="lg:hidden flex items-center self-center gap-0.5 text-[8px] font-semibold text-gray-500 hover:text-gray-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-gray-100 cursor-pointer whitespace-nowrap"
           >
             {showNav ? "Hide Programs" : "Show Programs"}
@@ -165,6 +166,7 @@ export function JuniorProgramPageWrapper({
             >
               <Link
                 href="/junior-programs/beginner-series"
+                onClick={closeNav}
                 className={`block px-4 py-2.5 text-sm ${currentPage === "beginner-series"
                     ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
                     : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
@@ -174,6 +176,7 @@ export function JuniorProgramPageWrapper({
               </Link>
               <Link
                 href="/junior-programs/developmental-series"
+                onClick={closeNav}
                 className={`block px-4 py-2.5 text-sm ${currentPage === "developmental-series"
                     ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
                     : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
@@ -183,6 +186,7 @@ export function JuniorProgramPageWrapper({
               </Link>
               <Link
                 href="/junior-programs/private-instruction"
+                onClick={closeNav}
                 className={`block px-4 py-2.5 text-sm ${currentPage === "private-instruction"
                     ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
                     : "bg-white text-gray-700 hover:bg-gray-50 font-medium"

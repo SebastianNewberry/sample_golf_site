@@ -3,21 +3,31 @@
 import { motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { PageTitleShimmer, Shimmer } from "@/app/components/Shimmer";
+import {
+  programCardImageContainer,
+  programCardImageFrame,
+  programCardImageFrameTall,
+  programPageContent,
+  programPageGrid,
+} from "@/app/components/program-page-layout";
 
 export { PageTitleShimmer, Shimmer } from "@/app/components/Shimmer";
+export {
+  programPageContent,
+  programPageGrid,
+  programPageGridCell,
+  programPageShell,
+} from "@/app/components/program-page-layout";
 
-export const programPageShell = "mx-auto w-full min-w-0 max-w-[1400px]";
-export const programPageGrid =
-  "grid w-full grid-cols-1 gap-6 lg:grid-cols-13";
 export const programPageSingleGrid = programPageGrid;
 
-/** Invisible spacer — same outer dimensions as the calendar but nothing rendered. */
+/** Desktop-only height reservation; not rendered below lg (1024px). */
 function InvisibleCalendarSpacer() {
   return (
-    <div className="mt-6 invisible" aria-hidden="true">
+    <div className="mt-6 hidden lg:block lg:invisible" aria-hidden="true">
       <div className="relative overflow-visible rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
         <Shimmer className="mb-3 h-4 w-full rounded" />
-        <div className="grid grid-cols-3 gap-2 overflow-visible md:grid-cols-2">
+        <div className="grid grid-cols-2 gap-2 overflow-visible">
           {[1, 2, 3].map((m) => (
             <div
               key={m}
@@ -98,15 +108,21 @@ function SessionScheduleCard() {
 
 export function ProgramPageSkeleton({
   navRowCount = 3,
+  tallImage = false,
 }: {
   /** Number of nav link rows in the left column. Adult pages use 6, junior use 3. */
   navRowCount?: number;
+  /** Golf for Women — matches taller hero frame */
+  tallImage?: boolean;
 }) {
+  const imageFrame = tallImage
+    ? programCardImageFrameTall
+    : programCardImageFrame;
   const reduceMotion = useReducedMotion();
 
   return (
     <motion.div
-      className={programPageShell}
+      className={programPageContent}
       initial={reduceMotion ? false : { opacity: 0, y: 10 }}
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
@@ -131,82 +147,43 @@ export function ProgramPageSkeleton({
           <InvisibleCalendarSpacer />
         </div>
 
-        {/* Center */}
+        {/* Center: ProgramCard (title, copy, price, session, buttons) — not private instruction */}
         <div className="min-w-0 lg:col-span-6">
           <div className="overflow-hidden rounded-xl bg-white shadow-lg">
-            <div className="relative aspect-[3/2] max-h-[350px] w-full bg-muted/50">
-              <div className="absolute inset-0 bg-gradient-to-b from-muted/30 to-muted/60" />
+            <div className={programCardImageContainer}>
+              <div className={`${imageFrame} bg-muted/50`}>
+                <div className="absolute inset-0 bg-gradient-to-b from-muted/30 to-muted/60" />
+              </div>
             </div>
 
-            <div className="space-y-8 p-6 lg:p-8">
-              <Shimmer className="h-6 w-full rounded" />
+            <div className="space-y-6 p-6 lg:p-8">
+              <Shimmer className="h-6 w-[min(100%,32rem)] max-w-full rounded" />
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 <Shimmer className="h-4 w-full rounded" />
-                <Shimmer className="h-4 w-full rounded" />
-                <Shimmer className="h-4 w-full rounded" />
-              </div>
-              <div className="space-y-4">
-                <Shimmer className="h-4 w-full rounded" />
-                <Shimmer className="h-4 w-full rounded" />
+                <Shimmer className="h-4 w-[96%] rounded" />
+                <Shimmer className="h-4 w-[88%] rounded" />
               </div>
 
-              <div>
-                <div className="mb-4 flex items-center gap-2">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100/80">
-                    <Shimmer className="h-3.5 w-2.5 rounded-sm bg-green-300/60" />
-                  </div>
-                  <Shimmer className="h-5 min-w-0 flex-1 rounded" />
+              <div className="flex flex-col items-center border-b border-gray-100 pb-4 text-center">
+                <Shimmer className="mb-2 h-11 w-48 rounded-md" />
+                <Shimmer className="h-4 w-32 rounded" />
+              </div>
+
+              <div className="flex items-start gap-2">
+                <div className="min-w-0 flex-1 space-y-2">
+                  <Shimmer className="h-5 w-36 rounded" />
+                  <Shimmer className="h-12 w-full rounded-md border border-gray-200/50 bg-muted/20" />
                 </div>
-
-                <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div
-                      key={i}
-                      className="flex min-h-[8rem] flex-col items-center justify-center gap-2 rounded-xl border-2 border-gray-100 bg-white p-4 shadow-sm"
-                    >
-                      <Shimmer className="h-4 w-full rounded" />
-                      <Shimmer className="h-8 w-full rounded" />
-                      <Shimmer className="h-3 w-full rounded bg-muted/50" />
-                    </div>
-                  ))}
+                <div className="w-24 shrink-0 space-y-2">
+                  <Shimmer className="h-5 w-20 rounded" />
+                  <Shimmer className="h-12 w-full rounded-md border border-gray-200/50 bg-muted/20" />
                 </div>
               </div>
 
-              <div className="border-t border-gray-100 pt-8">
-                <div className="flex flex-col gap-8 md:flex-row">
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-4 flex items-center gap-2">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100/80">
-                        <Shimmer className="h-3.5 w-2.5 rounded-sm bg-green-300/60" />
-                      </div>
-                      <Shimmer className="h-5 min-w-0 flex-1 rounded" />
-                    </div>
-                    <div className="rounded-xl border border-gray-100 bg-gray-50 p-6">
-                      <Shimmer className="mb-2 h-4 w-full rounded" />
-                      <Shimmer className="mb-6 h-3 w-full rounded bg-muted/50" />
-                      <Shimmer className="h-14 w-full rounded-xl border-2 border-green-200/50 bg-white" />
-                    </div>
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-4 flex items-center gap-2">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100/80">
-                        <Shimmer className="h-3.5 w-2.5 rounded-sm bg-green-300/60" />
-                      </div>
-                      <Shimmer className="h-5 min-w-0 flex-1 rounded" />
-                    </div>
-                    <div className="space-y-3">
-                      <Shimmer className="h-12 w-full rounded-xl" />
-                      <Shimmer className="h-12 w-full rounded-xl bg-muted/60" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-8 flex flex-col items-stretch border-t pt-6">
-                  <Shimmer className="mb-3 h-4 w-full rounded bg-muted/50" />
-                  <Shimmer className="h-4 w-full rounded" />
-                </div>
+              <div className="space-y-3 pt-1">
+                <Shimmer className="h-14 w-full rounded-lg" />
+                <Shimmer className="h-14 w-full rounded-lg bg-muted/60" />
               </div>
             </div>
           </div>

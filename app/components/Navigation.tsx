@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useCallback, useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -12,6 +12,7 @@ import aboutOurJuniorPrograms from "@/public/junior_programs.webp";
 import pgaMember from "@/public/adult_private_instruction.webp";
 import usKidsGolfCertified from "@/public/us_kids_golf.webp";
 import { CartIcon } from "./cart/CartIcon";
+import { useNavHoverMenu } from "@/lib/use-nav-hover-menu";
 
 const adultPrograms = [
   {
@@ -100,6 +101,15 @@ export default function Navigation() {
   const [juniorProgramsOpen, setJuniorProgramsOpen] = useState(false);
   const [adultProgramsOpen, setAdultProgramsOpen] = useState(false);
 
+  const closeDesktopMenus = useCallback(() => {
+    setJuniorProgramsOpen(false);
+    setAdultProgramsOpen(false);
+  }, []);
+
+  const { isHoverOpenAllowed, resetHoverOnLeave } = useNavHoverMenu({
+    onScroll: closeDesktopMenus,
+  });
+
   // Refs for details elements
   const juniorDetailsRef = useRef<HTMLDetailsElement>(null);
   const adultDetailsRef = useRef<HTMLDetailsElement>(null);
@@ -116,15 +126,31 @@ export default function Navigation() {
     setOpen(false);
   };
 
-  // Function to close desktop dropdowns when a link is clicked
-  const handleDesktopLinkClick = () => {
-    setJuniorProgramsOpen(false);
-    setAdultProgramsOpen(false);
-  };
-
-  // Determine active state
   const isAdultProgramsActive = pathname?.startsWith("/adult-programs");
   const isJuniorProgramsActive = pathname?.startsWith("/junior-programs");
+
+  // Function to close desktop dropdowns when a link is clicked
+  const handleDesktopLinkClick = () => {
+    closeDesktopMenus();
+  };
+
+  const handleJuniorMenuEnter = () => {
+    if (isHoverOpenAllowed()) setJuniorProgramsOpen(true);
+  };
+
+  const handleAdultMenuEnter = () => {
+    if (isHoverOpenAllowed()) setAdultProgramsOpen(true);
+  };
+
+  const handleJuniorMenuLeave = () => {
+    resetHoverOnLeave();
+    setJuniorProgramsOpen(false);
+  };
+
+  const handleAdultMenuLeave = () => {
+    resetHoverOnLeave();
+    setAdultProgramsOpen(false);
+  };
   const isContactActive = pathname === "/contact";
   const isHomeActive = pathname === "/";
   const isCalendarActive = pathname === "/calendar";
@@ -172,12 +198,14 @@ export default function Navigation() {
               HOME
             </Link>
 
-            {/* Junior Programs Dropdown */}
-            <div className="relative">
+            {/* Junior Programs Dropdown — single hover zone (no separate bridge strip) */}
+            <div
+              className="relative"
+              onMouseEnter={handleJuniorMenuEnter}
+              onMouseLeave={handleJuniorMenuLeave}
+            >
               <Link
                 href="/junior-programs/beginner-series"
-                onMouseEnter={() => setJuniorProgramsOpen(true)}
-                onMouseLeave={() => setJuniorProgramsOpen(false)}
                 onClick={handleDesktopLinkClick}
                 className={`inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-bold cursor-pointer ${
                   isJuniorProgramsActive ? "text-orange-600" : "text-gray-800"
@@ -185,22 +213,15 @@ export default function Navigation() {
               >
                 JUNIOR PROGRAMS <ChevronDown size={16} />
               </Link>
-              {/* Invisible hover bridge to prevent dropdown from closing when moving between button and dropdown */}
-              <div
-                className="absolute top-full left-0 h-2 w-full"
-                onMouseEnter={() => setJuniorProgramsOpen(true)}
-                onMouseLeave={() => setJuniorProgramsOpen(false)}
-              />
               <AnimatePresence>
                 {juniorProgramsOpen && (
                   <motion.div
-                    onMouseEnter={() => setJuniorProgramsOpen(true)}
-                    onMouseLeave={() => setJuniorProgramsOpen(false)}
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0, transition: { duration: 0.35 } }}
                     exit={{ opacity: 0, y: -6, transition: { duration: 0.35 } }}
-                    className="bg-gray-200 absolute top-full left-0 z-20 mt-2 w-[800px] rounded-xl p-4 shadow-lg ring ring-gray-300"
+                    className="absolute top-full left-0 z-20 w-[800px] pt-2"
                   >
+                    <div className="rounded-xl bg-gray-200 p-4 shadow-lg ring ring-gray-300">
                     <motion.div
                       initial={{ pointerEvents: "none" }}
                       animate={{ pointerEvents: "auto", transition: { delay: 0.35 } }}
@@ -321,17 +342,20 @@ export default function Navigation() {
                         </div>
                       </div>
                     </motion.div>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
 
-            {/* Adult Programs Dropdown */}
-            <div className="relative">
+            {/* Adult Programs Dropdown — single hover zone (no separate bridge strip) */}
+            <div
+              className="relative"
+              onMouseEnter={handleAdultMenuEnter}
+              onMouseLeave={handleAdultMenuLeave}
+            >
               <Link
                 href="/adult-programs/get-golf-ready-level-1"
-                onMouseEnter={() => setAdultProgramsOpen(true)}
-                onMouseLeave={() => setAdultProgramsOpen(false)}
                 onClick={handleDesktopLinkClick}
                 className={`inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-bold cursor-pointer ${
                   isAdultProgramsActive ? "text-orange-600" : "text-gray-800"
@@ -339,22 +363,15 @@ export default function Navigation() {
               >
                 ADULT PROGRAMS <ChevronDown size={16} />
               </Link>
-              {/* Invisible hover bridge to prevent dropdown from closing when moving between button and dropdown */}
-              <div
-                className="absolute top-full left-0 h-2 w-full"
-                onMouseEnter={() => setAdultProgramsOpen(true)}
-                onMouseLeave={() => setAdultProgramsOpen(false)}
-              />
               <AnimatePresence>
                 {adultProgramsOpen && (
                   <motion.div
-                    onMouseEnter={() => setAdultProgramsOpen(true)}
-                    onMouseLeave={() => setAdultProgramsOpen(false)}
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0, transition: { duration: 0.35 } }}
                     exit={{ opacity: 0, y: -6, transition: { duration: 0.35 } }}
-                    className="bg-gray-200 absolute top-full left-0 z-20 mt-2 w-[520px] rounded-xl p-4 shadow-lg ring ring-gray-300"
+                    className="absolute top-full left-0 z-20 w-[520px] pt-2"
                   >
+                    <div className="rounded-xl bg-gray-200 p-4 shadow-lg ring ring-gray-300">
                     <motion.ul
                       initial={{ pointerEvents: "none" }}
                       animate={{ pointerEvents: "auto", transition: { delay: 0.35 } }}
@@ -386,6 +403,7 @@ export default function Navigation() {
                         </li>
                       ))}
                     </motion.ul>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>

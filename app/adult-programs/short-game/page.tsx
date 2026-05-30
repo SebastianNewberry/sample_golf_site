@@ -6,6 +6,10 @@ import {
 } from "@/db/queries/programs";
 import { ProgramDetailsSection } from "@/app/components/ProgramDetailsSection";
 import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
+import {
+  programPageContent,
+  programPageGrid,
+} from "@/app/components/program-page-layout";
 import { ShortGameSeriesPageClient } from "./ShortGameSeriesPageClient";
 
 export default async function AdultShortGameSeries(props: {
@@ -25,8 +29,8 @@ export default async function AdultShortGameSeries(props: {
   return (
     <>
       {/* Main Content Grid - Centered */}
-      <div className="max-w-[1400px] mx-auto">
-        <div className="grid lg:grid-cols-13 gap-6">
+      <div className={programPageContent}>
+        <div className={programPageGrid}>
           {program ? (
             <ShortGameSeriesPageClient
               imageUrl={program.imageUrl || undefined}

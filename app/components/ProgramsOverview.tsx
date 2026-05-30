@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import pgaOfAmerica from "@/public/adult_private_instruction.webp";
 
 export default function ProgramsOverview() {
   return (
@@ -108,8 +109,13 @@ export default function ProgramsOverview() {
           
           <div className="flex flex-wrap items-center justify-center gap-10 md:gap-16 lg:gap-24 opacity-90">
             {/* We will use a fallback text or generic image if PGA is missing, but try to use existing images */}
-            <div className="flex items-center justify-center w-24 h-24 md:w-32 md:h-32 text-center text-sm font-bold text-blue-900 border-4 border-blue-900 rounded-full bg-white shadow-sm p-4 leading-tight shrink-0">
-              PGA OF AMERICA<br/>MEMBER
+            <div className="relative w-32 h-32 md:w-40 md:h-40 shrink-0">
+              <Image
+                src={pgaOfAmerica}
+                alt="PGA of America Member"
+                fill
+                className="object-contain"
+              />
             </div>
             
             <div className="relative w-32 h-32 md:w-40 md:h-40 shrink-0">

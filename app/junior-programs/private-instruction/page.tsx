@@ -4,6 +4,7 @@ import {
   getProgramSessions,
 } from "@/db/queries/programs";
 import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
+import { programPageContent } from "@/app/components/program-page-layout";
 import { JuniorPrivateGolfInstructionClient } from "./JuniorPrivateGolfInstructionClient";
 import {
   filterAvailableSlots,
@@ -51,7 +52,7 @@ export default async function JuniorPrivateGolfInstruction() {
 
   if (!program) {
     return (
-      <div className="max-w-[1400px] mx-auto">
+      <div className={programPageContent}>
         <div className="grid lg:grid-cols-13 gap-6">
           <div className="lg:col-span-3 space-y-2">
             <h1 className="text-2xl font-bold text-gray-800 mb-4">

@@ -4,6 +4,10 @@ import {
   getProgramSessionsWithEnrollment,
 } from "@/db/queries/programs";
 import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
+import {
+  programPageContent,
+  programPageGrid,
+} from "@/app/components/program-page-layout";
 import { DevelopmentalCampPageClient } from "./DevelopmentalCampPageClient";
 
 export default async function JuniorDevelopmentalGolfCamp(props: {
@@ -22,8 +26,8 @@ export default async function JuniorDevelopmentalGolfCamp(props: {
   return (
     <>
       {/* Main Content Grid - Centered */}
-      <div className="max-w-[1400px] mx-auto">
-        <div className="grid lg:grid-cols-13 gap-6">
+      <div className={programPageContent}>
+        <div className={programPageGrid}>
           {program ? (
             <DevelopmentalCampPageClient
               imageUrl={program.imageUrl || undefined}

@@ -4,6 +4,10 @@ import {
   getProgramSessionsWithEnrollment,
 } from "@/db/queries/programs";
 import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
+import {
+  programPageContent,
+  programPageGrid,
+} from "@/app/components/program-page-layout";
 import { BeginnerSeriesPageClient } from "./BeginnerSeriesPageClient";
 
 export default async function JuniorBeginnerSeries(props: {
@@ -23,8 +27,8 @@ export default async function JuniorBeginnerSeries(props: {
   return (
     <>
       {/* Main Content Grid - Centered */}
-      <div className="max-w-[1400px] mx-auto">
-        <div className="grid lg:grid-cols-13 gap-6">
+      <div className={programPageContent}>
+        <div className={programPageGrid}>
           {program ? (
             <BeginnerSeriesPageClient
               imageUrl={program.imageUrl || undefined}

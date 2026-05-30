@@ -3,7 +3,13 @@
 import { motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { PageTitleShimmer, Shimmer } from "@/app/components/Shimmer";
-import { programPageGrid, programPageShell } from "./ProgramPageSkeleton";
+import {
+  programCardImageContainer,
+  programCardImageFrameJuniorPrivate,
+  programCardImageFrameTall,
+  programPageContent,
+  programPageGrid,
+} from "@/app/components/program-page-layout";
 
 type PrivateInstructionLayout = "adult" | "junior";
 
@@ -25,11 +31,15 @@ export function PrivateInstructionSkeleton({
   layout?: PrivateInstructionLayout;
 }) {
   const spans = layoutSpans[layout];
+  const imageFrame =
+    layout === "junior"
+      ? programCardImageFrameJuniorPrivate
+      : programCardImageFrameTall;
   const reduceMotion = useReducedMotion();
 
   return (
     <motion.div
-      className={programPageShell}
+      className={programPageContent}
       initial={reduceMotion ? false : { opacity: 0, y: 10 }}
       animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
@@ -54,7 +64,7 @@ export function PrivateInstructionSkeleton({
             <div className="relative overflow-visible rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
               <Shimmer className="mb-3 h-4 w-full rounded" />
 
-              <div className="grid grid-cols-3 gap-2 overflow-visible md:grid-cols-2">
+              <div className="grid grid-cols-2 gap-2 overflow-visible">
                 {[1, 2, 3].map((m) => (
                   <div
                     key={m}
@@ -121,8 +131,10 @@ export function PrivateInstructionSkeleton({
         {/* Center: hero + description + pricing + scheduling */}
         <div className={cn("min-w-0", spans.center)}>
           <div className="overflow-hidden rounded-xl bg-white shadow-lg">
-            <div className="relative aspect-[3/2] max-h-[350px] w-full bg-muted/50">
-              <div className="absolute inset-0 bg-gradient-to-b from-muted/30 to-muted/60" />
+            <div className={programCardImageContainer}>
+              <div className={`${imageFrame} bg-muted/50`}>
+                <div className="absolute inset-0 bg-gradient-to-b from-muted/30 to-muted/60" />
+              </div>
             </div>
 
             <div className="space-y-8 p-6 lg:p-8">

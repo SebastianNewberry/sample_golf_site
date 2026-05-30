@@ -16,6 +16,12 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/app/components/cart/CartContext";
 import { addToCart } from "@/app/actions/cart";
 import { Loader2, Check, ShoppingCart, CreditCard } from "lucide-react";
+import {
+  programCardImageClass,
+  programCardImageContainer,
+  programCardImageFrame,
+  programPageClientGrid,
+} from "@/app/components/program-page-layout";
 import { ProgramFeaturesAndDetails } from "@/app/components/ProgramFeaturesAndDetails";
 import { SessionCalendar } from "@/app/components/SessionCalendar";
 import {
@@ -26,6 +32,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ProgramSession } from "@/db/schema";
+import { useProgramSidebarNav } from "@/lib/use-program-sidebar-nav";
 
 interface DevelopmentalSeriesClientProps {
   program: {
@@ -71,7 +78,7 @@ export function DevelopmentalSeriesClient({
   const [selectedSessionCount, setSelectedSessionCount] = useState<number>(1);
   const [selectedSlots, setSelectedSlots] = useState<SeriesSlot[]>([]);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const [showNav, setShowNav] = useState(false);
+  const { showNav, toggleNav, closeNav } = useProgramSidebarNav();
 
   // The first active session is the current series
   const activeSession = useMemo(() => {
@@ -137,7 +144,12 @@ export function DevelopmentalSeriesClient({
     }
 
     return result;
-  }, [activeSession, slotEnrollmentData, availableSlots, program.seriesCapacityPerSlot]);
+  }, [
+    activeSession,
+    slotEnrollmentData,
+    availableSlots,
+    program.seriesCapacityPerSlot,
+  ]);
 
   // Calculate slots currently in the cart for this program
   const cartSlots = useMemo<SeriesSlot[]>(() => {
@@ -267,7 +279,7 @@ export function DevelopmentalSeriesClient({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
-      className="lg:col-span-13 grid lg:grid-cols-13 gap-6"
+      className={programPageClientGrid}
     >
       <SeriesCalendar
         open={isCalendarOpen}
@@ -289,7 +301,7 @@ export function DevelopmentalSeriesClient({
             Junior Developmental Series
           </h1>
           <button
-            onClick={() => setShowNav(!showNav)}
+            onClick={toggleNav}
             className="lg:hidden flex items-center self-center gap-0.5 text-[8px] font-semibold text-gray-500 hover:text-gray-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-gray-100 cursor-pointer whitespace-nowrap"
           >
             {showNav ? "Hide Programs" : "Show Programs"}
@@ -335,18 +347,21 @@ export function DevelopmentalSeriesClient({
             >
               <Link
                 href="/junior-programs/beginner-series"
+                onClick={closeNav}
                 className="block bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 JUNIOR BEGINNER SERIES
               </Link>
               <Link
                 href="/junior-programs/developmental-series"
+                onClick={closeNav}
                 className="block bg-white border-l-4 border-orange-500 px-4 py-2.5 text-sm font-bold text-gray-800"
               >
                 JUNIOR DEVELOPMENTAL SERIES
               </Link>
               <Link
                 href="/junior-programs/private-instruction"
+                onClick={closeNav}
                 className="block bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
                 JUNIOR PRIVATE GOLF INSTRUCTION
@@ -377,12 +392,14 @@ export function DevelopmentalSeriesClient({
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="flex flex-col">
             {/* Image */}
-            <div className="relative bg-gray-100">
-              <img
-                src="/junior_development_series.gif"
-                alt="Junior Developmental Series"
-                className="w-full max-h-[400px] object-cover bg-gray-100"
-              />
+            <div className={programCardImageContainer}>
+              <div className={programCardImageFrame}>
+                <img
+                  src="/junior_development_series.gif"
+                  alt="Junior Developmental Series"
+                  className={programCardImageClass}
+                />
+              </div>
             </div>
 
             {/* Content */}
@@ -401,8 +418,7 @@ export function DevelopmentalSeriesClient({
                 </p>
                 <p className="text-sm text-gray-600 leading-relaxed">
                   The <strong>Junior Developmental Series</strong> builds on
-                  principles learned in{" "}
-                  <strong>Junior Beginner Series</strong>.
+                  principles learned in <strong>Junior Beginner Series</strong>.
                 </p>
                 <p className="text-sm text-gray-600 leading-relaxed">
                   Choose a package below and pick your preferred session dates
@@ -428,14 +444,13 @@ export function DevelopmentalSeriesClient({
                         key={pkg.id}
                         onClick={() => handlePriceSelect(pkg)}
                         className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-1 min-h-[8rem]
-                          ${selectedPackageId === pkg.id
-                            ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))] shadow-sm"
-                            : "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
+                          ${
+                            selectedPackageId === pkg.id
+                              ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))] shadow-sm"
+                              : "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
                           }`}
                       >
-                        <p className="text-gray-600 font-medium">
-                          {pkg.title}
-                        </p>
+                        <p className="text-gray-600 font-medium">{pkg.title}</p>
                         <p
                           className={`text-2xl font-bold my-1 ${selectedPackageId === pkg.id ? "text-[hsl(var(--golf-orange))]" : "text-[hsl(var(--golf-green))]"}`}
                         >

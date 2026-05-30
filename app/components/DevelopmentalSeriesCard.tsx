@@ -2,6 +2,11 @@
 
 import { useState } from "react";
 import { ProgramPurchaseSection } from "@/app/components/ProgramPurchaseSection";
+import {
+  programCardImageClass,
+  programCardImageContainer,
+  programCardImageFrame,
+} from "@/app/components/program-page-layout";
 import { ProgramSession } from "@/db/schema";
 
 interface DevelopmentalSeriesCardProps {
@@ -35,11 +40,15 @@ export function DevelopmentalSeriesCard({
 
   return (
     <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-      <img
-        src="/junior_development_series.gif"
-        alt="Junior Developmental Series"
-        className="w-full max-h-[400px] object-cover bg-gray-100"
-      />
+      <div className={programCardImageContainer}>
+        <div className={programCardImageFrame}>
+          <img
+            src="/junior_development_series.gif"
+            alt="Junior Developmental Series"
+            className={programCardImageClass}
+          />
+        </div>
+      </div>
 
       <div className="p-6">
         <h1 className="text-lg font-bold text-gray-900 mb-2">

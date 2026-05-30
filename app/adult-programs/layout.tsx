@@ -1,4 +1,8 @@
 import AcademyLocations from "@/app/components/AcademyLocations";
+import {
+  programSectionContainer,
+  programSectionWrapper,
+} from "@/app/components/program-page-layout";
 
 export default function AdultProgramsLayout({
   children,
@@ -7,8 +11,8 @@ export default function AdultProgramsLayout({
 }) {
   return (
     <div className="bg-gray-100 flex flex-col">
-      <div className="max-w-[1800px] mx-auto px-4 py-8 flex-grow">
-        {children}
+      <div className={programSectionWrapper}>
+        <div className={programSectionContainer}>{children}</div>
       </div>
       <AcademyLocations />
     </div>
