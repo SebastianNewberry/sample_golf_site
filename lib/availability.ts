@@ -21,9 +21,11 @@ export function mergeSlotsToIntervals(slots: TimeSlot[]): Record<string, string[
     // We used `toESTDateString` logic effectively in filterAvailableSlots, 
     // but here we have TimeSlot objects with a Date property.
     // Let's assume the Date object is correct corresponding to the slot.
-    const dateKey = slot.date.toLocaleDateString("en-CA", {
-      timeZone: "America/New_York",
-    });
+    const dateKey = typeof slot.date === "string" 
+      ? slot.date 
+      : slot.date.toLocaleDateString("en-CA", {
+          timeZone: "America/New_York",
+        });
     if (!slotsByDate[dateKey]) {
       slotsByDate[dateKey] = [];
     }
@@ -77,7 +79,7 @@ export interface BookedSession {
 }
 
 export interface TimeSlot {
-  date: Date;
+  date: Date | string;
   startTime: string; // HH:mm
   endTime: string; // HH:mm
 }
@@ -182,11 +184,8 @@ export function filterAvailableSlots(
     // But let's assume `slot.date` string is the source of truth.
     const slotDateKey = getRawSlotDateString(slot.date);
 
-    // For the Date object in the result, we need to satisfy the interface.
-    // We should probably ensure the Date object represents that day.
-    // Parse YYYY-MM-DD as local date (not UTC midnight)
-    const [y, mo, da] = slotDateKey.split('-').map(Number);
-    const slotReturnDate = new Date(y, mo - 1, da);
+    // We will return the slotDateKey string directly instead of a Date object
+    // to avoid UTC timezone shifts when serialized to the client.
 
     const slotStart = toMinutes(slot.startTime);
     const slotEnd = toMinutes(slot.endTime);
@@ -213,7 +212,7 @@ export function filterAvailableSlots(
         const chunkEnd = Math.min(booking.start, slotEnd);
         if (chunkEnd > currentStart) {
           fragmentedSlots.push({
-            date: slotReturnDate,
+            date: slotDateKey,
             startTime: toTimeStr(currentStart),
             endTime: toTimeStr(chunkEnd),
           });
@@ -230,7 +229,7 @@ export function filterAvailableSlots(
     // Capture any remaining time after the last booking
     if (currentStart < slotEnd) {
       fragmentedSlots.push({
-        date: slotReturnDate,
+        date: slotDateKey,
         startTime: toTimeStr(currentStart),
         endTime: toTimeStr(slotEnd),
       });
@@ -238,8 +237,10 @@ export function filterAvailableSlots(
   }
 
   return fragmentedSlots.sort((a, b) => {
-    if (a.date.getTime() !== b.date.getTime()) {
-      return a.date.getTime() - b.date.getTime();
+    const aTime = typeof a.date === "string" ? new Date(a.date).getTime() : a.date.getTime();
+    const bTime = typeof b.date === "string" ? new Date(b.date).getTime() : b.date.getTime();
+    if (aTime !== bTime) {
+      return aTime - bTime;
     }
     return a.startTime.localeCompare(b.startTime);
   });

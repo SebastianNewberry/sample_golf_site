@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import logo from "@/public/logo.webp";
-import { RefreshCw, Home } from "lucide-react";
+import { Home } from "lucide-react";
 
 interface ErrorProps {
   error: Error & { digest?: string };
@@ -49,15 +49,7 @@ export default function Error({ error, reset }: ErrorProps) {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Button
-            onClick={() => reset()}
-            className="w-full sm:w-auto bg-[hsl(var(--golf-green))] hover:bg-[hsl(var(--golf-green-dark))] text-white px-8 py-6 text-lg shadow-md transition-all duration-300 hover:shadow-lg hover:scale-102 flex items-center gap-2"
-          >
-            <RefreshCw className="w-5 h-5" />
-            Try Again
-          </Button>
-
+        <div className="flex justify-center items-center">
           <Button
             asChild
             variant="outline"

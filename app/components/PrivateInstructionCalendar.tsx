@@ -52,8 +52,16 @@ const getNowEST = () => {
 };
 
 const normalizeFromUTC = (date: Date | string) => {
-  const d = typeof date === "string" ? parseISO(date) : date;
-  return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  if (typeof date === "string") {
+    if (date.includes("T")) {
+      const d = parseISO(date);
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    } else {
+      const [y, m, d] = date.split('-').map(Number);
+      return new Date(y, m - 1, d);
+    }
+  }
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 };
 
 const formatTime = (hour: number, minute: number) => {

@@ -63,6 +63,12 @@ export function JuniorPrivateGolfInstructionClient({
 
   const { items } = useCart();
 
+  // Helper to parse local date string YYYY-MM-DD
+  const parseLocalDate = (dateStr: string) => {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  };
+
   // Parse all available sessions into flat slots for the calendar, filtering out what's in cart
   // Calculate slots currently in the cart
   const cartSlots = useMemo(() => {
@@ -77,7 +83,7 @@ export function JuniorPrivateGolfInstructionClient({
             const data = JSON.parse(item.metadata);
             return (data.slots || []).map((s: any) => ({
               ...s,
-              date: new Date(s.date),
+              date: typeof s.date === "string" && s.date.includes("-") ? parseLocalDate(s.date.split("T")[0]) : new Date(s.date),
             }));
           }
         } catch (e) {
@@ -96,12 +102,6 @@ export function JuniorPrivateGolfInstructionClient({
     return new Date(estString);
   };
 
-  // Helper to normalize date from UTC string/Date to comparison date
-  const normalizeFromUTC = (date: Date | string) => {
-    const d = typeof date === "string" ? new Date(date) : date;
-    return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-  };
-
   // Use the pre-calculated available slots passed from server
   const availableSlots = useMemo(() => {
     const nowEST = getNowEST();
@@ -109,11 +109,11 @@ export function JuniorPrivateGolfInstructionClient({
     return initialAvailableSlots
       .map((slot) => ({
         ...slot,
-        date: new Date(slot.date), // Ensure date object
+        date: typeof slot.date === "string" ? parseLocalDate(slot.date) : new Date(slot.date), // Ensure date object is local
       }))
       .filter((slot) => {
         // Filter out past slots
-        const slotDate = normalizeFromUTC(slot.date);
+        const slotDate = new Date(slot.date);
         const [h, m] = slot.startTime.split(":").map(Number);
         slotDate.setHours(h, m, 0, 0);
         return slotDate > nowEST;

@@ -17,7 +17,7 @@ const layoutSpans: Record<
   PrivateInstructionLayout,
   { center: string; right: string }
 > = {
-  adult: { center: "lg:col-span-7", right: "lg:col-span-3" },
+  adult: { center: "lg:col-span-6", right: "lg:col-span-4" },
   junior: { center: "lg:col-span-6", right: "lg:col-span-4" },
 };
 

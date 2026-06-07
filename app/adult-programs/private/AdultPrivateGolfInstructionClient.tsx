@@ -64,6 +64,12 @@ export function AdultPrivateGolfInstructionClient({
 
   const { items } = useCart();
 
+  // Helper to parse local date string YYYY-MM-DD
+  const parseLocalDate = (dateStr: string) => {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+  };
+
   // Use the pre-calculated available slots passed from server, filtering out what's in cart
   // Calculate slots currently in the cart
   const cartSlots = useMemo(() => {
@@ -78,7 +84,7 @@ export function AdultPrivateGolfInstructionClient({
             const data = JSON.parse(item.metadata);
             return (data.slots || []).map((s: any) => ({
               ...s,
-              date: new Date(s.date),
+              date: typeof s.date === "string" && s.date.includes("-") ? parseLocalDate(s.date.split("T")[0]) : new Date(s.date),
             }));
           }
         } catch (e) {
@@ -97,11 +103,6 @@ export function AdultPrivateGolfInstructionClient({
     return new Date(estString);
   };
 
-  // Helper to normalize date from UTC string/Date to comparison date
-  const normalizeFromUTC = (date: Date | string) => {
-    const d = typeof date === "string" ? new Date(date) : date;
-    return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
-  };
 
   // Use the pre-calculated available slots passed from server
   const availableSlots = useMemo(() => {
@@ -110,11 +111,11 @@ export function AdultPrivateGolfInstructionClient({
     return initialAvailableSlots
       .map((slot) => ({
         ...slot,
-        date: new Date(slot.date), // Ensure date object
+        date: typeof slot.date === "string" ? parseLocalDate(slot.date) : new Date(slot.date), // Ensure date object is local
       }))
       .filter((slot) => {
         // Filter out past slots
-        const slotDate = normalizeFromUTC(slot.date);
+        const slotDate = new Date(slot.date);
         const [h, m] = slot.startTime.split(":").map(Number);
         slotDate.setHours(h, m, 0, 0);
         return slotDate > nowEST;
@@ -477,7 +478,7 @@ export function AdultPrivateGolfInstructionClient({
           </div>
 
           {/* Main Card: Image + Description + Price */}
-          <div className="lg:col-span-7">
+          <div className="lg:col-span-6">
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
               {/* Two-column layout: Image + Description | Pricing */}
               <div className="flex flex-col">
@@ -766,7 +767,7 @@ export function AdultPrivateGolfInstructionClient({
           </div>
 
           {/* Right: Features & Details */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="lg:col-span-4 space-y-6">
             <ProgramFeaturesAndDetails
               features={program.features || []}
               details={program.details || []}

@@ -162,7 +162,10 @@ export async function getCartWithItems(sessionId: string) {
         const slots = slotData.slots || (slotData.date ? [slotData] : []);
 
         for (const slot of slots) {
-          const baseDate = new Date(slot.date);
+          const dateStr = typeof slot.date === "string" ? slot.date.split("T")[0] : "";
+          const baseDate = dateStr.includes("-") 
+            ? new Date(Number(dateStr.split("-")[0]), Number(dateStr.split("-")[1]) - 1, Number(dateStr.split("-")[2]))
+            : new Date(slot.date);
           const [startH, startM] = slot.startTime.split(":").map(Number);
           const [endH, endM] = slot.endTime.split(":").map(Number);
 
