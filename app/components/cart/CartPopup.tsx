@@ -213,7 +213,7 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
                                   <p>
                                     {isPrivateInstruction
                                       ? `Minimum ${minQuantity} player${minQuantity !== 1 ? "s" : ""} for this package`
-                                      : "Minimum quantity is 1"}
+                                      : "Minimum 1 player for this package"}
                                   </p>
                                 </TooltipContent>
                               </Tooltip>

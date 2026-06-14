@@ -582,7 +582,7 @@ export default function CartContent() {
                                           <p>
                                             {isPrivate
                                               ? `Minimum ${minQuantity} player${minQuantity !== 1 ? "s" : ""} for this package`
-                                              : "Minimum quantity is 1"}
+                                              : "Minimum 1 player for this package"}
                                           </p>
                                         </TooltipContent>
                                       </Tooltip>
@@ -764,7 +764,7 @@ export default function CartContent() {
                   <Button
                     onClick={handleProceedToCheckout}
                     disabled={isValidating}
-                    className="w-full bg-orange-500 enabled:hover:bg-orange-600 text-white py-4 text-lg font-semibold cursor-pointer shadow-lg enabled:hover:shadow-xl transition-all enabled:hover:-translate-y-1 disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full bg-orange-500 enabled:hover:bg-orange-600 text-white py-4 text-lg font-semibold cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                   >
                     {isValidating ? (
                       <>

@@ -276,8 +276,8 @@ export function DevelopmentalSeriesClient({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
       className={programPageClientGrid}
     >
@@ -533,7 +533,7 @@ export function DevelopmentalSeriesClient({
                           isAddingToCart
                         }
                         onClick={handleBuyNow}
-                        className="w-full py-3 font-bold text-sm bg-orange-500 enabled:hover:bg-orange-600 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white rounded-xl shadow-md enabled:hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                        className="w-full py-3 font-bold text-sm bg-orange-500 enabled:hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl shadow-md enabled:hover:shadow-lg disabled:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
                       >
                         {isBuyNowLoading ? (
                           <Loader2 className="w-5 h-5 animate-spin" />
@@ -553,7 +553,7 @@ export function DevelopmentalSeriesClient({
                           isAddingToCart
                         }
                         onClick={handleAddToCart}
-                        className="w-full py-3 font-bold text-sm border-2 rounded-xl transition-all flex items-center justify-center gap-2 bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 border-green-600 disabled:bg-gray-50 disabled:border-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed cursor-pointer"
+                        className="w-full py-3 font-bold text-sm border-2 rounded-xl transition-all flex items-center justify-center gap-2 bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 border-green-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                       >
                         <AnimatePresence mode="wait">
                           {isAddingToCart ? (

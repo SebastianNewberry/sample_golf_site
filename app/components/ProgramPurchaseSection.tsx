@@ -125,6 +125,16 @@ export function ProgramPurchaseSection({
 
   const isQuantityDisabled = isDisabled || maxQuantity <= 0;
 
+  const footerMessage = !hasSessions
+    ? "We'll notify you when sessions are available"
+    : !isSessionSelected
+      ? null
+      : isCheckingAvailability
+        ? "Checking availability..."
+        : isFull
+          ? "This session is currently at capacity"
+          : "Complete registration at checkout";
+
   // Reset quantity when session or available spots change
   useEffect(() => {
     if (maxQuantity <= 0) {
@@ -258,11 +268,7 @@ export function ProgramPurchaseSection({
             registrationType={registrationType}
             price={programPrice}
             quantity={quantity}
-            className={`w-full py-3.5 font-bold text-base rounded-xl shadow-md enabled:hover:shadow-lg transition-all ${
-              !isDisabled
-                ? "bg-orange-500 enabled:hover:bg-orange-600 text-white"
-                : "bg-gray-200 text-gray-400"
-            }`}
+            className="w-full py-3.5 font-bold text-base rounded-xl shadow-md enabled:hover:shadow-lg transition-all bg-orange-500 enabled:hover:bg-orange-600 text-white disabled:opacity-50 disabled:shadow-none"
             size="lg"
             disabled={isDisabled}
           >
@@ -275,11 +281,7 @@ export function ProgramPurchaseSection({
             registrationType={registrationType}
             price={programPrice}
             quantity={quantity}
-            className={`w-full py-3.5 font-bold text-base border-2 rounded-xl transition-all ${
-              !isDisabled
-                ? "bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 border-green-600"
-                : "border-gray-200 text-gray-400 bg-gray-50"
-            }`}
+            className="w-full py-3.5 font-bold text-base border-2 rounded-xl transition-all bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 border-green-600 disabled:opacity-50"
             size="lg"
             disabled={isDisabled}
           >
@@ -320,17 +322,9 @@ export function ProgramPurchaseSection({
         </div>
       )}
 
-      <p className="text-xs text-gray-400 text-center mt-4">
-        {hasSessions
-          ? isSessionSelected
-            ? isCheckingAvailability
-              ? "Checking availability..."
-              : isFull
-                ? "This session is currently at capacity"
-                : "Complete registration at checkout"
-            : "Please select a session above to continue"
-          : "We'll notify you when sessions are available"}
-      </p>
+      {footerMessage && (
+        <p className="text-xs text-gray-400 text-center mt-4">{footerMessage}</p>
+      )}
     </>
   );
 }

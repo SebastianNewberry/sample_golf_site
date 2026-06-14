@@ -177,10 +177,10 @@ function StepOne({
               onClick={() => {
                 setFormData({ ...formData, amount: preset, customAmount: preset.toString() });
               }}
-              className={`relative py-3 px-2 rounded-xl border-2 transition-all duration-200 w-full flex items-center justify-center font-bold text-base tracking-tight cursor-pointer ${
+              className={`relative py-3 px-2 rounded-xl border w-full flex items-center justify-center font-bold text-base tracking-tight cursor-pointer transition-colors ${
                 selectedAmount === preset
-                  ? "border-[hsl(var(--golf-orange))] shadow-md bg-[hsl(var(--golf-orange))]/5 text-[hsl(var(--golf-orange))] scale-[1.04]"
-                  : "border-gray-200 bg-white hover:border-[hsl(var(--golf-orange))]/40 hover:shadow-sm text-gray-800"
+                  ? "border-[hsl(var(--golf-orange))] bg-[hsl(var(--golf-orange))]/5 text-[hsl(var(--golf-orange))]"
+                  : "border-gray-200 bg-white hover:border-[hsl(var(--golf-orange))]/40 text-gray-800"
               }`}
             >
               ${preset}

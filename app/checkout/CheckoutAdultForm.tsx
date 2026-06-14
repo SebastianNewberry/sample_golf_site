@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
-import { formatPhoneNumber } from "@/lib/utils";
+import { formatPhoneNumber, formatPhoneNumberInput } from "@/lib/utils";
 
 // Zod schema for adult checkout form
 const adultCheckoutSchema = z.object({
@@ -228,9 +228,13 @@ export function CheckoutAdultForm({
                     placeholder="(555) 123-4567"
                     {...field}
                     onChange={(e) => {
-                      const formatted = formatPhoneNumber(e.target.value);
+                      const formatted = formatPhoneNumberInput(
+                        e.target.value,
+                        field.value,
+                      );
                       field.onChange(formatted);
                     }}
+                    maxLength={14}
                   />
                 </FormControl>
                 <FormMessage />
