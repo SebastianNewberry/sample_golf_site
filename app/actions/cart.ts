@@ -12,6 +12,7 @@ import {
   getCartTotal,
 } from "@/db/queries/cart";
 import { getProgramById, getSlotEnrollmentCount } from "@/db/queries/programs";
+import { reconcileCartPricing } from "@/lib/cart-pricing";
 
 const CART_SESSION_COOKIE = "cart_session_id";
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
@@ -373,8 +374,23 @@ export async function getCart() {
       };
     }
 
-    const total = await getCartTotal(cartData.id);
-    const itemCount = cartData.items.reduce(
+    if (cartData.items.length > 0) {
+      await reconcileCartPricing(cartData.items);
+    }
+
+    const refreshedCart = await getCartWithItems(sessionId);
+    if (!refreshedCart) {
+      return {
+        success: true,
+        cart: null,
+        items: [],
+        total: 0,
+        itemCount: 0,
+      };
+    }
+
+    const total = await getCartTotal(refreshedCart.id);
+    const itemCount = refreshedCart.items.reduce(
       (sum, item) => sum + item.quantity,
       0,
     );
@@ -382,14 +398,15 @@ export async function getCart() {
     return {
       success: true,
       cart: {
-        id: cartData.id,
-        sessionId: cartData.sessionId,
-        createdAt: cartData.createdAt,
-        updatedAt: cartData.updatedAt,
+        id: refreshedCart.id,
+        sessionId: refreshedCart.sessionId,
+        createdAt: refreshedCart.createdAt,
+        updatedAt: refreshedCart.updatedAt,
       },
-      items: cartData.items,
+      items: refreshedCart.items,
       total,
       itemCount,
+      priceUpdates: undefined,
     };
   } catch (error) {
     console.error("Error getting cart:", error);
@@ -449,8 +466,16 @@ export async function updateCartItem(itemId: string, quantity: number) {
 
     if (!item) return { success: false, error: "Item not found" };
 
-    // If increasing quantity, check capacity
-    if (quantity > item.quantity && item.programSessionId) {
+    const programData = await getProgramById(item.programId);
+    const isSeries = programData?.schedulingType === "series";
+
+    // If increasing quantity, check capacity (group sessions only)
+    if (
+      quantity > item.quantity &&
+      item.programSessionId &&
+      !isSeries &&
+      !item.metadata
+    ) {
       const { remaining } = await checkProgramSessionCapacity(
         item.programSessionId,
       );
@@ -466,6 +491,15 @@ export async function updateCartItem(itemId: string, quantity: number) {
     }
 
     await updateCartItemQuantity(itemId, quantity);
+
+    if (cartData.items.length > 0) {
+      await reconcileCartPricing(
+        cartData.items.map((i) =>
+          i.id === itemId ? { ...i, quantity } : i,
+        ),
+      );
+    }
+
     return { success: true, message: "Cart updated" };
   } catch (error) {
     console.error("Error updating cart:", error);

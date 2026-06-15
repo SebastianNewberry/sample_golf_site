@@ -42,6 +42,7 @@ interface CartItem {
     price: string;
     duration: string;
     imageUrl: string | null;
+    schedulingType?: string | null;
   } | null;
   session: {
     id: string;

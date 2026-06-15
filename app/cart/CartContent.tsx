@@ -55,14 +55,30 @@ const PRIVATE_INSTRUCTION_IDS = [
   "754bf4be-0ef6-4123-b5ff-b107e03c2f10", // Junior
 ];
 
+const SERIES_PROGRAM_IDS = [
+  "cc6a73ca-95fb-4acb-be01-6cee4ce44475", // Junior Developmental Series
+];
+
 export default function CartContent() {
-  const { items, total, discountAmount, finalTotal, isLoading, removeItem, updateQuantity, clearCart } =
-    useCart();
+  const {
+    items,
+    total,
+    discountAmount,
+    finalTotal,
+    isLoading,
+    removeItem,
+    updateQuantity,
+    clearCart,
+    refreshCart,
+  } = useCart();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [validationErrors, setValidationErrors] = React.useState<
     Record<string, string>
   >({});
+  const [priceUpdates, setPriceUpdates] = React.useState<
+    { programName: string; oldPrice: string; newPrice: string }[]
+  >([]);
   const [isValidating, setIsValidating] = React.useState(false);
 
   const validateCart = React.useCallback(async () => {
@@ -70,6 +86,10 @@ export default function CartContent() {
     setValidationErrors({});
     try {
       const result = await validateCartAvailability(items);
+      if (result.priceUpdates?.length) {
+        setPriceUpdates(result.priceUpdates);
+        await refreshCart();
+      }
       if (!result.valid && result.errors) {
         setValidationErrors(result.errors);
         window.scrollTo({ top: 0, behavior: "smooth" });
@@ -86,7 +106,7 @@ export default function CartContent() {
     } finally {
       setIsValidating(false);
     }
-  }, [items, searchParams]);
+  }, [items, searchParams, refreshCart]);
 
   useEffect(() => {
     // Always validate on mount if there are items
@@ -172,8 +192,8 @@ export default function CartContent() {
     };
   };
 
-  // Helper to format private instruction metadata for display
-  const formatPrivateInstructionMetadata = (metadataJson: string | null) => {
+  // Helper to format slot metadata (private instruction + series)
+  const formatSlotMetadata = (metadataJson: string | null) => {
     if (!metadataJson) return null;
     try {
       const metadata = JSON.parse(metadataJson);
@@ -300,6 +320,20 @@ export default function CartContent() {
               </Button>
             </div>
 
+            {priceUpdates.length > 0 && (
+              <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <p className="font-semibold mb-1">Prices updated</p>
+                <ul className="list-disc pl-5 space-y-0.5">
+                  {priceUpdates.map((update, idx) => (
+                    <li key={idx}>
+                      {update.programName}: ${update.oldPrice} → $
+                      {update.newPrice}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <div className="grid lg:grid-cols-3 gap-8">
               {/* Cart items: one card, separators between programs */}
               <div className="lg:col-span-2">
@@ -309,19 +343,30 @@ export default function CartContent() {
                       ? formatSessionSchedule(item.session.schedule)
                       : null;
 
-                    const privateInfo = PRIVATE_INSTRUCTION_IDS.includes(
-                      item.programId,
-                    )
-                      ? formatPrivateInstructionMetadata(item.metadata)
+                    const privateInfo =
+                      PRIVATE_INSTRUCTION_IDS.includes(item.programId)
+                        ? formatSlotMetadata(item.metadata)
+                        : null;
+
+                    const isSeries =
+                      item.program?.schedulingType === "series" ||
+                      SERIES_PROGRAM_IDS.includes(item.programId);
+
+                    const seriesInfo = isSeries
+                      ? formatSlotMetadata(item.metadata)
                       : null;
 
                     const showMiddle = privateInfo
-                      ? privateInfo.isOnCourse || (privateInfo.coachesCount ?? 0) > 0
+                      ? privateInfo.isOnCourse ||
+                        (privateInfo.coachesCount ?? 0) > 0
                       : false;
 
                     const isPrivate = PRIVATE_INSTRUCTION_IDS.includes(
                       item.programId,
                     );
+
+                    const showFullSessionSchedule =
+                      scheduleInfo && !seriesInfo && !privateInfo;
 
                     const programImage =
                       item.program?.imageUrl ||
@@ -419,13 +464,16 @@ export default function CartContent() {
                                             {item.session.name}
                                           </span>
                                         </div>
-                                        {scheduleInfo && (
+                                        {showFullSessionSchedule && (
                                           <div className="pl-6 text-xs font-medium text-gray-500">
-                                            {scheduleInfo.sessionCount} Session{Number(scheduleInfo.sessionCount) === 1 ? "" : "s"}
+                                            {scheduleInfo.sessionCount} Session
+                                            {Number(scheduleInfo.sessionCount) === 1
+                                              ? ""
+                                              : "s"}
                                           </div>
                                         )}
                                       </div>
-                                      {scheduleInfo && (
+                                      {showFullSessionSchedule && (
                                         <div className="mt-4 space-y-3">
                                           <div className="pl-1 space-y-3">
                                             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
@@ -457,7 +505,39 @@ export default function CartContent() {
                                     </div>
                                   )}
 
-                                  {/* Private instruction (adult + junior program IDs): shared schedule UI */}
+                                  {/* Series: selected session dates */}
+                                  {seriesInfo && (
+                                    <div className="mt-4 space-y-3">
+                                      <div className="pl-1 space-y-3">
+                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                          Selected dates:
+                                        </p>
+                                        {seriesInfo.groups.map(
+                                          (group: any, idx: number) => (
+                                            <div
+                                              key={idx}
+                                              className="border-l-2 border-green-200 py-1 pl-3"
+                                            >
+                                              <p className="text-sm font-bold text-gray-800">
+                                                {group.dayLabel} at{" "}
+                                                {group.timeRange}
+                                              </p>
+                                              <p className="text-xs text-gray-500 mt-0.5">
+                                                {group.dateRange}
+                                                {group.count > 1 && (
+                                                  <span className="text-gray-400 ml-1">
+                                                    ({group.count} sessions)
+                                                  </span>
+                                                )}
+                                              </p>
+                                            </div>
+                                          ),
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Private instruction (adult + junior): shared schedule UI */}
                                    {privateInfo && (
                                      <div className="mt-4 space-y-3">
                                        <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-sm text-gray-800 font-semibold bg-orange-50 px-3 py-2 rounded-lg border border-orange-100 w-fit">
