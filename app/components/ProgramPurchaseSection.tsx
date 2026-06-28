@@ -99,7 +99,7 @@ export function ProgramPurchaseSection({
   }, [selectedSession]);
 
   const hasSessions = sessions.length > 0;
-  const allSessionsUnavailable = hasSessions && sessions.every((s) => isSessionUnavailable(s));
+  const allSessionsUnavailable = !hasSessions || sessions.every((s) => isSessionUnavailable(s));
   const isSessionSelected = selectedSession && selectedSession.trim() !== "";
 
   // Calculate if the session is full considering cart items
@@ -120,22 +120,16 @@ export function ProgramPurchaseSection({
   const isFull =
     maxQuantity <= 0 && isSessionSelected && !isCheckingAvailability;
   const isDisabled =
+    !hasSessions ||
     !isSessionSelected ||
     isFull ||
     isCheckingAvailability ||
-    selectedSessionUnavailable;
+    selectedSessionUnavailable ||
+    allSessionsUnavailable;
 
   const isQuantityDisabled = isDisabled || maxQuantity <= 0;
 
-  const footerMessage = !hasSessions
-    ? "We'll notify you when sessions are available"
-    : !isSessionSelected
-      ? null
-      : isCheckingAvailability
-        ? "Checking availability..."
-        : isFull
-          ? "This session is currently at capacity"
-          : "Complete registration at checkout";
+
 
   // Reset quantity when session or available spots change
   useEffect(() => {
@@ -156,61 +150,60 @@ export function ProgramPurchaseSection({
         <p className="text-sm text-gray-500 mt-1 font-medium">{duration}</p>
       </div>
 
-      {hasSessions && !allSessionsUnavailable && (
-        <div className="mb-5">
-          <div className="flex items-start gap-2">
-            <div className="min-w-0 flex-1">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Select Session:
-              </label>
-              <Select
-                value={selectedSession}
-                onValueChange={setSelectedSession}
-              >
-                <SelectTrigger className="w-full bg-gray-50 focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:bg-white">
-                  <SelectValue placeholder="Choose your dates..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {sortSessionsAvailableFirst(sessions).map((session) => {
-                    const isStarted = session.startDate
-                      ? new Date() > new Date(session.startDate)
-                      : false;
-                    const isBooked = session.isBooked ?? false;
-                    const unavailable = isSessionUnavailable(session);
-                    return (
-                      <SelectItem
-                        key={session.id}
-                        value={session.id}
-                        disabled={unavailable}
-                        className={unavailable ? "text-gray-400" : ""}
-                      >
-                        {session.name}
-                        {isStarted && " (Started)"}
-                        {!isStarted && isBooked && " (Sold Out)"}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="w-24 shrink-0">
-              <label
-                htmlFor="quantity"
-                className="block text-sm font-semibold text-gray-700 mb-2"
-              >
-                Quantity:
-              </label>
-              <QuantitySelect
-                inline
-                value={quantity}
-                onChange={setQuantity}
-                maxQuantity={Math.max(maxQuantity, 1)}
-                disabled={isQuantityDisabled}
-              />
-            </div>
+      <div className="mb-5">
+        <div className="flex items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Select Session:
+            </label>
+            <Select
+              value={selectedSession}
+              onValueChange={setSelectedSession}
+              disabled={!hasSessions || allSessionsUnavailable}
+            >
+              <SelectTrigger className="w-full bg-gray-50 focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:bg-white disabled:opacity-50">
+                <SelectValue placeholder={!hasSessions || allSessionsUnavailable ? "No sessions available" : "Choose your dates..."} />
+              </SelectTrigger>
+              <SelectContent>
+                {sortSessionsAvailableFirst(sessions).map((session) => {
+                  const isStarted = session.startDate
+                    ? new Date() > new Date(session.startDate)
+                    : false;
+                  const isBooked = session.isBooked ?? false;
+                  const unavailable = isSessionUnavailable(session);
+                  return (
+                    <SelectItem
+                      key={session.id}
+                      value={session.id}
+                      disabled={unavailable}
+                      className={unavailable ? "text-gray-400" : ""}
+                    >
+                      {session.name}
+                      {isStarted && " (Started)"}
+                      {!isStarted && isBooked && " (Sold Out)"}
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="w-24 shrink-0">
+            <label
+              htmlFor="quantity"
+              className="block text-sm font-semibold text-gray-700 mb-2"
+            >
+              Quantity:
+            </label>
+            <QuantitySelect
+              inline
+              value={quantity}
+              onChange={setQuantity}
+              maxQuantity={Math.max(maxQuantity, 1)}
+              disabled={isQuantityDisabled}
+            />
           </div>
         </div>
-      )}
+      </div>
 
       {isSessionSelected && availability && (
         <div
@@ -250,132 +243,93 @@ export function ProgramPurchaseSection({
         </div>
       )}
 
-      {hasSessions ? (
-        <div className="space-y-3">
-          {isDisabled && (!isSessionSelected || allSessionsUnavailable) ? (
-            <TooltipProvider delayDuration={0}>
-              <Tooltip disableHoverableContent>
-                <TooltipTrigger asChild>
-                  <div className="w-full cursor-not-allowed">
-                    <BuyNowButton
-                      programId={programId}
-                      programSessionId={selectedSession || undefined}
-                      registrationType={registrationType}
-                      price={programPrice}
-                      quantity={quantity}
-                      className="w-full py-3.5 font-bold text-base rounded-xl shadow-md transition-all bg-gray-200 text-gray-400 pointer-events-none"
-                      size="lg"
-                      disabled={isDisabled}
-                    >
-                      BUY NOW
-                    </BuyNowButton>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="pointer-events-none">
-                  <p>{allSessionsUnavailable ? "No sessions currently available" : "Please select a session from the dropdown above"}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ) : (
-            <BuyNowButton
-              programId={programId}
-              programSessionId={selectedSession || undefined}
-              registrationType={registrationType}
-              price={programPrice}
-              quantity={quantity}
-              className={`w-full py-3.5 font-bold text-base rounded-xl shadow-md enabled:hover:shadow-lg transition-all ${
-                !isDisabled
-                  ? "bg-orange-500 enabled:hover:bg-orange-600 text-white"
-                  : "bg-gray-200 text-gray-400"
-              }`}
-              size="lg"
-              disabled={isDisabled}
-            >
-              BUY NOW
-            </BuyNowButton>
-          )}
-
-          {isDisabled && (!isSessionSelected || allSessionsUnavailable) ? (
-            <TooltipProvider delayDuration={0}>
-              <Tooltip disableHoverableContent>
-                <TooltipTrigger asChild>
-                  <div className="w-full cursor-not-allowed">
-                    <AddToCartButton
-                      programId={programId}
-                      programSessionId={selectedSession || undefined}
-                      registrationType={registrationType}
-                      price={programPrice}
-                      quantity={quantity}
-                      className="w-full py-3.5 font-bold text-base border-2 rounded-xl transition-all border-gray-200 text-gray-400 bg-gray-50 pointer-events-none"
-                      size="lg"
-                      disabled={isDisabled}
-                    >
-                      ADD TO CART
-                    </AddToCartButton>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="bottom" className="pointer-events-none">
-                  <p>{allSessionsUnavailable ? "No sessions currently available" : "Please select a session from the dropdown above"}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ) : (
-            <AddToCartButton
-              programId={programId}
-              programSessionId={selectedSession || undefined}
-              registrationType={registrationType}
-              price={programPrice}
-              quantity={quantity}
-              className={`w-full py-3.5 font-bold text-base border-2 rounded-xl transition-all ${
-                !isDisabled
-                  ? "bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 border-green-600"
-                  : "border-gray-200 text-gray-400 bg-gray-50"
-              }`}
-              size="lg"
-              disabled={isDisabled}
-            >
-              ADD TO CART
-            </AddToCartButton>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-3">
+      <div className="space-y-3">
+        {isDisabled && (!isSessionSelected || allSessionsUnavailable) ? (
           <TooltipProvider delayDuration={0}>
             <Tooltip disableHoverableContent>
               <TooltipTrigger asChild>
                 <div className="w-full cursor-not-allowed">
-                  <button
-                    disabled
-                    className="w-full py-3.5 font-bold text-base bg-gray-200 text-gray-400 rounded-xl pointer-events-none"
+                  <BuyNowButton
+                    programId={programId}
+                    programSessionId={selectedSession || undefined}
+                    registrationType={registrationType}
+                    price={programPrice}
+                    quantity={quantity}
+                    className="w-full py-3.5 font-bold text-base rounded-xl shadow-md transition-all bg-gray-200 text-gray-400 pointer-events-none"
+                    size="lg"
+                    disabled={isDisabled}
                   >
                     BUY NOW
-                  </button>
+                  </BuyNowButton>
                 </div>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="pointer-events-none">
-                <p>No sessions currently available</p>
+                <p>{allSessionsUnavailable ? "No sessions currently available" : "Please select a session from the dropdown above"}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
+        ) : (
+          <BuyNowButton
+            programId={programId}
+            programSessionId={selectedSession || undefined}
+            registrationType={registrationType}
+            price={programPrice}
+            quantity={quantity}
+            className={`w-full py-3.5 font-bold text-base rounded-xl shadow-md enabled:hover:shadow-lg transition-all ${
+              !isDisabled
+                ? "bg-orange-500 enabled:hover:bg-orange-600 text-white"
+                : "bg-gray-200 text-gray-400"
+            }`}
+            size="lg"
+            disabled={isDisabled}
+          >
+            BUY NOW
+          </BuyNowButton>
+        )}
+
+        {isDisabled && (!isSessionSelected || allSessionsUnavailable) ? (
           <TooltipProvider delayDuration={0}>
             <Tooltip disableHoverableContent>
               <TooltipTrigger asChild>
                 <div className="w-full cursor-not-allowed">
-                  <button
-                    disabled
-                    className="w-full py-3.5 font-bold text-base border-2 border-gray-200 text-gray-400 rounded-xl pointer-events-none"
+                  <AddToCartButton
+                    programId={programId}
+                    programSessionId={selectedSession || undefined}
+                    registrationType={registrationType}
+                    price={programPrice}
+                    quantity={quantity}
+                    className="w-full py-3.5 font-bold text-base border-2 rounded-xl transition-all border-gray-200 text-gray-400 bg-gray-50 pointer-events-none"
+                    size="lg"
+                    disabled={isDisabled}
                   >
                     ADD TO CART
-                  </button>
+                  </AddToCartButton>
                 </div>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="pointer-events-none">
-                <p>No sessions currently available</p>
+                <p>{allSessionsUnavailable ? "No sessions currently available" : "Please select a session from the dropdown above"}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
-        </div>
-      )}
+        ) : (
+          <AddToCartButton
+            programId={programId}
+            programSessionId={selectedSession || undefined}
+            registrationType={registrationType}
+            price={programPrice}
+            quantity={quantity}
+            className={`w-full py-3.5 font-bold text-base border-2 rounded-xl transition-all ${
+              !isDisabled
+                ? "bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 border-green-600"
+                : "border-gray-200 text-gray-400 bg-gray-50"
+            }`}
+            size="lg"
+            disabled={isDisabled}
+          >
+            ADD TO CART
+          </AddToCartButton>
+        )}
+      </div>
 
       {/* Call Option */}
       <div className="mt-8 pt-6 border-t flex flex-col items-center justify-center text-center">
@@ -391,9 +345,6 @@ export function ProgramPurchaseSection({
         </a>
       </div>
 
-      {footerMessage && (
-        <p className="text-xs text-gray-400 text-center mt-4">{footerMessage}</p>
-      )}
     </>
   );
 }
