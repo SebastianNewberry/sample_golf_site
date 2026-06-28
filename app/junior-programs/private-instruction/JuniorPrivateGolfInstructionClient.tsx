@@ -28,6 +28,7 @@ import { ProgramFeaturesAndDetails } from "@/app/components/ProgramFeaturesAndDe
 import { SessionCalendar } from "@/app/components/SessionCalendar";
 import { PrivateInstructionCalendar } from "@/app/components/PrivateInstructionCalendar";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, isSameDay } from "date-fns";
 import { useProgramSidebarNav } from "@/lib/use-program-sidebar-nav";
 
@@ -493,32 +494,55 @@ export function JuniorPrivateGolfInstructionClient({
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                           {pricingOptions
                             .filter((p: any) => !p.isOnCourse)
-                            .map((pkg: any) => (
-                              <div
-                                key={pkg.id}
-                                onClick={() => handlePriceSelect(pkg)}
-                                className={`p-2 rounded-xl border-2 cursor-pointer transition-all flex flex-col items-center justify-center text-center gap-1 min-h-[8rem]
-                                  ${
-                                    selectedPackageId === pkg.id
-                                      ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))] shadow-sm"
-                                      : "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
-                                  }`}
-                              >
-                                <p className="text-gray-600 font-medium">
-                                  {pkg.title}
-                                </p>
-                                <p
-                                  className={`text-2xl font-bold my-1 ${selectedPackageId === pkg.id ? "text-[hsl(var(--golf-orange))]" : "text-[hsl(var(--golf-green))]"}`}
+                            .map((pkg: any) => {
+                              const isUnavailable = availableSlots.length === 0;
+                              const content = (
+                                <div
+                                  key={pkg.id}
+                                  onClick={() => {
+                                    if (!isUnavailable) handlePriceSelect(pkg);
+                                  }}
+                                  className={`p-2 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center gap-1 min-h-[8rem]
+                                    ${isUnavailable ? "opacity-50 cursor-not-allowed bg-gray-50 border-gray-200" : "cursor-pointer"}
+                                    ${
+                                      !isUnavailable && selectedPackageId === pkg.id
+                                        ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))] shadow-sm"
+                                        : !isUnavailable ? "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm" : ""
+                                    }`}
                                 >
-                                  ${pkg.price}
-                                </p>
-                                <p className="text-xs text-gray-400">
-                                  {pkg.sessionCount === 1
-                                    ? "Single Session"
-                                    : `${pkg.sessionCount} Sessions`}
-                                </p>
-                              </div>
-                            ))}
+                                  <p className="text-gray-600 font-medium">
+                                    {pkg.title}
+                                  </p>
+                                  <p
+                                    className={`text-2xl font-bold my-1 ${selectedPackageId === pkg.id ? "text-[hsl(var(--golf-orange))]" : "text-[hsl(var(--golf-green))]"}`}
+                                  >
+                                    ${pkg.price}
+                                  </p>
+                                  <p className="text-xs text-gray-400">
+                                    {pkg.sessionCount === 1
+                                      ? "Single Session"
+                                      : `${pkg.sessionCount} Sessions`}
+                                  </p>
+                                </div>
+                              );
+
+                              if (isUnavailable) {
+                                return (
+                                  <TooltipProvider key={pkg.id} delayDuration={0}>
+                                    <Tooltip disableHoverableContent>
+                                      <TooltipTrigger asChild>
+                                        {content}
+                                      </TooltipTrigger>
+                                      <TooltipContent side="bottom">
+                                        <p>No sessions currently available</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                );
+                              }
+
+                              return content;
+                            })}
                         </div>
                       </div>
                     )}
@@ -542,41 +566,64 @@ export function JuniorPrivateGolfInstructionClient({
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {pricingOptions
                             .filter((p: any) => p.isOnCourse)
-                            .map((pkg: any) => (
-                              <div
-                                key={pkg.id}
-                                onClick={() => handlePriceSelect(pkg)}
-                                className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center justify-between
-                                  ${
-                                    selectedPackageId === pkg.id
-                                      ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))] shadow-sm"
-                                      : "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
-                                  }`}
-                              >
-                                <div>
-                                  <p className="text-gray-900 font-bold text-lg">
-                                    {pkg.title}
-                                  </p>
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    {pkg.playersCount === 1
-                                      ? "Private Session"
-                                      : `$${Math.round(pkg.price / pkg.playersCount)} / person`}
-                                  </p>
-                                  {(pkg.coachesCount ?? 0) > 0 ? (
-                                    <p className="text-xs text-[hsl(var(--golf-green))] font-semibold mt-1">
-                                      {pkg.coachesCount === 1
-                                        ? "1 Coach"
-                                        : `${pkg.coachesCount} Coaches`}
-                                    </p>
-                                  ) : null}
-                                </div>
-                                <p
-                                  className={`text-2xl font-bold ${selectedPackageId === pkg.id ? "text-[hsl(var(--golf-orange))]" : "text-[hsl(var(--golf-green))]"}`}
+                            .map((pkg: any) => {
+                              const isUnavailable = availableSlots.length === 0;
+                              const content = (
+                                <div
+                                  key={pkg.id}
+                                  onClick={() => {
+                                    if (!isUnavailable) handlePriceSelect(pkg);
+                                  }}
+                                  className={`p-4 rounded-xl border-2 transition-all flex items-center justify-between
+                                    ${isUnavailable ? "opacity-50 cursor-not-allowed bg-gray-50 border-gray-200" : "cursor-pointer"}
+                                    ${
+                                      !isUnavailable && selectedPackageId === pkg.id
+                                        ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))] shadow-sm"
+                                        : !isUnavailable ? "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm" : ""
+                                    }`}
                                 >
-                                  ${pkg.price}
-                                </p>
-                              </div>
-                            ))}
+                                  <div>
+                                    <p className="text-gray-900 font-bold text-lg">
+                                      {pkg.title}
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      {pkg.playersCount === 1
+                                        ? "Private Session"
+                                        : `$${Math.round(pkg.price / pkg.playersCount)} / person`}
+                                    </p>
+                                    {(pkg.coachesCount ?? 0) > 0 ? (
+                                      <p className="text-xs text-[hsl(var(--golf-green))] font-semibold mt-1">
+                                        {pkg.coachesCount === 1
+                                          ? "1 Coach"
+                                          : `${pkg.coachesCount} Coaches`}
+                                      </p>
+                                    ) : null}
+                                  </div>
+                                  <p
+                                    className={`text-2xl font-bold ${selectedPackageId === pkg.id ? "text-[hsl(var(--golf-orange))]" : "text-[hsl(var(--golf-green))]"}`}
+                                  >
+                                    ${pkg.price}
+                                  </p>
+                                </div>
+                              );
+
+                              if (isUnavailable) {
+                                return (
+                                  <TooltipProvider key={pkg.id} delayDuration={0}>
+                                    <Tooltip disableHoverableContent>
+                                      <TooltipTrigger asChild>
+                                        {content}
+                                      </TooltipTrigger>
+                                      <TooltipContent side="bottom">
+                                        <p>No sessions currently available</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                );
+                              }
+
+                              return content;
+                            })}
                         </div>
                       </div>
                     )}
@@ -620,16 +667,36 @@ export function JuniorPrivateGolfInstructionClient({
                             )}
                           </div>
 
-                          <Button
-                            onClick={() => setIsCalendarOpen(true)}
-                            className="w-full h-14 bg-white border-2 border-green-600 text-green-700 enabled:hover:bg-green-50 text-sm font-bold flex items-center justify-center gap-3 rounded-xl shadow-sm"
-                            disabled={!selectedDuration}
-                          >
-                            <CalendarClock className="w-6 h-6" />
-                            {selectedSlots.length > 0
-                              ? "Edit Dates"
-                              : "Open Calendar"}
-                          </Button>
+                          {!selectedDuration ? (
+                            <TooltipProvider delayDuration={0}>
+                              <Tooltip disableHoverableContent>
+                                <TooltipTrigger asChild>
+                                  <div className="w-full cursor-not-allowed">
+                                    <Button
+                                      className="w-full h-14 bg-white border-2 border-gray-200 text-gray-400 pointer-events-none text-sm font-bold flex items-center justify-center gap-3 rounded-xl shadow-sm"
+                                      disabled
+                                    >
+                                      <CalendarClock className="w-6 h-6" />
+                                      Open Calendar
+                                    </Button>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="pointer-events-none">
+                                  <p>{availableSlots.length === 0 ? "No sessions currently available" : "Please select a package above first"}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <Button
+                              onClick={() => setIsCalendarOpen(true)}
+                              className="w-full h-14 bg-white border-2 border-green-600 text-green-700 enabled:hover:bg-green-50 text-sm font-bold flex items-center justify-center gap-3 rounded-xl shadow-sm"
+                            >
+                              <CalendarClock className="w-6 h-6" />
+                              {selectedSlots.length > 0
+                                ? "Edit Dates"
+                                : "Open Calendar"}
+                            </Button>
+                          )}
                         </div>
                       </div>
 
@@ -643,70 +710,101 @@ export function JuniorPrivateGolfInstructionClient({
                         </h3>
 
                         <div className="space-y-3">
-                          <button
-                            disabled={
-                              selectedSlots.length < maxSlots ||
-                              !selectedDuration ||
-                              isBuyNowLoading ||
-                              isAddingToCart
-                            }
-                            onClick={handleBuyNow}
-                            className="w-full py-3 font-bold text-sm bg-orange-500 enabled:hover:bg-orange-600 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white rounded-xl shadow-md enabled:hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
-                          >
-                            {isBuyNowLoading ? (
-                              <Loader2 className="w-5 h-5 animate-spin" />
-                            ) : (
-                              <CreditCard className="w-5 h-5" />
-                            )}
-                            {isBuyNowLoading
-                              ? "PROCESSING..."
-                              : `BUY NOW ${selectedPrice > 0 ? `- $${selectedPrice}` : ""}`}
-                          </button>
-
-                          <button
-                            disabled={
-                              selectedSlots.length < maxSlots ||
-                              !selectedDuration ||
-                              isBuyNowLoading ||
-                              isAddingToCart
-                            }
-                            onClick={handleAddToCart}
-                            className="w-full py-3 font-bold text-sm border-2 rounded-xl transition-all flex items-center justify-center gap-2 bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 border-green-600 disabled:bg-gray-50 disabled:border-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed cursor-pointer"
-                          >
-                            <AnimatePresence mode="wait">
-                              {isAddingToCart ? (
-                                <motion.span
-                                  key="load"
-                                  initial={{ opacity: 0 }}
-                                  animate={{ opacity: 1 }}
-                                  exit={{ opacity: 0 }}
-                                  className="flex items-center gap-2"
-                                >
-                                  <Loader2 className="w-5 h-5 animate-spin" />{" "}
-                                  ADDING...
-                                </motion.span>
-                              ) : showSuccess ? (
-                                <motion.span
-                                  key="success"
-                                  initial={{ scale: 0.8 }}
-                                  animate={{ scale: 1 }}
-                                  className="flex items-center gap-2 text-green-600"
-                                >
-                                  <Check className="w-5 h-5" /> ADDED!
-                                </motion.span>
+                          {selectedSlots.length < maxSlots || !selectedDuration ? (
+                            <TooltipProvider delayDuration={0}>
+                              <Tooltip disableHoverableContent>
+                                <TooltipTrigger asChild>
+                                  <div className="w-full cursor-not-allowed">
+                                    <button
+                                      disabled
+                                      className="w-full py-3 font-bold text-sm bg-gray-200 text-gray-400 pointer-events-none rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+                                    >
+                                      <CreditCard className="w-5 h-5" />
+                                      BUY NOW
+                                    </button>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="pointer-events-none">
+                                  <p>{availableSlots.length === 0 ? "No sessions currently available" : "Please select a package above first"}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <button
+                              disabled={isBuyNowLoading || isAddingToCart}
+                              onClick={handleBuyNow}
+                              className="w-full py-3 font-bold text-sm bg-orange-500 enabled:hover:bg-orange-600 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white rounded-xl shadow-md enabled:hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                            >
+                              {isBuyNowLoading ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
                               ) : (
-                                <motion.span
-                                  key="default"
-                                  initial={{ opacity: 0 }}
-                                  animate={{ opacity: 1 }}
-                                  className="flex items-center gap-2"
-                                >
-                                  <ShoppingCart className="w-5 h-5" /> ADD TO
-                                  CART
-                                </motion.span>
+                                <CreditCard className="w-5 h-5" />
                               )}
-                            </AnimatePresence>
-                          </button>
+                              {isBuyNowLoading
+                                ? "PROCESSING..."
+                                : `BUY NOW ${selectedPrice > 0 ? `- $${selectedPrice}` : ""}`}
+                            </button>
+                          )}
+
+                          {selectedSlots.length < maxSlots || !selectedDuration ? (
+                            <TooltipProvider delayDuration={0}>
+                              <Tooltip disableHoverableContent>
+                                <TooltipTrigger asChild>
+                                  <div className="w-full cursor-not-allowed">
+                                    <button
+                                      disabled
+                                      className="w-full py-3 font-bold text-sm border-2 rounded-xl transition-all flex items-center justify-center gap-2 bg-gray-50 border-gray-100 text-gray-300 pointer-events-none"
+                                    >
+                                      <ShoppingCart className="w-5 h-5" /> ADD TO CART
+                                    </button>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" className="pointer-events-none">
+                                  <p>{availableSlots.length === 0 ? "No sessions currently available" : "Please select a package above first"}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <button
+                              disabled={isBuyNowLoading || isAddingToCart}
+                              onClick={handleAddToCart}
+                              className="w-full py-3 font-bold text-sm border-2 rounded-xl transition-all flex items-center justify-center gap-2 bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 border-green-600 disabled:bg-gray-50 disabled:border-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed cursor-pointer"
+                            >
+                              <AnimatePresence mode="wait">
+                                {isAddingToCart ? (
+                                  <motion.span
+                                    key="load"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="flex items-center gap-2"
+                                  >
+                                    <Loader2 className="w-5 h-5 animate-spin" />{" "}
+                                    ADDING...
+                                  </motion.span>
+                                ) : showSuccess ? (
+                                  <motion.span
+                                    key="success"
+                                    initial={{ scale: 0.8 }}
+                                    animate={{ scale: 1 }}
+                                    className="flex items-center gap-2 text-green-600"
+                                  >
+                                    <Check className="w-5 h-5" /> ADDED!
+                                  </motion.span>
+                                ) : (
+                                  <motion.span
+                                    key="default"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="flex items-center gap-2"
+                                  >
+                                    <ShoppingCart className="w-5 h-5" /> ADD TO
+                                    CART
+                                  </motion.span>
+                                )}
+                              </AnimatePresence>
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>

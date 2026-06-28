@@ -20,13 +20,17 @@ export function SessionCalendar({
 }: SessionCalendarProps) {
   if (!schedule || schedule.length === 0) {
     return (
-      <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
-        <p className="text-sm text-gray-600 font-medium">
-          Select a session to view calendar dates
-        </p>
+      <div className="mt-4 bg-white border border-gray-200 rounded-lg p-3 shadow-sm relative overflow-visible">
+        <h3 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">
+          Session Schedule
+        </h3>
+        <div className="p-3 text-center text-gray-500 text-sm font-medium">
+          No Sessions Yet
+        </div>
       </div>
     );
   }
+
 
   // Parse dates from schedule
   const sessionDates = schedule.map((s) => {

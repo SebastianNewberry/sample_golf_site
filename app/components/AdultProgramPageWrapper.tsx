@@ -100,8 +100,21 @@ export function AdultProgramPageWrapper({
     setExpandedSessionId(val); // Sync accordion expansion
   };
 
-  // Check if children is a function (render prop)
   const isRenderFunction = typeof children === "function";
+
+  const isSessionUnavailable = (session: SessionWithEnrollment) => {
+    const schedule = session.schedule ? parseSchedule(session.schedule) : null;
+    const startDate = schedule && schedule.length > 0 ? new Date(schedule[0].date) : null;
+    const isStarted = startDate ? new Date() > startDate : false;
+    return isStarted || (session.isBooked ?? false);
+  };
+
+  const sortedSessions = [...sessions].sort((a, b) => {
+    const aUnavailable = isSessionUnavailable(a);
+    const bUnavailable = isSessionUnavailable(b);
+    if (aUnavailable === bUnavailable) return 0;
+    return aUnavailable ? 1 : -1;
+  });
 
   return (
     <>
@@ -270,7 +283,7 @@ export function AdultProgramPageWrapper({
                   onValueChange={handleAccordionChange}
                   className="w-full"
                 >
-                  {sessions.map((session) => {
+                  {sortedSessions.map((session) => {
                     const schedule = session.schedule
                       ? parseSchedule(session.schedule)
                       : null;

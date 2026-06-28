@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import {
   ProgramCalendar,
   CalendarEvent,
@@ -294,25 +295,29 @@ export default async function CalendarPage() {
               </h2>
               <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain pr-1 text-sm text-gray-700 [scrollbar-gutter:stable]">
                 <li className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-orange-500" />
-                  <span>Get Golf Ready (Level I & II)</span>
+                  <div className="w-3 h-3 rounded-full bg-orange-500 shrink-0" />
+                  <Link href="/adult-programs/get-golf-ready-level-1" className="hover:text-orange-600 transition-colors">Adult Get Golf Ready Level 1</Link>
                 </li>
                 <li className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-orange-500" />
-                  <span>Adult Short Game Series</span>
+                  <div className="w-3 h-3 rounded-full bg-orange-500 shrink-0" />
+                  <Link href="/adult-programs/get-golf-ready-level-2" className="hover:text-orange-600 transition-colors">Adult Get Golf Ready Level 2</Link>
                 </li>
                 <li className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-orange-500" />
-                  <span>Golf For Women</span>
+                  <div className="w-3 h-3 rounded-full bg-orange-500 shrink-0" />
+                  <Link href="/adult-programs/short-game" className="hover:text-orange-600 transition-colors">Adult Short Game Series</Link>
                 </li>
                 <li className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-orange-500" />
-                  <span>Adult Open Practice</span>
+                  <div className="w-3 h-3 rounded-full bg-orange-500 shrink-0" />
+                  <Link href="/adult-programs/women" className="hover:text-orange-600 transition-colors">Golf For Women</Link>
+                </li>
+                <li className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-orange-500 shrink-0" />
+                  <Link href="/adult-programs/open-practice" className="hover:text-orange-600 transition-colors">Adult Open Practice</Link>
                 </li>
                 <li className="pt-2 border-t border-gray-100 mt-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-[#ea580c]" />
-                    <span>Adult Private Instruction</span>
+                    <div className="w-3 h-3 rounded-full bg-[#ea580c] shrink-0" />
+                    <Link href="/adult-programs/private" className="hover:text-[#ea580c] transition-colors">Adult Private Instruction</Link>
                   </div>
                 </li>
               </ul>
@@ -324,25 +329,21 @@ export default async function CalendarPage() {
               </h2>
               <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain pr-1 text-sm text-gray-700 [scrollbar-gutter:stable]">
                 <li className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-green-500" />
-                  <span>Junior Beginner Series</span>
+                  <div className="w-3 h-3 rounded-full bg-green-500 shrink-0" />
+                  <Link href="/junior-programs/beginner-series" className="hover:text-green-600 transition-colors">Junior Beginner Series</Link>
                 </li>
                 <li className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-green-500" />
-                  <span>Junior Developmental Series</span>
+                  <div className="w-3 h-3 rounded-full bg-green-500 shrink-0" />
+                  <Link href="/junior-programs/developmental-series" className="hover:text-green-600 transition-colors">Junior Developmental Series</Link>
                 </li>
                 <li className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-green-500" />
-                  <span>Junior Golf Camp</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-green-500" />
-                  <span>Junior Developmental Camp</span>
+                  <div className="w-3 h-3 rounded-full bg-green-500 shrink-0" />
+                  <Link href="/junior-programs/developmental-camp" className="hover:text-green-600 transition-colors">Junior Developmental Camp</Link>
                 </li>
                 <li className="pt-2 border-t border-gray-100 mt-2">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-[#15803d]" />
-                    <span>Junior Private Instruction</span>
+                    <div className="w-3 h-3 rounded-full bg-[#15803d] shrink-0" />
+                    <Link href="/junior-programs/private-instruction" className="hover:text-[#15803d] transition-colors">Junior Private Instruction</Link>
                   </div>
                 </li>
               </ul>

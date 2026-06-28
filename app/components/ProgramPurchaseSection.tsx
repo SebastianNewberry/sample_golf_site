@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { AddToCartButton } from "@/app/components/AddToCartButton";
 import { BuyNowButton } from "@/app/components/BuyNowButton";
 import { QuantitySelect } from "@/app/components/QuantitySelect";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CalendarClock, Phone, AlertCircle, Loader2 } from "lucide-react";
 import {
   Select,
@@ -98,6 +99,7 @@ export function ProgramPurchaseSection({
   }, [selectedSession]);
 
   const hasSessions = sessions.length > 0;
+  const allSessionsUnavailable = hasSessions && sessions.every((s) => isSessionUnavailable(s));
   const isSessionSelected = selectedSession && selectedSession.trim() !== "";
 
   // Calculate if the session is full considering cart items
@@ -144,7 +146,7 @@ export function ProgramPurchaseSection({
         <p className="text-sm text-gray-500 mt-1 font-medium">{duration}</p>
       </div>
 
-      {hasSessions ? (
+      {hasSessions && !allSessionsUnavailable && (
         <div className="mb-5">
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
@@ -198,18 +200,6 @@ export function ProgramPurchaseSection({
             </div>
           </div>
         </div>
-      ) : (
-        <div className="mb-5 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-          <div className="flex items-center gap-3 text-amber-700">
-            <CalendarClock size={20} className="shrink-0" />
-            <div>
-              <p className="font-semibold">None Available</p>
-              <p className="text-sm text-amber-600">
-                There are currently no available sessions.
-              </p>
-            </div>
-          </div>
-        </div>
       )}
 
       {isSessionSelected && availability && (
@@ -252,85 +242,146 @@ export function ProgramPurchaseSection({
 
       {hasSessions ? (
         <div className="space-y-3">
-          <BuyNowButton
-            programId={programId}
-            programSessionId={selectedSession || undefined}
-            registrationType={registrationType}
-            price={programPrice}
-            quantity={quantity}
-            className={`w-full py-3.5 font-bold text-base rounded-xl shadow-md enabled:hover:shadow-lg transition-all ${
-              !isDisabled
-                ? "bg-orange-500 enabled:hover:bg-orange-600 text-white"
-                : "bg-gray-200 text-gray-400"
-            }`}
-            size="lg"
-            disabled={isDisabled}
-          >
-            BUY NOW
-          </BuyNowButton>
-
-          <AddToCartButton
-            programId={programId}
-            programSessionId={selectedSession || undefined}
-            registrationType={registrationType}
-            price={programPrice}
-            quantity={quantity}
-            className={`w-full py-3.5 font-bold text-base border-2 rounded-xl transition-all ${
-              !isDisabled
-                ? "bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 border-green-600"
-                : "border-gray-200 text-gray-400 bg-gray-50"
-            }`}
-            size="lg"
-            disabled={isDisabled}
-          >
-            ADD TO CART
-          </AddToCartButton>
-
-          {showContactButton && (
-            <a
-              href={`tel:${contactPhone.replace(/[^0-9+]/g, "")}`}
-              className="flex items-center justify-center gap-2 w-full py-3 font-semibold text-gray-600 hover:text-green-700 border border-gray-200 rounded-xl hover:border-green-300 transition-all cursor-pointer"
+          {isDisabled && (!isSessionSelected || allSessionsUnavailable) ? (
+            <TooltipProvider delayDuration={0}>
+              <Tooltip disableHoverableContent>
+                <TooltipTrigger asChild>
+                  <div className="w-full cursor-not-allowed">
+                    <BuyNowButton
+                      programId={programId}
+                      programSessionId={selectedSession || undefined}
+                      registrationType={registrationType}
+                      price={programPrice}
+                      quantity={quantity}
+                      className="w-full py-3.5 font-bold text-base rounded-xl shadow-md transition-all bg-gray-200 text-gray-400 pointer-events-none"
+                      size="lg"
+                      disabled={isDisabled}
+                    >
+                      BUY NOW
+                    </BuyNowButton>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="pointer-events-none">
+                  <p>{allSessionsUnavailable ? "No sessions currently available" : "Please select a session from the dropdown above"}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <BuyNowButton
+              programId={programId}
+              programSessionId={selectedSession || undefined}
+              registrationType={registrationType}
+              price={programPrice}
+              quantity={quantity}
+              className={`w-full py-3.5 font-bold text-base rounded-xl shadow-md enabled:hover:shadow-lg transition-all ${
+                !isDisabled
+                  ? "bg-orange-500 enabled:hover:bg-orange-600 text-white"
+                  : "bg-gray-200 text-gray-400"
+              }`}
+              size="lg"
+              disabled={isDisabled}
             >
-              <Phone size={18} />
-              Call to Schedule
-            </a>
+              BUY NOW
+            </BuyNowButton>
+          )}
+
+          {isDisabled && (!isSessionSelected || allSessionsUnavailable) ? (
+            <TooltipProvider delayDuration={0}>
+              <Tooltip disableHoverableContent>
+                <TooltipTrigger asChild>
+                  <div className="w-full cursor-not-allowed">
+                    <AddToCartButton
+                      programId={programId}
+                      programSessionId={selectedSession || undefined}
+                      registrationType={registrationType}
+                      price={programPrice}
+                      quantity={quantity}
+                      className="w-full py-3.5 font-bold text-base border-2 rounded-xl transition-all border-gray-200 text-gray-400 bg-gray-50 pointer-events-none"
+                      size="lg"
+                      disabled={isDisabled}
+                    >
+                      ADD TO CART
+                    </AddToCartButton>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="pointer-events-none">
+                  <p>{allSessionsUnavailable ? "No sessions currently available" : "Please select a session from the dropdown above"}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <AddToCartButton
+              programId={programId}
+              programSessionId={selectedSession || undefined}
+              registrationType={registrationType}
+              price={programPrice}
+              quantity={quantity}
+              className={`w-full py-3.5 font-bold text-base border-2 rounded-xl transition-all ${
+                !isDisabled
+                  ? "bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 border-green-600"
+                  : "border-gray-200 text-gray-400 bg-gray-50"
+              }`}
+              size="lg"
+              disabled={isDisabled}
+            >
+              ADD TO CART
+            </AddToCartButton>
           )}
         </div>
       ) : (
         <div className="space-y-3">
-          <button
-            disabled
-            className="w-full py-3.5 font-bold text-base bg-gray-200 text-gray-400 rounded-xl cursor-not-allowed"
-          >
-            BUY NOW
-          </button>
-          <button
-            disabled
-            className="w-full py-3.5 font-bold text-base border-2 border-gray-200 text-gray-400 rounded-xl cursor-not-allowed"
-          >
-            ADD TO CART
-          </button>
-          <a
-            href={`tel:${contactPhone.replace(/[^0-9+]/g, "")}`}
-            className="flex items-center justify-center gap-2 w-full py-3 font-semibold text-green-700 bg-green-50 border border-green-200 rounded-xl hover:bg-green-100 transition-all"
-          >
-            <Phone size={18} />
-            Contact Us for Availability
-          </a>
+          <TooltipProvider delayDuration={0}>
+            <Tooltip disableHoverableContent>
+              <TooltipTrigger asChild>
+                <div className="w-full cursor-not-allowed">
+                  <button
+                    disabled
+                    className="w-full py-3.5 font-bold text-base bg-gray-200 text-gray-400 rounded-xl pointer-events-none"
+                  >
+                    BUY NOW
+                  </button>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="pointer-events-none">
+                <p>No sessions currently available</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <TooltipProvider delayDuration={0}>
+            <Tooltip disableHoverableContent>
+              <TooltipTrigger asChild>
+                <div className="w-full cursor-not-allowed">
+                  <button
+                    disabled
+                    className="w-full py-3.5 font-bold text-base border-2 border-gray-200 text-gray-400 rounded-xl pointer-events-none"
+                  >
+                    ADD TO CART
+                  </button>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="pointer-events-none">
+                <p>No sessions currently available</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       )}
 
-      <p className="text-xs text-gray-400 text-center mt-4">
-        {hasSessions
-          ? isSessionSelected
-            ? isCheckingAvailability
-              ? "Checking availability..."
-              : isFull
-                ? "This session is currently at capacity"
-                : "Complete registration at checkout"
-            : "Please select a session above to continue"
-          : "We'll notify you when sessions are available"}
-      </p>
+      {/* Call Option */}
+      <div className="mt-8 pt-6 border-t flex flex-col items-center justify-center text-center">
+        <span className="text-sm text-gray-500 mb-3 bg-white px-3 -mt-9">
+          OR
+        </span>
+        <a
+          href="tel:+12485633561"
+          className="flex items-center gap-2 text-gray-500 hover:text-green-700 transition-colors font-medium cursor-pointer"
+        >
+          <Phone className="w-4 h-4" />
+          Call to Schedule: (248) 563-3561
+        </a>
+      </div>
+
+
     </>
   );
 }
