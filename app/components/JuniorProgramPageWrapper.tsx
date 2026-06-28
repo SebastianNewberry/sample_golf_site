@@ -87,10 +87,8 @@ export function JuniorProgramPageWrapper({
 
         if (!isUnavailable) {
           setPurchaseSessionId(val);
-        } else {
-          // If unavailable (started or booked), do not select for purchase
-          setPurchaseSessionId("");
         }
+        // Unavailable sessions: expand schedule only — keep current purchase selection
       }
     }
   };

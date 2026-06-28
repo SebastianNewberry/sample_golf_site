@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { submitContactForm } from "@/app/actions/contact-form";
+import { formatPhoneNumberInput } from "@/lib/utils";
 import {
   Form,
   FormControl,
@@ -129,20 +130,10 @@ export function ContactForm() {
                     placeholder="(555) 123-4567"
                     {...field}
                     onChange={(e) => {
-                      const input = e.target.value;
-                      const numbers = input.replace(/\D/g, "");
-
-                      let formatted = numbers;
-                      if (numbers.length > 0) {
-                        if (numbers.length <= 3) {
-                          formatted = `(${numbers}`;
-                        } else if (numbers.length <= 6) {
-                          formatted = `(${numbers.slice(0, 3)}) ${numbers.slice(3)}`;
-                        } else {
-                          formatted = `(${numbers.slice(0, 3)}) ${numbers.slice(3, 6)}-${numbers.slice(6, 10)}`;
-                        }
-                      }
-
+                      const formatted = formatPhoneNumberInput(
+                        e.target.value,
+                        field.value,
+                      );
                       field.onChange(formatted);
                     }}
                     maxLength={14}

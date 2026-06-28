@@ -123,8 +123,8 @@ export function ProgramPageSkeleton({
   return (
     <motion.div
       className={programPageContent}
-      initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-      animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+      initial={reduceMotion ? false : { opacity: 0 }}
+      animate={reduceMotion ? undefined : { opacity: 1 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
     >
       <div className={programPageGrid}>

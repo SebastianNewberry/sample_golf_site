@@ -305,7 +305,7 @@ export function ProgramCalendar({
                 day,
               );
               const dayName = date.toLocaleDateString("en-US", {
-                weekday: "short",
+                weekday: "long",
                 timeZone: "America/New_York",
               });
               const monthDay = date.toLocaleDateString("en-US", {
@@ -343,9 +343,14 @@ export function ProgramCalendar({
                           <p className="text-sm font-semibold text-gray-800 truncate">
                             {event.title}
                           </p>
-                          {event.startTime && event.endTime && (
-                            <p className="text-xs text-gray-500">
-                              {event.startTime} - {event.endTime}
+                          {event.startTime && (
+                            <p className="text-xs text-gray-500 flex items-center gap-1">
+                              <Clock size={12} className="shrink-0" />
+                              <span>
+                                {event.endTime
+                                  ? `${event.startTime} - ${event.endTime}`
+                                  : event.startTime}
+                              </span>
                             </p>
                           )}
                           {event.sessionName && (
@@ -355,26 +360,24 @@ export function ProgramCalendar({
                           )}
                           {/* Inline detail for mobile */}
                           {selectedEvent?.id === event.id && (
-                            <div className="mt-2 p-2 bg-white rounded-md border border-gray-200 shadow-sm text-xs text-gray-600 space-y-2">
-                              <p className="capitalize font-medium text-gray-800">
-                                {event.programType} Program
-                              </p>
+                            <div className="mt-2 ml-1 space-y-2 border-l-2 border-gray-200 pl-3 text-xs text-gray-600">
                               {event.programDescription && (
-                                <SafeHTML 
-                                  html={event.programDescription} 
-                                  className="line-clamp-3 leading-relaxed text-gray-500 [&_*]:inline" 
+                                <SafeHTML
+                                  html={event.programDescription}
+                                  className="line-clamp-4 leading-relaxed text-gray-500 [&_*]:inline"
                                 />
                               )}
                               {event.url && (
-                                <div className="pt-2 mt-1 border-t border-gray-100">
-                                  <Link
-                                    href={event.url}
-                                    className="text-orange-600 font-medium hover:text-orange-700 flex items-center group transition-colors"
-                                  >
-                                    View Program Details
-                                    <ChevronRightIcon size={14} className="ml-1 group-hover:translate-x-1 transition-transform" />
-                                  </Link>
-                                </div>
+                                <Link
+                                  href={event.url}
+                                  className="flex items-center font-medium text-orange-600 transition-colors hover:text-orange-700 group"
+                                >
+                                  View Program Details
+                                  <ChevronRightIcon
+                                    size={14}
+                                    className="ml-1 transition-transform group-hover:translate-x-1"
+                                  />
+                                </Link>
                               )}
                             </div>
                           )}
@@ -435,11 +438,13 @@ export function ProgramCalendar({
                 <span>{tooltipEvent.sessionName}</span>
               </div>
             )}
-            {tooltipEvent.startTime && tooltipEvent.endTime && (
+            {tooltipEvent.startTime && (
               <div className="flex items-start gap-2">
                 <Clock size={14} className="mt-0.5 flex-shrink-0" />
                 <span>
-                  {tooltipEvent.startTime} - {tooltipEvent.endTime}
+                  {tooltipEvent.endTime
+                    ? `${tooltipEvent.startTime} - ${tooltipEvent.endTime}`
+                    : tooltipEvent.startTime}
                 </span>
               </div>
             )}

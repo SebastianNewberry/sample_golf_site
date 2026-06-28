@@ -297,8 +297,8 @@ export function DevelopmentalSeriesClient({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       transition={{ duration: 0.5, ease: "easeOut" }}
       className={programPageClientGrid}
     >
@@ -624,6 +624,7 @@ export function DevelopmentalSeriesClient({
                             : `BUY NOW ${selectedPrice > 0 ? `- $${selectedPrice}` : ""}`}
                         </button>
                       )}
+
 
                       {selectedSlots.length < maxSlots || !selectedPackageId ? (
                         <TooltipProvider delayDuration={0}>

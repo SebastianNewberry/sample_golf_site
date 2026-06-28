@@ -127,6 +127,16 @@ export function ProgramPurchaseSection({
 
   const isQuantityDisabled = isDisabled || maxQuantity <= 0;
 
+  const footerMessage = !hasSessions
+    ? "We'll notify you when sessions are available"
+    : !isSessionSelected
+      ? null
+      : isCheckingAvailability
+        ? "Checking availability..."
+        : isFull
+          ? "This session is currently at capacity"
+          : "Complete registration at checkout";
+
   // Reset quantity when session or available spots change
   useEffect(() => {
     if (maxQuantity <= 0) {
@@ -381,7 +391,9 @@ export function ProgramPurchaseSection({
         </a>
       </div>
 
-
+      {footerMessage && (
+        <p className="text-xs text-gray-400 text-center mt-4">{footerMessage}</p>
+      )}
     </>
   );
 }

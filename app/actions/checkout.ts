@@ -112,7 +112,6 @@ export async function createCheckoutPaymentIntent(data: CheckoutData) {
     // Passing cart.items (which has metadata) to validation
     const availability = await validateCartAvailability(
       cart.items,
-      // No need to exclude checkout ID anymore since we aren't creating holds
     );
     if (!availability.valid) {
       let errorMessage = "Some items in your cart are no longer available.";
@@ -138,26 +137,21 @@ export async function createCheckoutPaymentIntent(data: CheckoutData) {
       };
     }
 
-    // Get primary email from first form (for receipt)
-    const primaryEmail = getPrimaryEmail(data.items[0]);
-
-    // Generate unique checkout ID EARLY so we can use it in reservation notes
-    const checkoutId = crypto.randomUUID();
-
-    // --------------------------------------------------------
-    // RESERVATION (HOLD) LOGIC REMOVED
-    // --------------------------------------------------------
-    // We actively chose NOT to hold spots.
-    // Optimization: We check capacity right before payment (on client)
-    // and relying on optimistic concurrency.
-    // --------------------------------------------------------
+    // Re-fetch cart after price reconciliation during validation
+    const refreshedCart = await getCartWithItems(sessionId);
+    if (!refreshedCart) {
+      return { success: false, error: "Cart not found" };
+    }
 
     // --------------------------------------------------------
     // STRICT TOTAL CALCULATION
     // --------------------------------------------------------
-    const serverTotalAmount = cart.items.reduce((sum, item) => {
+    const serverTotalAmount = refreshedCart.items.reduce((sum, item) => {
       return sum + Number(item.priceAtAdd) * item.quantity;
     }, 0);
+
+    const primaryEmail = getPrimaryEmail(data.items[0]);
+    const checkoutId = crypto.randomUUID();
 
     // --------------------------------------------------------
     // SERVER-SIDE DISCOUNT VALIDATION
@@ -224,11 +218,11 @@ export async function createCheckoutPaymentIntent(data: CheckoutData) {
             registrationType: item.registrationType,
             formData: item.formData as unknown as Record<string, unknown>,
             metadata:
-              cart.items.find((ci) => ci.id === item.cartItemId)?.metadata ||
-              undefined,
+              refreshedCart.items.find((ci) => ci.id === item.cartItemId)
+                ?.metadata || undefined,
             priceAtAdd:
-              cart.items.find((ci) => ci.id === item.cartItemId)?.priceAtAdd ||
-              "0",
+              refreshedCart.items.find((ci) => ci.id === item.cartItemId)
+                ?.priceAtAdd || "0",
           };
         }),
       },

@@ -16,6 +16,10 @@ import {
   toESTTimeString,
   mergeSlotsToIntervals,
 } from "@/lib/availability";
+import {
+  ADULT_PRIVATE_INSTRUCTION_DESCRIPTION,
+  JUNIOR_PRIVATE_INSTRUCTION_DESCRIPTION,
+} from "@/lib/private-instruction-descriptions";
 
 // Map program names to their page URLs
 // Keys should be normalized (lowercase, trimmed) for better matching
@@ -202,10 +206,10 @@ async function addPrivateInstructionEvents(events: CalendarEvent[]) {
       date: parseLocalDate(dateKey),
       programType: "adult",
       color: "#ea580c", // Dark Orange
-      startTime: "", // Not specific single time
+      startTime: formattedIntervals,
       endTime: "",
       sessionName: "",
-      programDescription: formattedIntervals, // Use description to show full list
+      programDescription: ADULT_PRIVATE_INSTRUCTION_DESCRIPTION,
       url: "/adult-programs/private",
     });
   });
@@ -258,10 +262,10 @@ async function addPrivateInstructionEvents(events: CalendarEvent[]) {
       date: parseLocalDate(dateKey),
       programType: "junior",
       color: "#15803d", // Darker green
-      startTime: "",
+      startTime: formattedIntervals,
       endTime: "",
       sessionName: "",
-      programDescription: formattedIntervals,
+      programDescription: JUNIOR_PRIVATE_INSTRUCTION_DESCRIPTION,
       url: "/junior-programs/private-instruction",
     });
   });
@@ -285,7 +289,7 @@ export default async function CalendarPage() {
           </div>
 
           <div className="bg-white rounded-xl shadow-lg p-6">
-            <ProgramCalendar events={events} maxHeight="600px" />
+            <ProgramCalendar events={events} maxHeight="650px" />
           </div>
 
           <div className="mt-8 grid md:grid-cols-2 gap-6">

@@ -21,6 +21,11 @@ const layoutSpans: Record<
   junior: { center: "lg:col-span-6", right: "lg:col-span-4" },
 };
 
+const layoutNavRows: Record<PrivateInstructionLayout, number> = {
+  adult: 6,
+  junior: 3,
+};
+
 /**
  * Skeleton for private instruction pages.
  * Adult and junior pages use different 13-column splits — must match each client.
@@ -31,6 +36,7 @@ export function PrivateInstructionSkeleton({
   layout?: PrivateInstructionLayout;
 }) {
   const spans = layoutSpans[layout];
+  const navRowCount = layoutNavRows[layout];
   const imageFrame =
     layout === "junior"
       ? programCardImageFrameJuniorPrivate
@@ -40,8 +46,8 @@ export function PrivateInstructionSkeleton({
   return (
     <motion.div
       className={programPageContent}
-      initial={reduceMotion ? false : { opacity: 0, y: 10 }}
-      animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+      initial={reduceMotion ? false : { opacity: 0 }}
+      animate={reduceMotion ? undefined : { opacity: 1 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
     >
       <div className={programPageGrid}>
@@ -53,7 +59,7 @@ export function PrivateInstructionSkeleton({
           </div>
 
           <div className="hidden space-y-0 lg:block">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
+            {Array.from({ length: navRowCount }).map((_, i) => (
               <div key={i} className="flex items-center bg-white px-4 py-3">
                 <Shimmer className="h-[1.125rem] min-h-[1.125rem] w-full rounded" />
               </div>

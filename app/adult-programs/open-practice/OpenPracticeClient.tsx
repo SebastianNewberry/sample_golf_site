@@ -1,7 +1,6 @@
 "use client";
 
 import { ProgramCard } from "@/app/components/ProgramCard";
-import { Phone } from "lucide-react";
 
 interface OpenPracticeClientProps {
   imageUrl?: string;

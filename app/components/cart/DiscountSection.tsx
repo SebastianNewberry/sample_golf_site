@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Tag, Gift, Loader2, XIcon } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { validateDiscountCode } from "@/app/actions/gift-cards";
 import { useCart } from "./CartContext";
 
@@ -130,10 +131,10 @@ export function DiscountSection() {
                 </button>
               </div>
 
-              <div className="space-y-3 max-w-full overflow-hidden">
+              <div className="space-y-3 max-w-full min-w-0">
                 {discountTypeTab === "promo" ? (
-                  <div className="flex gap-2 text-primary w-full">
-                    <input
+                  <div className="flex gap-2 w-full">
+                    <Input
                       type="text"
                       value={discountCode}
                       onChange={(e) => {
@@ -141,13 +142,13 @@ export function DiscountSection() {
                         setDiscountError("");
                       }}
                       placeholder="Enter promo code"
-                      className="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[hsl(var(--golf-orange))]/50 focus:border-[hsl(var(--golf-orange))] uppercase tracking-wider w-full min-w-0"
+                      className="flex-1 uppercase tracking-wider min-w-0 bg-background focus-visible:ring-2 focus-visible:ring-[hsl(var(--golf-orange))]/50 focus-visible:border-[hsl(var(--golf-orange))]"
                       onKeyDown={(e) => e.key === "Enter" && handleApplyDiscount()}
                     />
                   </div>
                 ) : (
                   <div className="w-full">
-                    <input
+                    <Input
                       type="text"
                       value={formatGiftCardDisplay(discountCode)}
                       onChange={(e) => {
@@ -158,7 +159,7 @@ export function DiscountSection() {
                       }}
                       placeholder="XXXX-XXXX-XXXX"
                       maxLength={14} // 12 chars + 2 dashes
-                      className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[hsl(var(--golf-orange))]/50 focus:border-[hsl(var(--golf-orange))] uppercase tracking-[0.25em] font-mono text-center"
+                      className="w-full uppercase tracking-[0.25em] font-mono text-center bg-background focus-visible:ring-2 focus-visible:ring-[hsl(var(--golf-orange))]/50 focus-visible:border-[hsl(var(--golf-orange))]"
                       onKeyDown={(e) => e.key === "Enter" && handleApplyDiscount()}
                     />
                     <p className="text-[10px] text-gray-400 text-center mt-1">
@@ -181,7 +182,7 @@ export function DiscountSection() {
                     {isApplyingDiscount ? (
                       <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     ) : (
-                      `Apply ${discountTypeTab === "promo" ? "Promo" : "Gift Card"}`
+                      `Apply ${discountTypeTab === "promo" ? "Promo Code" : "Gift Card"}`
                     )}
                   </Button>
 

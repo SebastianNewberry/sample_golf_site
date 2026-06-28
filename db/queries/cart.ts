@@ -54,6 +54,8 @@ export async function getCartWithItems(sessionId: string) {
         price: program.price,
         duration: program.duration,
         imageUrl: program.imageUrl,
+        schedulingType: program.schedulingType,
+        pricingOptions: program.pricingOptions,
       },
       session: {
         id: programSession.id,
@@ -346,6 +348,19 @@ export async function updateCartItemQuantity(itemId: string, quantity: number) {
   const result = await db
     .update(cartItem)
     .set({ quantity, updatedAt: new Date() })
+    .where(eq(cartItem.id, itemId))
+    .returning();
+
+  return result[0];
+}
+
+/**
+ * Update cart item price (after server-side reconciliation)
+ */
+export async function updateCartItemPrice(itemId: string, priceAtAdd: string) {
+  const result = await db
+    .update(cartItem)
+    .set({ priceAtAdd, updatedAt: new Date() })
     .where(eq(cartItem.id, itemId))
     .returning();
 

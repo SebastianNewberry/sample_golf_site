@@ -338,8 +338,8 @@ export function AdultPrivateGolfInstructionClient({
       {/* Main Content Grid - Centered */}
       <div className={programPageContent}>
         <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.35, ease: "easeOut" }}
           className="grid lg:grid-cols-13 gap-6"
         >
