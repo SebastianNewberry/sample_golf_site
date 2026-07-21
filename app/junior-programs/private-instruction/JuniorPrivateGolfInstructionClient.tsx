@@ -5,8 +5,6 @@ import {
   CheckCircle2,
   Phone,
   CalendarClock,
-  ChevronDown,
-  ChevronUp,
   Clock,
   Users,
 } from "lucide-react";
@@ -30,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, isSameDay } from "date-fns";
 import { ContentFadeIn } from "@/app/components/ContentFadeIn";
+import { ProgramSidebarHeader } from "@/app/components/ProgramSidebarHeader";
 import { ProgramSidebarNav } from "@/app/components/ProgramSidebarNav";
 import { useProgramSidebarNav } from "@/lib/use-program-sidebar-nav";
 
@@ -339,22 +338,11 @@ export function JuniorPrivateGolfInstructionClient({
           {/* Left Sidebar - Program Links + Calendar */}
           <div className="lg:col-span-3 space-y-2">
             {/* Header with program name */}
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-2xl font-bold text-gray-800">
-                Junior Private Golf Instruction
-              </h1>
-              <button
-                onClick={toggleNav}
-                className="lg:hidden flex items-center self-center gap-0.5 text-[8px] font-semibold text-gray-500 hover:text-gray-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-gray-100 cursor-pointer whitespace-nowrap"
-              >
-                {showNav ? "Hide Programs" : "Show Programs"}
-                {showNav ? (
-                  <ChevronUp className="w-3 h-3" />
-                ) : (
-                  <ChevronDown className="w-3 h-3" />
-                )}
-              </button>
-            </div>
+            <ProgramSidebarHeader
+              title="Junior Private Golf Instruction"
+              showNav={showNav}
+              onToggle={toggleNav}
+            />
 
             <ProgramSidebarNav variant="junior" mode="desktop" />
 

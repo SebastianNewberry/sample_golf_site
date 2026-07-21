@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, ReactNode, ReactElement, useEffect } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Accordion,
@@ -13,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SessionCalendar } from "@/app/components/SessionCalendar";
 import { parseSchedule } from "@/lib/session-schedule";
 import { ContentFadeIn } from "@/app/components/ContentFadeIn";
+import { ProgramSidebarHeader } from "@/app/components/ProgramSidebarHeader";
 import { ProgramSidebarNav } from "@/app/components/ProgramSidebarNav";
 import { useProgramSidebarNav } from "@/lib/use-program-sidebar-nav";
 import type { ProgramSession } from "@/db/schema";
@@ -119,21 +119,11 @@ export function JuniorProgramPageWrapper({
     <>
       {/* Left Sidebar - Program Links + Calendar */}
       <div className="lg:col-span-3 space-y-2">
-        {/* Header with program name */}
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-gray-800">{programName}</h1>
-          <button
-            onClick={toggleNav}
-            className="lg:hidden flex items-center self-center gap-0.5 text-[8px] font-semibold text-gray-500 hover:text-gray-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-gray-100 cursor-pointer whitespace-nowrap"
-          >
-            {showNav ? "Hide Programs" : "Show Programs"}
-            {showNav ? (
-              <ChevronUp className="w-3 h-3" />
-            ) : (
-              <ChevronDown className="w-3 h-3" />
-            )}
-          </button>
-        </div>
+        <ProgramSidebarHeader
+          title={programName}
+          showNav={showNav}
+          onToggle={toggleNav}
+        />
 
         <ProgramSidebarNav variant="junior" mode="desktop" />
 

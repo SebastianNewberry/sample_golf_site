@@ -1,10 +1,10 @@
 "use client";
 
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Shimmer } from "@/app/components/Shimmer";
 import { ContentFadeIn } from "@/app/components/ContentFadeIn";
-import { ProgramPageTitle } from "@/app/components/ProgramPageTitle";
+import { ProgramSidebarHeader } from "@/app/components/ProgramSidebarHeader";
 import { ProgramSidebarNav } from "@/app/components/ProgramSidebarNav";
 import {
   programCardImageContainer,
@@ -13,7 +13,10 @@ import {
   programPageContent,
   programPageGrid,
 } from "@/app/components/program-page-layout";
-import type { ProgramNavVariant } from "@/lib/program-nav-links";
+import {
+  getProgramPageTitle,
+  type ProgramNavVariant,
+} from "@/lib/program-nav-links";
 import { getProgramMobileNavOpen } from "@/lib/use-program-sidebar-nav";
 
 export { PageTitleShimmer, Shimmer } from "@/app/components/Shimmer";
@@ -123,23 +126,21 @@ export function ProgramPageSkeleton({
     ? programCardImageFrameTall
     : programCardImageFrame;
   const showMobileNav = getProgramMobileNavOpen();
+  const pathname = usePathname();
+  const title = getProgramPageTitle(pathname, variant);
 
   return (
     <div className={programPageContent}>
       <div className={programPageGrid}>
         {/* Left: nav + session area — no fade so route swaps are seamless */}
         <div className="space-y-2 lg:col-span-3">
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <ProgramPageTitle variant={variant} />
-            <span className="lg:hidden flex items-center self-center gap-0.5 text-[8px] font-semibold text-gray-500 px-1.5 py-0.5 whitespace-nowrap min-w-[90px] justify-center">
-              {showMobileNav ? "Hide Programs" : "Show Programs"}
-              {showMobileNav ? (
-                <ChevronUp className="w-3 h-3" />
-              ) : (
-                <ChevronDown className="w-3 h-3" />
-              )}
-            </span>
-          </div>
+          {title && (
+            <ProgramSidebarHeader
+              title={title}
+              showNav={showMobileNav}
+              interactive={false}
+            />
+          )}
 
           <ProgramSidebarNav variant={variant} mode="desktop" />
           {showMobileNav && (
