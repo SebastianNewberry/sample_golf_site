@@ -474,13 +474,13 @@ export default function Navigation() {
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Menu — exit is instant so link clicks don't fade the bar out */}
         <AnimatePresence initial={false}>
           {open && (
             <motion.div
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6, pointerEvents: "none" }}
+              exit={{ opacity: 0, transition: { duration: 0 } }}
               className="border-t border-gray-300 py-2 xl:hidden"
             >
               <details ref={juniorDetailsRef} className="group px-3">
