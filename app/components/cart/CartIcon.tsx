@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCart } from "./CartContext";
-import { motion, AnimatePresence } from "motion/react";
+import { motion } from "motion/react";
 import { CartPopup } from "./CartPopup";
 
 export function CartIcon() {
@@ -13,8 +13,10 @@ export function CartIcon() {
   const [isHovered, setIsHovered] = useState(false);
   const [isMobileTapped, setIsMobileTapped] = useState(false);
   const [autoShow, setAutoShow] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const autoShowTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const prevTriggerRef = useRef<number | null>(null);
   const pathname = usePathname();
 
   const isCartPage = pathname === "/cart";
@@ -47,19 +49,22 @@ export function CartIcon() {
     };
   }, [isMobileTapped]);
 
-  // Handle auto-showing popup when item is added
+  // Shake + popup only when an item is added — not on mount (e.g. opening mobile nav)
   useEffect(() => {
-    if (cartAnimationTrigger > 0) {
+    if (prevTriggerRef.current === null) {
+      prevTriggerRef.current = cartAnimationTrigger;
+      return;
+    }
+    if (cartAnimationTrigger > prevTriggerRef.current) {
+      setIsShaking(true);
       setAutoShow(true);
 
-      // Clear existing timeout if any
       if (autoShowTimeoutRef.current) clearTimeout(autoShowTimeoutRef.current);
-
-      // Set new timeout to hide after 4 seconds
       autoShowTimeoutRef.current = setTimeout(() => {
         setAutoShow(false);
       }, 4000);
     }
+    prevTriggerRef.current = cartAnimationTrigger;
   }, [cartAnimationTrigger]);
 
   // If user hovers while autoShow is active, clear autoShow to let hover take over
@@ -77,8 +82,7 @@ export function CartIcon() {
     };
   }, []);
 
-  const isOpen =
-    !isCartPage && (isHovered || isMobileTapped || autoShow);
+  const isOpen = !isCartPage && (isHovered || isMobileTapped || autoShow);
 
   return (
     <div
@@ -95,29 +99,25 @@ export function CartIcon() {
         }
       >
         <motion.div
-          key={cartAnimationTrigger}
-          animate={{
-            rotate: [0, -10, 10, -10, 10, 0],
-          }}
-          transition={{
-            duration: 0.5,
-            ease: "easeInOut",
-          }}
+          animate={
+            isShaking
+              ? { rotate: [0, -10, 10, -10, 10, 0] }
+              : { rotate: 0 }
+          }
+          transition={
+            isShaking
+              ? { duration: 0.5, ease: "easeInOut" }
+              : { duration: 0 }
+          }
+          onAnimationComplete={() => setIsShaking(false)}
         >
           <ShoppingCart size={20} className="text-gray-800" />
         </motion.div>
-        <AnimatePresence>
-          {!isLoading && itemCount > 0 && (
-            <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0 }}
-              className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1"
-            >
-              {itemCount > 99 ? "99+" : itemCount}
-            </motion.span>
-          )}
-        </AnimatePresence>
+        {!isLoading && itemCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1">
+            {itemCount > 99 ? "99+" : itemCount}
+          </span>
+        )}
       </Link>
 
       {/* Cart Popup - absolute, anchored to right edge */}

@@ -483,14 +483,17 @@ export default function Navigation() {
               exit={{ opacity: 0, y: -6, pointerEvents: "none" }}
               className="border-t border-gray-300 py-2 xl:hidden"
             >
-              <details ref={juniorDetailsRef} className="px-3">
+              <details ref={juniorDetailsRef} className="group px-3">
                 <summary
                   className={`hover:bg-gray-300 flex cursor-pointer list-none items-center justify-between rounded-md px-0 py-2 text-sm font-bold ${
                     isJuniorProgramsActive ? "text-orange-600" : "text-gray-800"
                   }`}
                 >
                   <span>JUNIOR PROGRAMS</span>
-                  <ChevronDown size={16} />
+                  <ChevronDown
+                    size={16}
+                    className="transition-transform duration-200 group-open:rotate-180"
+                  />
                 </summary>
                 <div className="mt-2 rounded-lg p-2 bg-gray-200">
                   <div className="space-y-4">
@@ -606,14 +609,17 @@ export default function Navigation() {
                 </div>
               </details>
 
-              <details ref={adultDetailsRef} className="px-3">
+              <details ref={adultDetailsRef} className="group px-3">
                 <summary
                   className={`hover:bg-gray-300 flex cursor-pointer list-none items-center justify-between rounded-md px-0 py-2 text-sm font-bold ${
                     isAdultProgramsActive ? "text-orange-600" : "text-gray-800"
                   }`}
                 >
                   <span>ADULT PROGRAMS</span>
-                  <ChevronDown size={16} />
+                  <ChevronDown
+                    size={16}
+                    className="transition-transform duration-200 group-open:rotate-180"
+                  />
                 </summary>
                 <div className="mt-2 rounded-lg p-2 bg-gray-200">
                   <ul className="grid grid-cols-2 gap-1">
