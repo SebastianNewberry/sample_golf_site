@@ -1,8 +1,11 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PageTitleShimmer, Shimmer } from "@/app/components/Shimmer";
+import { Shimmer } from "@/app/components/Shimmer";
+import { ContentFadeIn } from "@/app/components/ContentFadeIn";
+import { ProgramPageTitle } from "@/app/components/ProgramPageTitle";
+import { ProgramSidebarNav } from "@/app/components/ProgramSidebarNav";
 import {
   programCardImageContainer,
   programCardImageFrame,
@@ -10,6 +13,8 @@ import {
   programPageContent,
   programPageGrid,
 } from "@/app/components/program-page-layout";
+import type { ProgramNavVariant } from "@/lib/program-nav-links";
+import { getProgramMobileNavOpen } from "@/lib/use-program-sidebar-nav";
 
 export { PageTitleShimmer, Shimmer } from "@/app/components/Shimmer";
 export {
@@ -107,48 +112,50 @@ function SessionScheduleCard() {
 }
 
 export function ProgramPageSkeleton({
-  navRowCount = 3,
+  variant = "junior",
   tallImage = false,
 }: {
-  /** Number of nav link rows in the left column. Adult pages use 6, junior use 3. */
-  navRowCount?: number;
+  variant?: ProgramNavVariant;
   /** Golf for Women — matches taller hero frame */
   tallImage?: boolean;
 }) {
   const imageFrame = tallImage
     ? programCardImageFrameTall
     : programCardImageFrame;
-  const reduceMotion = useReducedMotion();
+  const showMobileNav = getProgramMobileNavOpen();
 
   return (
-    <motion.div
-      className={programPageContent}
-      initial={reduceMotion ? false : { opacity: 0 }}
-      animate={reduceMotion ? undefined : { opacity: 1 }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
-    >
+    <div className={programPageContent}>
       <div className={programPageGrid}>
-        {/* Left: nav + session area */}
+        {/* Left: nav + session area — no fade so route swaps are seamless */}
         <div className="space-y-2 lg:col-span-3">
           <div className="mb-4 flex items-center justify-between gap-4">
-            <PageTitleShimmer />
-            <Shimmer className="h-6 min-w-[90px] w-[90px] shrink-0 rounded bg-gray-300/70 lg:hidden" />
+            <ProgramPageTitle variant={variant} />
+            <span className="lg:hidden flex items-center self-center gap-0.5 text-[8px] font-semibold text-gray-500 px-1.5 py-0.5 whitespace-nowrap min-w-[90px] justify-center">
+              {showMobileNav ? "Hide Programs" : "Show Programs"}
+              {showMobileNav ? (
+                <ChevronUp className="w-3 h-3" />
+              ) : (
+                <ChevronDown className="w-3 h-3" />
+              )}
+            </span>
           </div>
 
-          <div className="hidden space-y-0 lg:block">
-            {Array.from({ length: navRowCount }).map((_, i) => (
-              <div key={i} className="flex items-center bg-white px-4 py-3">
-                <Shimmer className="h-[1.125rem] min-h-[1.125rem] w-full rounded" />
-              </div>
-            ))}
-          </div>
+          <ProgramSidebarNav variant={variant} mode="desktop" />
+          {showMobileNav && (
+            <div className="lg:hidden mb-2">
+              <ProgramSidebarNav variant={variant} mode="mobile" />
+            </div>
+          )}
 
-          <SessionScheduleCard />
-          <InvisibleCalendarSpacer />
+          <ContentFadeIn>
+            <SessionScheduleCard />
+            <InvisibleCalendarSpacer />
+          </ContentFadeIn>
         </div>
 
         {/* Center: ProgramCard (title, copy, price, session, buttons) — not private instruction */}
-        <div className="min-w-0 lg:col-span-6">
+        <ContentFadeIn className="min-w-0 lg:col-span-6">
           <div className="overflow-hidden rounded-xl bg-white shadow-lg">
             <div className={programCardImageContainer}>
               <div className={`${imageFrame} bg-muted/50`}>
@@ -187,10 +194,10 @@ export function ProgramPageSkeleton({
               </div>
             </div>
           </div>
-        </div>
+        </ContentFadeIn>
 
         {/* Right */}
-        <div className="min-w-0 space-y-6 lg:col-span-4">
+        <ContentFadeIn className="min-w-0 space-y-6 lg:col-span-4">
           <div className="rounded-xl bg-white p-8 shadow-sm">
             <Shimmer className="mb-4 h-8 w-full rounded" />
             <div className="space-y-3">
@@ -217,8 +224,8 @@ export function ProgramPageSkeleton({
               ))}
             </div>
           </div>
-        </div>
+        </ContentFadeIn>
       </div>
-    </motion.div>
+    </div>
   );
 }

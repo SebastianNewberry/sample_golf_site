@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { motion } from "motion/react";
+import { ContentFadeIn } from "@/app/components/ContentFadeIn";
 import { programPageClientGrid } from "@/app/components/program-page-layout";
 import { DevelopmentalSeriesCard } from "@/app/components/DevelopmentalSeriesCard";
 import { JuniorProgramPageWrapper } from "@/app/components/JuniorProgramPageWrapper";
@@ -31,12 +31,7 @@ export function DevelopmentalSeriesPageWrapper({
   initialSessionId,
 }: DevelopmentalSeriesPageWrapperProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      className={programPageClientGrid}
-    >
+    <div className={programPageClientGrid}>
       <JuniorProgramPageWrapper
         programName="Junior Developmental Series"
         currentPage="developmental-series"
@@ -57,9 +52,9 @@ export function DevelopmentalSeriesPageWrapper({
       </JuniorProgramPageWrapper>
 
       {/* Right: Features & Details */}
-      <div className="lg:col-span-4 space-y-6">
+      <ContentFadeIn className="lg:col-span-4 space-y-6">
         <ProgramFeaturesAndDetails features={features} details={details} />
-      </div>
-    </motion.div>
+      </ContentFadeIn>
+    </div>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, ReactNode, ReactElement, useEffect } from "react";
-import Link from "next/link";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -13,6 +12,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SessionCalendar } from "@/app/components/SessionCalendar";
 import { parseSchedule } from "@/lib/session-schedule";
+import { ContentFadeIn } from "@/app/components/ContentFadeIn";
+import { ProgramSidebarNav } from "@/app/components/ProgramSidebarNav";
 import { useProgramSidebarNav } from "@/lib/use-program-sidebar-nav";
 import type { ProgramSession } from "@/db/schema";
 
@@ -48,7 +49,7 @@ export function AdultProgramPageWrapper({
   const [purchaseSessionId, setPurchaseSessionId] = useState<string>(
     initialSessionId || "",
   );
-  const { showNav, toggleNav, closeNav } = useProgramSidebarNav();
+  const { showNav, toggleNav } = useProgramSidebarNav();
 
   // Initialize checks on mount/updates if initialSessionId is provided
   useEffect(() => {
@@ -134,140 +135,25 @@ export function AdultProgramPageWrapper({
           </button>
         </div>
 
-        {/* Navigation Links - Always visible on desktop, toggleable on mobile */}
-        <div className="hidden lg:block space-y-0">
-          <Link
-            href="/adult-programs/get-golf-ready-level-1"
-            className={`block px-4 py-3 text-sm ${currentPage === "get-golf-ready-level-1"
-                ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-                : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-              }`}
-          >
-            GET GOLF READY (LEVEL I)
-          </Link>
-          <Link
-            href="/adult-programs/get-golf-ready-level-2"
-            className={`block px-4 py-3 text-sm ${currentPage === "get-golf-ready-level-2"
-                ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-                : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-              }`}
-          >
-            GET GOLF READY (LEVEL II)
-          </Link>
-          <Link
-            href="/adult-programs/short-game"
-            className={`block px-4 py-3 text-sm ${currentPage === "short-game"
-                ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-                : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-              }`}
-          >
-            ADULT SHORT GAME SERIES
-          </Link>
-          <Link
-            href="/adult-programs/women"
-            className={`block px-4 py-3 text-sm ${currentPage === "women"
-                ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-                : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-              }`}
-          >
-            GOLF FOR WOMEN
-          </Link>
-          <Link
-            href="/adult-programs/private"
-            className={`block px-4 py-3 text-sm ${currentPage === "private"
-                ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-                : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-              }`}
-          >
-            ADULT PRIVATE GOLF INSTRUCTION
-          </Link>
-          <Link
-            href="/adult-programs/open-practice"
-            className={`block px-4 py-3 text-sm ${currentPage === "open-practice"
-                ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-                : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-              }`}
-          >
-            ADULT OPEN PRACTICE
-          </Link>
-        </div>
+        <ProgramSidebarNav variant="adult" mode="desktop" />
 
         {/* Mobile animated nav */}
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           {showNav && (
             <motion.div
               initial={{ opacity: 0, y: -10, height: 0 }}
               animate={{ opacity: 1, y: 0, height: "auto" }}
               exit={{ opacity: 0, y: -10, height: 0 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
-              className="lg:hidden overflow-hidden space-y-0 mb-2"
+              className="lg:hidden overflow-hidden mb-2"
             >
-              <Link
-                href="/adult-programs/get-golf-ready-level-1"
-                onClick={closeNav}
-                className={`block px-4 py-2.5 text-sm ${currentPage === "get-golf-ready-level-1"
-                    ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-                    : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-                  }`}
-              >
-                GET GOLF READY (LEVEL I)
-              </Link>
-              <Link
-                href="/adult-programs/get-golf-ready-level-2"
-                onClick={closeNav}
-                className={`block px-4 py-2.5 text-sm ${currentPage === "get-golf-ready-level-2"
-                    ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-                    : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-                  }`}
-              >
-                GET GOLF READY (LEVEL II)
-              </Link>
-              <Link
-                href="/adult-programs/short-game"
-                onClick={closeNav}
-                className={`block px-4 py-2.5 text-sm ${currentPage === "short-game"
-                    ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-                    : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-                  }`}
-              >
-                ADULT SHORT GAME SERIES
-              </Link>
-              <Link
-                href="/adult-programs/women"
-                onClick={closeNav}
-                className={`block px-4 py-2.5 text-sm ${currentPage === "women"
-                    ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-                    : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-                  }`}
-              >
-                GOLF FOR WOMEN
-              </Link>
-              <Link
-                href="/adult-programs/private"
-                onClick={closeNav}
-                className={`block px-4 py-2.5 text-sm ${currentPage === "private"
-                    ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-                    : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-                  }`}
-              >
-                ADULT PRIVATE GOLF INSTRUCTION
-              </Link>
-              <Link
-                href="/adult-programs/open-practice"
-                onClick={closeNav}
-                className={`block px-4 py-2.5 text-sm rounded-md ${currentPage === "open-practice"
-                    ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-                    : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-                  }`}
-              >
-                ADULT OPEN PRACTICE
-              </Link>
+              <ProgramSidebarNav variant="adult" mode="mobile" />
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* Session Calendar - below navigation links */}
-        <div className="mt-6">
+        <ContentFadeIn className="mt-6">
           <Card>
             <CardHeader className="py-4">
               <CardTitle className="text-lg">Session Schedule</CardTitle>
@@ -342,18 +228,18 @@ export function AdultProgramPageWrapper({
                 started or are sold out
               </p>
             )}
-        </div>
+        </ContentFadeIn>
       </div>
 
       {/* Main Content */}
-      <div className="lg:col-span-6">
+      <ContentFadeIn className="lg:col-span-6">
         {isRenderFunction
           ? (children as (props: RenderProps) => ReactElement)({
             selectedSessionId: purchaseSessionId,
             onSessionChange: handlePurchaseChange,
           })
           : children}
-      </div>
+      </ContentFadeIn>
     </>
   );
 }

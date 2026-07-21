@@ -1,5 +1,5 @@
 "use client";
-import { motion } from "motion/react";
+import { ContentFadeIn } from "@/app/components/ContentFadeIn";
 
 import { programPageClientGrid } from "@/app/components/program-page-layout";
 import { GetGolfReadyLevel2Client } from "./GetGolfReadyLevel2Client";
@@ -38,12 +38,7 @@ export function GetGolfReadyLevel2PageClient({
   initialSessionId,
 }: GetGolfReadyLevel2PageClientProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      className={programPageClientGrid}
-    >
+    <div className={programPageClientGrid}>
       <AdultProgramPageWrapper
         programName="Get Golf Ready Level II"
         currentPage="get-golf-ready-level-2"
@@ -77,9 +72,9 @@ export function GetGolfReadyLevel2PageClient({
       </AdultProgramPageWrapper>
 
       {/* Right: Features & Details */}
-      <div className="lg:col-span-4 space-y-6">
+      <ContentFadeIn className="lg:col-span-4 space-y-6">
         <ProgramFeaturesAndDetails features={features} details={details} />
-      </div>
-    </motion.div>
+      </ContentFadeIn>
+    </div>
   );
 }

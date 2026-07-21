@@ -98,12 +98,12 @@ const tapProps = {
 export default function Navigation() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [juniorProgramsOpen, setJuniorProgramsOpen] = useState(false);
-  const [adultProgramsOpen, setAdultProgramsOpen] = useState(false);
+  const [desktopMenu, setDesktopMenu] = useState<"junior" | "adult" | null>(
+    null,
+  );
 
   const closeDesktopMenus = useCallback(() => {
-    setJuniorProgramsOpen(false);
-    setAdultProgramsOpen(false);
+    setDesktopMenu(null);
   }, []);
 
   const { isHoverOpenAllowed, resetHoverOnLeave } = useNavHoverMenu({
@@ -134,23 +134,25 @@ export default function Navigation() {
     closeDesktopMenus();
   };
 
-  const handleJuniorMenuEnter = () => {
-    if (isHoverOpenAllowed()) setJuniorProgramsOpen(true);
+  const menuSwitchRef = useRef(false);
+
+  const openDesktopMenu = (menu: "junior" | "adult") => {
+    if (!isHoverOpenAllowed()) return;
+    menuSwitchRef.current =
+      desktopMenu !== null && desktopMenu !== menu;
+    setDesktopMenu(menu);
   };
 
-  const handleAdultMenuEnter = () => {
-    if (isHoverOpenAllowed()) setAdultProgramsOpen(true);
-  };
-
-  const handleJuniorMenuLeave = () => {
+  const handleProgramsMenuLeave = () => {
     resetHoverOnLeave();
-    setJuniorProgramsOpen(false);
+    menuSwitchRef.current = false;
+    setDesktopMenu(null);
   };
 
-  const handleAdultMenuLeave = () => {
-    resetHoverOnLeave();
-    setAdultProgramsOpen(false);
-  };
+  const isMenuSwitchExit = menuSwitchRef.current;
+  const menuExitTransition = isMenuSwitchExit
+    ? { duration: 0 }
+    : { duration: 0.35 };
   const isContactActive = pathname === "/contact";
   const isHomeActive = pathname === "/";
   const isCalendarActive = pathname === "/calendar";
@@ -198,34 +200,45 @@ export default function Navigation() {
               HOME
             </Link>
 
-            {/* Junior Programs Dropdown — single hover zone (no separate bridge strip) */}
+            {/* Programs dropdowns share one hover zone so moving between them does not flicker */}
             <div
-              className="relative"
-              onMouseEnter={handleJuniorMenuEnter}
-              onMouseLeave={handleJuniorMenuLeave}
+              className="flex items-center gap-2"
+              onMouseLeave={handleProgramsMenuLeave}
             >
+            <div className="relative">
               <Link
                 href="/junior-programs/beginner-series"
+                onMouseEnter={() => openDesktopMenu("junior")}
                 onClick={handleDesktopLinkClick}
                 className={`inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-bold cursor-pointer ${
                   isJuniorProgramsActive ? "text-orange-600" : "text-gray-800"
-                } ${juniorProgramsOpen ? "bg-gray-300" : "hover:bg-gray-300"}`}
+                } ${desktopMenu === "junior" ? "bg-gray-300" : "hover:bg-gray-300"}`}
               >
                 JUNIOR PROGRAMS <ChevronDown size={16} />
               </Link>
               <AnimatePresence>
-                {juniorProgramsOpen && (
+                {desktopMenu === "junior" && (
                   <motion.div
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0, transition: { duration: 0.35 } }}
-                    exit={{ opacity: 0, y: -6, transition: { duration: 0.35 } }}
+                    exit={{
+                      opacity: 0,
+                      y: -6,
+                      ...(isMenuSwitchExit ? { pointerEvents: "none" as const } : {}),
+                      transition: menuExitTransition,
+                    }}
+                    onMouseEnter={() => openDesktopMenu("junior")}
                     className="absolute top-full left-0 z-20 w-[800px] pt-2"
                   >
                     <div className="rounded-xl bg-gray-200 p-4 shadow-lg ring ring-gray-300">
                     <motion.div
                       initial={{ pointerEvents: "none" }}
                       animate={{ pointerEvents: "auto", transition: { delay: 0.35 } }}
-                      exit={{ pointerEvents: "none", transition: { duration: 0 } }}
+                      exit={
+                        isMenuSwitchExit
+                          ? { pointerEvents: "none", transition: { duration: 0 } }
+                          : undefined
+                      }
                       className="flex flex-col gap-5"
                     >
                       {/* Top Row - Program Links */}
@@ -348,34 +361,40 @@ export default function Navigation() {
               </AnimatePresence>
             </div>
 
-            {/* Adult Programs Dropdown — single hover zone (no separate bridge strip) */}
-            <div
-              className="relative"
-              onMouseEnter={handleAdultMenuEnter}
-              onMouseLeave={handleAdultMenuLeave}
-            >
+            <div className="relative">
               <Link
                 href="/adult-programs/get-golf-ready-level-1"
+                onMouseEnter={() => openDesktopMenu("adult")}
                 onClick={handleDesktopLinkClick}
                 className={`inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-bold cursor-pointer ${
                   isAdultProgramsActive ? "text-orange-600" : "text-gray-800"
-                } ${adultProgramsOpen ? "bg-gray-300" : "hover:bg-gray-300"}`}
+                } ${desktopMenu === "adult" ? "bg-gray-300" : "hover:bg-gray-300"}`}
               >
                 ADULT PROGRAMS <ChevronDown size={16} />
               </Link>
               <AnimatePresence>
-                {adultProgramsOpen && (
+                {desktopMenu === "adult" && (
                   <motion.div
                     initial={{ opacity: 0, y: -6 }}
                     animate={{ opacity: 1, y: 0, transition: { duration: 0.35 } }}
-                    exit={{ opacity: 0, y: -6, transition: { duration: 0.35 } }}
-                    className="absolute top-full left-0 z-20 w-[520px] pt-2"
+                    exit={{
+                      opacity: 0,
+                      y: -6,
+                      ...(isMenuSwitchExit ? { pointerEvents: "none" as const } : {}),
+                      transition: menuExitTransition,
+                    }}
+                    onMouseEnter={() => openDesktopMenu("adult")}
+                    className="absolute top-full left-0 z-30 w-[520px] pt-2"
                   >
                     <div className="rounded-xl bg-gray-200 p-4 shadow-lg ring ring-gray-300">
                     <motion.ul
                       initial={{ pointerEvents: "none" }}
                       animate={{ pointerEvents: "auto", transition: { delay: 0.35 } }}
-                      exit={{ pointerEvents: "none", transition: { duration: 0 } }}
+                      exit={
+                        isMenuSwitchExit
+                          ? { pointerEvents: "none", transition: { duration: 0 } }
+                          : undefined
+                      }
                       className="grid grid-cols-2 gap-2"
                     >
                       {adultPrograms.map((program) => (
@@ -407,6 +426,7 @@ export default function Navigation() {
                   </motion.div>
                 )}
               </AnimatePresence>
+            </div>
             </div>
 
             <Link

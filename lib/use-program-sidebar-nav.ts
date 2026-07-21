@@ -1,17 +1,26 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
-/** Mobile program sidebar: closes on scroll and after choosing a link. */
+/**
+ * Survives route remounts so the mobile program list stays open while
+ * navigating between programs (and the orange indicator can slide).
+ */
+let mobileProgramsOpen = false;
+
+export function getProgramMobileNavOpen() {
+  return mobileProgramsOpen;
+}
+
+/** Mobile program sidebar: toggled manually; stays open across program links. */
 export function useProgramSidebarNav() {
-  const [showNav, setShowNav] = useState(false);
+  const [showNav, setShowNav] = useState(mobileProgramsOpen);
 
-  useEffect(() => {
-    const closeOnScroll = () => setShowNav(false);
-    window.addEventListener("scroll", closeOnScroll, { passive: true });
-    return () => window.removeEventListener("scroll", closeOnScroll);
+  const toggleNav = useCallback(() => {
+    setShowNav((open) => {
+      const next = !open;
+      mobileProgramsOpen = next;
+      return next;
+    });
   }, []);
 
-  const toggleNav = useCallback(() => setShowNav((open) => !open), []);
-  const closeNav = useCallback(() => setShowNav(false), []);
-
-  return { showNav, toggleNav, closeNav };
+  return { showNav, toggleNav };
 }

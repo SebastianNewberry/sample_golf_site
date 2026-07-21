@@ -11,7 +11,6 @@ import {
   Users,
 } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import {
   programCardImageClass,
   programCardImageContainer,
@@ -30,6 +29,8 @@ import { PrivateInstructionCalendar } from "@/app/components/PrivateInstructionC
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format, isSameDay } from "date-fns";
+import { ContentFadeIn } from "@/app/components/ContentFadeIn";
+import { ProgramSidebarNav } from "@/app/components/ProgramSidebarNav";
 import { useProgramSidebarNav } from "@/lib/use-program-sidebar-nav";
 
 interface JuniorPrivateGolfInstructionClientProps {
@@ -60,7 +61,7 @@ export function JuniorPrivateGolfInstructionClient({
   const [selectedCoachesCount, setSelectedCoachesCount] = useState<number>(0);
   const [selectedSlots, setSelectedSlots] = useState<any[]>([]); // Array of slots
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const { showNav, toggleNav, closeNav } = useProgramSidebarNav();
+  const { showNav, toggleNav } = useProgramSidebarNav();
 
   const { items } = useCart();
 
@@ -334,12 +335,7 @@ export function JuniorPrivateGolfInstructionClient({
 
       {/* Main Content Grid - Centered */}
       <div className={programPageContent}>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.35, ease: "easeOut" }}
-          className="grid lg:grid-cols-13 gap-6"
-        >
+        <div className="grid lg:grid-cols-13 gap-6">
           {/* Left Sidebar - Program Links + Calendar */}
           <div className="lg:col-span-3 space-y-2">
             {/* Header with program name */}
@@ -360,65 +356,25 @@ export function JuniorPrivateGolfInstructionClient({
               </button>
             </div>
 
-            {/* Desktop nav links */}
-            <div className="hidden lg:block space-y-0">
-              <Link
-                href="/junior-programs/beginner-series"
-                className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                JUNIOR BEGINNER SERIES
-              </Link>
-              <Link
-                href="/junior-programs/developmental-series"
-                className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                JUNIOR DEVELOPMENTAL SERIES
-              </Link>
-              <Link
-                href="/junior-programs/private-instruction"
-                className="block bg-white border-l-4 border-orange-500 px-4 py-3 text-sm font-bold text-gray-800"
-              >
-                JUNIOR PRIVATE GOLF INSTRUCTION
-              </Link>
-            </div>
+            <ProgramSidebarNav variant="junior" mode="desktop" />
 
             {/* Mobile animated nav */}
-            <AnimatePresence>
+            <AnimatePresence initial={false}>
               {showNav && (
                 <motion.div
                   initial={{ opacity: 0, y: -10, height: 0 }}
                   animate={{ opacity: 1, y: 0, height: "auto" }}
                   exit={{ opacity: 0, y: -10, height: 0 }}
                   transition={{ duration: 0.25, ease: "easeOut" }}
-                  className="lg:hidden overflow-hidden space-y-0 mb-2"
+                  className="lg:hidden overflow-hidden mb-2"
                 >
-                  <Link
-                    href="/junior-programs/beginner-series"
-                    onClick={closeNav}
-                    className="block bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    JUNIOR BEGINNER SERIES
-                  </Link>
-                  <Link
-                    href="/junior-programs/developmental-series"
-                    onClick={closeNav}
-                    className="block bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    JUNIOR DEVELOPMENTAL SERIES
-                  </Link>
-                  <Link
-                    href="/junior-programs/private-instruction"
-                    onClick={closeNav}
-                    className="block bg-white border-l-4 border-orange-500 px-4 py-2.5 text-sm font-bold text-gray-800"
-                  >
-                    JUNIOR PRIVATE GOLF INSTRUCTION
-                  </Link>
+                  <ProgramSidebarNav variant="junior" mode="mobile" />
                 </motion.div>
               )}
             </AnimatePresence>
 
             {/* Session Calendar - Summary of Availability */}
-            <div className="mt-6">
+            <ContentFadeIn className="mt-6">
               <SessionCalendar
                 schedule={availableSlots.map((s) => ({
                   date: s.date.toLocaleDateString("en-CA", {
@@ -433,11 +389,11 @@ export function JuniorPrivateGolfInstructionClient({
                 * Dates above are available dates, but you only sign up for
                 individual sessions.
               </p>
-            </div>
+            </ContentFadeIn>
           </div>
 
           {/* Main Card: Image + Description + Price */}
-          <div className="lg:col-span-6">
+          <ContentFadeIn className="lg:col-span-6">
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
               {/* Two-column layout: Image + Description | Pricing */}
               <div className="flex flex-col">
@@ -826,16 +782,16 @@ export function JuniorPrivateGolfInstructionClient({
                 </div>
               </div>
             </div>
-          </div>
+          </ContentFadeIn>
 
           {/* Right: Features & Details */}
-          <div className="lg:col-span-4 space-y-6">
+          <ContentFadeIn className="lg:col-span-4 space-y-6">
             <ProgramFeaturesAndDetails
               features={program.features || []}
               details={program.details || []}
             />
-          </div>
-        </motion.div>
+          </ContentFadeIn>
+        </div>
       </div>
     </>
   );

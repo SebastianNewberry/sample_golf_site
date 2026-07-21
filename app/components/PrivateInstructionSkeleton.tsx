@@ -1,8 +1,11 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { PageTitleShimmer, Shimmer } from "@/app/components/Shimmer";
+import { Shimmer } from "@/app/components/Shimmer";
+import { ContentFadeIn } from "@/app/components/ContentFadeIn";
+import { ProgramPageTitle } from "@/app/components/ProgramPageTitle";
+import { ProgramSidebarNav } from "@/app/components/ProgramSidebarNav";
 import {
   programCardImageContainer,
   programCardImageFrameJuniorPrivate,
@@ -10,6 +13,7 @@ import {
   programPageContent,
   programPageGrid,
 } from "@/app/components/program-page-layout";
+import { getProgramMobileNavOpen } from "@/lib/use-program-sidebar-nav";
 
 type PrivateInstructionLayout = "adult" | "junior";
 
@@ -19,11 +23,6 @@ const layoutSpans: Record<
 > = {
   adult: { center: "lg:col-span-6", right: "lg:col-span-4" },
   junior: { center: "lg:col-span-6", right: "lg:col-span-4" },
-};
-
-const layoutNavRows: Record<PrivateInstructionLayout, number> = {
-  adult: 6,
-  junior: 3,
 };
 
 /**
@@ -36,37 +35,37 @@ export function PrivateInstructionSkeleton({
   layout?: PrivateInstructionLayout;
 }) {
   const spans = layoutSpans[layout];
-  const navRowCount = layoutNavRows[layout];
   const imageFrame =
     layout === "junior"
       ? programCardImageFrameJuniorPrivate
       : programCardImageFrameTall;
-  const reduceMotion = useReducedMotion();
+  const showMobileNav = getProgramMobileNavOpen();
 
   return (
-    <motion.div
-      className={programPageContent}
-      initial={reduceMotion ? false : { opacity: 0 }}
-      animate={reduceMotion ? undefined : { opacity: 1 }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
-    >
+    <div className={programPageContent}>
       <div className={programPageGrid}>
-        {/* Left: nav + SessionCalendar summary */}
+        {/* Left: nav + SessionCalendar summary — no fade so route swaps are seamless */}
         <div className="space-y-2 lg:col-span-3">
           <div className="mb-4 flex items-center justify-between gap-4">
-            <PageTitleShimmer />
-            <Shimmer className="h-6 min-w-[90px] w-[90px] shrink-0 rounded bg-gray-300/70 lg:hidden" />
+            <ProgramPageTitle variant={layout} />
+            <span className="lg:hidden flex items-center self-center gap-0.5 text-[8px] font-semibold text-gray-500 px-1.5 py-0.5 whitespace-nowrap min-w-[90px] justify-center">
+              {showMobileNav ? "Hide Programs" : "Show Programs"}
+              {showMobileNav ? (
+                <ChevronUp className="w-3 h-3" />
+              ) : (
+                <ChevronDown className="w-3 h-3" />
+              )}
+            </span>
           </div>
 
-          <div className="hidden space-y-0 lg:block">
-            {Array.from({ length: navRowCount }).map((_, i) => (
-              <div key={i} className="flex items-center bg-white px-4 py-3">
-                <Shimmer className="h-[1.125rem] min-h-[1.125rem] w-full rounded" />
-              </div>
-            ))}
-          </div>
+          <ProgramSidebarNav variant={layout} mode="desktop" />
+          {showMobileNav && (
+            <div className="lg:hidden mb-2">
+              <ProgramSidebarNav variant={layout} mode="mobile" />
+            </div>
+          )}
 
-          <div className="mt-6">
+          <ContentFadeIn className="mt-6">
             <div className="relative overflow-visible rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
               <Shimmer className="mb-3 h-4 w-full rounded" />
 
@@ -131,11 +130,11 @@ export function PrivateInstructionSkeleton({
             </div>
 
             <Shimmer className="mt-2 h-3 w-full rounded bg-muted/50" />
-          </div>
+          </ContentFadeIn>
         </div>
 
         {/* Center: hero + description + pricing + scheduling */}
-        <div className={cn("min-w-0", spans.center)}>
+        <ContentFadeIn className={cn("min-w-0", spans.center)}>
           <div className="overflow-hidden rounded-xl bg-white shadow-lg">
             <div className={programCardImageContainer}>
               <div className={`${imageFrame} bg-muted/50`}>
@@ -222,10 +221,10 @@ export function PrivateInstructionSkeleton({
               </div>
             </div>
           </div>
-        </div>
+        </ContentFadeIn>
 
         {/* Right: features + details */}
-        <div className={cn("min-w-0 space-y-6", spans.right)}>
+        <ContentFadeIn className={cn("min-w-0 space-y-6", spans.right)}>
           <div className="rounded-xl bg-white p-8 shadow-sm">
             <Shimmer className="mb-4 h-8 w-full rounded" />
             <div className="space-y-3">
@@ -252,8 +251,8 @@ export function PrivateInstructionSkeleton({
               ))}
             </div>
           </div>
-        </div>
+        </ContentFadeIn>
       </div>
-    </motion.div>
+    </div>
   );
 }

@@ -11,7 +11,6 @@ import {
   Clock,
   Users,
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/app/components/cart/CartContext";
 import { addToCart } from "@/app/actions/cart";
@@ -32,6 +31,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ProgramSession } from "@/db/schema";
+import { ContentFadeIn } from "@/app/components/ContentFadeIn";
+import { ProgramSidebarNav } from "@/app/components/ProgramSidebarNav";
 import { useProgramSidebarNav } from "@/lib/use-program-sidebar-nav";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -79,7 +80,7 @@ export function DevelopmentalSeriesClient({
   const [selectedSessionCount, setSelectedSessionCount] = useState<number>(1);
   const [selectedSlots, setSelectedSlots] = useState<SeriesSlot[]>([]);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const { showNav, toggleNav, closeNav } = useProgramSidebarNav();
+  const { showNav, toggleNav } = useProgramSidebarNav();
 
   // The first active session is the current series
   const activeSession = useMemo(() => {
@@ -296,12 +297,7 @@ export function DevelopmentalSeriesClient({
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      className={programPageClientGrid}
-    >
+    <div className={programPageClientGrid}>
       <SeriesCalendar
         open={isCalendarOpen}
         onOpenChange={setIsCalendarOpen}
@@ -334,65 +330,25 @@ export function DevelopmentalSeriesClient({
           </button>
         </div>
 
-        {/* Desktop nav links */}
-        <div className="hidden lg:block space-y-0">
-          <Link
-            href="/junior-programs/beginner-series"
-            className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            JUNIOR BEGINNER SERIES
-          </Link>
-          <Link
-            href="/junior-programs/developmental-series"
-            className="block bg-white border-l-4 border-orange-500 px-4 py-3 text-sm font-bold text-gray-800"
-          >
-            JUNIOR DEVELOPMENTAL SERIES
-          </Link>
-          <Link
-            href="/junior-programs/private-instruction"
-            className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            JUNIOR PRIVATE GOLF INSTRUCTION
-          </Link>
-        </div>
+        <ProgramSidebarNav variant="junior" mode="desktop" />
 
         {/* Mobile animated nav */}
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           {showNav && (
             <motion.div
               initial={{ opacity: 0, y: -10, height: 0 }}
               animate={{ opacity: 1, y: 0, height: "auto" }}
               exit={{ opacity: 0, y: -10, height: 0 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
-              className="lg:hidden overflow-hidden space-y-0 mb-2"
+              className="lg:hidden overflow-hidden mb-2"
             >
-              <Link
-                href="/junior-programs/beginner-series"
-                onClick={closeNav}
-                className="block bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                JUNIOR BEGINNER SERIES
-              </Link>
-              <Link
-                href="/junior-programs/developmental-series"
-                onClick={closeNav}
-                className="block bg-white border-l-4 border-orange-500 px-4 py-2.5 text-sm font-bold text-gray-800"
-              >
-                JUNIOR DEVELOPMENTAL SERIES
-              </Link>
-              <Link
-                href="/junior-programs/private-instruction"
-                onClick={closeNav}
-                className="block bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                JUNIOR PRIVATE GOLF INSTRUCTION
-              </Link>
+              <ProgramSidebarNav variant="junior" mode="mobile" />
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* Calendar preview of available dates */}
-        <div className="mt-6">
+        <ContentFadeIn className="mt-6">
           <SessionCalendar
             schedule={availableSlots.map((s) => ({
               date: s.date,
@@ -405,11 +361,11 @@ export function DevelopmentalSeriesClient({
             * Dates above are available dates, but you only sign up for
             individual sessions.
           </p>
-        </div>
+        </ContentFadeIn>
       </div>
 
       {/* Main Card */}
-      <div className="lg:col-span-6">
+      <ContentFadeIn className="lg:col-span-6">
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="flex flex-col">
             {/* Image */}
@@ -705,15 +661,15 @@ export function DevelopmentalSeriesClient({
             </div>
           </div>
         </div>
-      </div>
+      </ContentFadeIn>
 
       {/* Right: Features & Details */}
-      <div className="lg:col-span-4 space-y-6">
+      <ContentFadeIn className="lg:col-span-4 space-y-6">
         <ProgramFeaturesAndDetails
           features={program.features}
           details={program.details}
         />
-      </div>
-    </motion.div>
+      </ContentFadeIn>
+    </div>
   );
 }
