@@ -1,15 +1,12 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Shimmer } from "@/app/components/Shimmer";
+import { ContentFadeIn } from "@/app/components/ContentFadeIn";
+import { ProgramSidebarHeader } from "@/app/components/ProgramSidebarHeader";
+import { ProgramSidebarNav } from "@/app/components/ProgramSidebarNav";
 import { SessionSchedulePanel } from "@/app/components/SessionSchedulePanel";
-import {
-  ProgramFeaturesDetailsSkeleton,
-  ProgramLoadingSidebar,
-} from "@/app/components/ProgramPageSkeleton";
-import { getCatalogEntryByHref } from "@/lib/program-catalog";
 import {
   programCardImageContainer,
   programCardImageFrameJuniorPrivate,
@@ -17,6 +14,8 @@ import {
   programPageContent,
   programPageGrid,
 } from "@/app/components/program-page-layout";
+import { getProgramPageTitle } from "@/lib/program-nav-links";
+import { getProgramMobileNavOpen } from "@/lib/use-program-sidebar-nav";
 
 type PrivateInstructionLayout = "adult" | "junior";
 
@@ -37,39 +36,43 @@ export function PrivateInstructionSkeleton({
 }: {
   layout?: PrivateInstructionLayout;
 }) {
-  const pathname = usePathname();
-  const entry = getCatalogEntryByHref(pathname ?? "");
   const spans = layoutSpans[layout];
-  const title =
-    entry?.pageTitle ??
-    (layout === "adult"
-      ? "Adult Private Golf Instruction"
-      : "Junior Private Golf Instruction");
-  const slug =
-    entry?.slug ?? (layout === "adult" ? "private" : "private-instruction");
   const imageFrame =
     layout === "junior"
       ? programCardImageFrameJuniorPrivate
       : programCardImageFrameTall;
-  const reduceMotion = useReducedMotion();
+  const showMobileNav = getProgramMobileNavOpen();
+  const pathname = usePathname();
+  const title = getProgramPageTitle(pathname, layout);
 
   return (
-    <motion.div
-      className={programPageContent}
-      initial={reduceMotion ? false : { opacity: 0 }}
-      animate={reduceMotion ? undefined : { opacity: 1 }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
-    >
+    <div className={programPageContent}>
       <div className={programPageGrid}>
+        {/* Left: nav + SessionCalendar summary — no fade so route swaps are seamless */}
         <div className="space-y-2 lg:col-span-3">
-          <ProgramLoadingSidebar type={layout} slug={slug} title={title} />
+          {title && (
+            <ProgramSidebarHeader
+              title={title}
+              showNav={showMobileNav}
+              interactive={false}
+            />
+          )}
 
-          <SessionSchedulePanel
-            footnote={
-              <Shimmer className="mt-2 h-3 w-full rounded bg-muted/50" />
-            }
-          >
+          <ProgramSidebarNav variant={layout} mode="desktop" />
+          {showMobileNav && (
+            <div className="lg:hidden mb-2">
+              <ProgramSidebarNav variant={layout} mode="mobile" />
+            </div>
+          )}
+
+          <ContentFadeIn>
+            <SessionSchedulePanel
+              footnote={
+                <Shimmer className="mt-2 h-3 w-full rounded bg-muted/50" />
+              }
+            >
             <div className="relative overflow-visible p-3">
+
               <div className="grid grid-cols-2 gap-2 overflow-visible">
                 {[1, 2, 3].map((m) => (
                   <div
@@ -129,10 +132,12 @@ export function PrivateInstructionSkeleton({
                 <Shimmer className="h-3 w-24 rounded bg-muted/60" />
               </div>
             </div>
-          </SessionSchedulePanel>
+            </SessionSchedulePanel>
+          </ContentFadeIn>
         </div>
 
-        <div className={cn("min-w-0", spans.center)}>
+        {/* Center: hero + description + pricing + scheduling */}
+        <ContentFadeIn className={cn("min-w-0", spans.center)}>
           <div className="overflow-hidden rounded-xl bg-white shadow-lg">
             <div className={programCardImageContainer}>
               <div className={`${imageFrame} bg-muted/50`}>
@@ -219,12 +224,42 @@ export function PrivateInstructionSkeleton({
               </div>
             </div>
           </div>
-        </div>
+        </ContentFadeIn>
 
-        <div className={cn("min-w-0 space-y-6", spans.right)}>
-          <ProgramFeaturesDetailsSkeleton />
-        </div>
+        {/* Right: features + details */}
+        <ContentFadeIn className={cn("min-w-0 space-y-6", spans.right)}>
+          <div className="rounded-xl bg-white p-8 shadow-sm">
+            <h2 className="mb-4 text-2xl font-bold text-gray-800">
+              Program Features
+            </h2>
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Shimmer className="h-5 w-5 shrink-0 rounded-full" />
+                  <Shimmer className="h-5 min-w-0 flex-1 rounded" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-xl bg-white p-8 shadow-sm">
+            <h2 className="mb-4 text-2xl font-bold text-gray-800">
+              Program Details
+            </h2>
+            <div className="space-y-6">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex gap-3">
+                  <Shimmer className="mt-0.5 h-7 w-7 shrink-0 rounded" />
+                  <div className="min-w-0 flex-1 space-y-3">
+                    <Shimmer className="h-5 w-full rounded" />
+                    <Shimmer className="h-4 w-full rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </ContentFadeIn>
       </div>
-    </motion.div>
+    </div>
   );
 }

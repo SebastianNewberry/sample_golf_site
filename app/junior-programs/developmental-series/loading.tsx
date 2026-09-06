@@ -1,5 +1,5 @@
 import { ProgramPageSkeleton } from "@/app/components/ProgramPageSkeleton";
 
 export default function Loading() {
-  return <ProgramPageSkeleton />;
+  return <ProgramPageSkeleton variant="junior" />;
 }

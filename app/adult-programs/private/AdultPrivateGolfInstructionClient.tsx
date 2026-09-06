@@ -6,8 +6,6 @@ import {
   Video,
   CalendarClock,
   Phone,
-  ChevronDown,
-  ChevronUp,
   Clock,
   Users,
 } from "lucide-react";
@@ -29,8 +27,10 @@ import { SessionCalendar } from "@/app/components/SessionCalendar";
 import { PrivateInstructionCalendar } from "@/app/components/PrivateInstructionCalendar";
 import { Button } from "@/components/ui/button";
 import { format, isSameDay } from "date-fns";
+import { ContentFadeIn } from "@/app/components/ContentFadeIn";
+import { ProgramSidebarHeader } from "@/app/components/ProgramSidebarHeader";
+import { ProgramSidebarNav } from "@/app/components/ProgramSidebarNav";
 import { useProgramSidebarNav } from "@/lib/use-program-sidebar-nav";
-import { ProgramSidebarLinks } from "@/app/components/ProgramSidebarLinks";
 import { SessionSchedulePanel } from "@/app/components/SessionSchedulePanel";
 import { DisabledActionTooltip } from "@/app/components/DisabledActionTooltip";
 import { useProgramVisibility } from "@/app/components/ProgramVisibilityContext";
@@ -70,7 +70,7 @@ export function AdultPrivateGolfInstructionClient({
   const [selectedCoachesCount, setSelectedCoachesCount] = useState<number>(0);
   const [selectedSlots, setSelectedSlots] = useState<any[]>([]); // Array of slots
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const { showNav, toggleNav, closeNav } = useProgramSidebarNav();
+  const { showNav, toggleNav } = useProgramSidebarNav();
   const { isIdActive } = useProgramVisibility();
   const isProgramActive = isIdActive(program.id);
 
@@ -360,81 +360,59 @@ export function AdultPrivateGolfInstructionClient({
 
       {/* Main Content Grid - Centered */}
       <div className={programPageContent}>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.35, ease: "easeOut" }}
-          className="grid lg:grid-cols-13 gap-6"
-        >
+        <div className="grid lg:grid-cols-13 gap-6">
           {/* Left Sidebar - Program Links + Calendar */}
           <div className="lg:col-span-3 space-y-2">
             {/* Header with program name */}
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-2xl font-bold text-gray-800">
-                Adult Private Golf Instruction
-              </h1>
-              <button
-                onClick={toggleNav}
-                className="lg:hidden flex items-center self-center gap-0.5 text-[8px] font-semibold text-gray-500 hover:text-gray-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-gray-100 cursor-pointer whitespace-nowrap"
-              >
-                {showNav ? "Hide Programs" : "Show Programs"}
-                {showNav ? (
-                  <ChevronUp className="w-3 h-3" />
-                ) : (
-                  <ChevronDown className="w-3 h-3" />
-                )}
-              </button>
-            </div>
+            <ProgramSidebarHeader
+              title="Adult Private Golf Instruction"
+              showNav={showNav}
+              onToggle={toggleNav}
+            />
 
-            {/* Desktop nav links */}
-            <div className="hidden lg:block space-y-0">
-              <ProgramSidebarLinks type="adult" currentPage="private" />
-            </div>
+            <ProgramSidebarNav variant="adult" mode="desktop" />
 
             {/* Mobile animated nav */}
-            <AnimatePresence>
+            <AnimatePresence initial={false}>
               {showNav && (
                 <motion.div
                   initial={{ opacity: 0, y: -10, height: 0 }}
                   animate={{ opacity: 1, y: 0, height: "auto" }}
                   exit={{ opacity: 0, y: -10, height: 0 }}
                   transition={{ duration: 0.25, ease: "easeOut" }}
-                  className="lg:hidden overflow-hidden space-y-0 mb-2"
+                  className="lg:hidden overflow-hidden mb-2"
                 >
-                  <ProgramSidebarLinks
-                    type="adult"
-                    currentPage="private"
-                    onNavigate={closeNav}
-                    variant="mobile"
-                  />
+                  <ProgramSidebarNav variant="adult" mode="mobile" />
                 </motion.div>
               )}
             </AnimatePresence>
 
-            <SessionSchedulePanel
-              footnote={
-                <p className="text-xs text-gray-500 mt-2 px-1">
-                  * Dates above are available dates, but you only sign up for
-                  individual sessions.
-                </p>
-              }
-            >
-              <SessionCalendar
-                embedded
-                hideSessionCount
-                schedule={availableSlots.map((s) => ({
-                  date: s.date.toLocaleDateString("en-CA", {
-                    timeZone: "America/New_York",
-                  }),
-                  startTime: s.startTime,
-                  endTime: s.endTime,
-                }))}
-              />
-            </SessionSchedulePanel>
+            <ContentFadeIn>
+              <SessionSchedulePanel
+                footnote={
+                  <p className="text-xs text-gray-500 mt-2 px-1">
+                    * Dates above are available dates, but you only sign up for
+                    individual sessions.
+                  </p>
+                }
+              >
+                <SessionCalendar
+                  embedded
+                  hideSessionCount
+                  schedule={availableSlots.map((s) => ({
+                    date: s.date.toLocaleDateString("en-CA", {
+                      timeZone: "America/New_York",
+                    }),
+                    startTime: s.startTime,
+                    endTime: s.endTime,
+                  }))}
+                />
+              </SessionSchedulePanel>
+            </ContentFadeIn>
           </div>
 
           {/* Main Card: Image + Description + Price */}
-          <div className="lg:col-span-6">
+          <ContentFadeIn className="lg:col-span-6">
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
               {/* Two-column layout: Image + Description | Pricing */}
               <div className="flex flex-col">
@@ -823,16 +801,16 @@ export function AdultPrivateGolfInstructionClient({
                 </div>
               </div>
             </div>
-          </div>
+          </ContentFadeIn>
 
           {/* Right: Features & Details */}
-          <div className="lg:col-span-4 space-y-6">
+          <ContentFadeIn className="lg:col-span-4 space-y-6">
             <ProgramFeaturesAndDetails
               features={program.features || []}
               details={program.details || []}
             />
-          </div>
-        </motion.div>
+          </ContentFadeIn>
+        </div>
       </div>
     </>
   );

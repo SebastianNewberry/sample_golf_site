@@ -6,8 +6,6 @@ import {
   CheckCircle2,
   Phone,
   CalendarClock,
-  ChevronDown,
-  ChevronUp,
   Clock,
   Users,
 } from "lucide-react";
@@ -31,8 +29,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ProgramSession } from "@/db/schema";
+import { ContentFadeIn } from "@/app/components/ContentFadeIn";
+import { ProgramSidebarHeader } from "@/app/components/ProgramSidebarHeader";
+import { ProgramSidebarNav } from "@/app/components/ProgramSidebarNav";
 import { useProgramSidebarNav } from "@/lib/use-program-sidebar-nav";
-import { ProgramSidebarLinks } from "@/app/components/ProgramSidebarLinks";
 import { SessionSchedulePanel } from "@/app/components/SessionSchedulePanel";
 import { DisabledActionTooltip } from "@/app/components/DisabledActionTooltip";
 import { useProgramVisibility } from "@/app/components/ProgramVisibilityContext";
@@ -83,7 +83,7 @@ export function DevelopmentalSeriesClient({
   const [selectedSessionCount, setSelectedSessionCount] = useState<number>(1);
   const [selectedSlots, setSelectedSlots] = useState<SeriesSlot[]>([]);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
-  const { showNav, toggleNav, closeNav } = useProgramSidebarNav();
+  const { showNav, toggleNav } = useProgramSidebarNav();
   const { isIdActive } = useProgramVisibility();
   const isProgramActive = isIdActive(program.id);
 
@@ -309,12 +309,7 @@ export function DevelopmentalSeriesClient({
   });
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      className={programPageClientGrid}
-    >
+    <div className={programPageClientGrid}>
       <SeriesCalendar
         open={isCalendarOpen}
         onOpenChange={setIsCalendarOpen}
@@ -330,70 +325,53 @@ export function DevelopmentalSeriesClient({
 
       {/* Left Sidebar */}
       <div className="lg:col-span-3 space-y-2">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-gray-800">
-            Junior Developmental Series
-          </h1>
-          <button
-            onClick={toggleNav}
-            className="lg:hidden flex items-center self-center gap-0.5 text-[8px] font-semibold text-gray-500 hover:text-gray-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-gray-100 cursor-pointer whitespace-nowrap"
-          >
-            {showNav ? "Hide Programs" : "Show Programs"}
-            {showNav ? (
-              <ChevronUp className="w-3 h-3" />
-            ) : (
-              <ChevronDown className="w-3 h-3" />
-            )}
-          </button>
-        </div>
+        <ProgramSidebarHeader
+          title="Junior Developmental Series"
+          showNav={showNav}
+          onToggle={toggleNav}
+        />
 
-        {/* Desktop nav links */}
-        <div className="hidden lg:block space-y-0">
-          <ProgramSidebarLinks type="junior" currentPage="developmental-series" />
-        </div>
+        <ProgramSidebarNav variant="junior" mode="desktop" />
 
         {/* Mobile animated nav */}
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           {showNav && (
             <motion.div
               initial={{ opacity: 0, y: -10, height: 0 }}
               animate={{ opacity: 1, y: 0, height: "auto" }}
               exit={{ opacity: 0, y: -10, height: 0 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
-              className="lg:hidden overflow-hidden space-y-0 mb-2"
+              className="lg:hidden overflow-hidden mb-2"
             >
-              <ProgramSidebarLinks
-                type="junior"
-                currentPage="developmental-series"
-                onNavigate={closeNav}
-                variant="mobile"
-              />
+              <ProgramSidebarNav variant="junior" mode="mobile" />
             </motion.div>
           )}
         </AnimatePresence>
 
-        <SessionSchedulePanel
-          footnote={
-            <p className="text-xs text-gray-500 mt-2 px-1">
-              * Dates above are available dates, but you only sign up for
-              individual sessions.
-            </p>
-          }
-        >
-          <SessionCalendar
-            embedded
-            hideSessionCount
-            schedule={availableSlots.map((s) => ({
-              date: s.date,
-              startTime: s.startTime,
-              endTime: s.endTime,
-            }))}
-          />
-        </SessionSchedulePanel>
+        <ContentFadeIn>
+          <SessionSchedulePanel
+            footnote={
+              <p className="text-xs text-gray-500 mt-2 px-1">
+                * Dates above are available dates, but you only sign up for
+                individual sessions.
+              </p>
+            }
+          >
+            <SessionCalendar
+              embedded
+              hideSessionCount
+              schedule={availableSlots.map((s) => ({
+                date: s.date,
+                startTime: s.startTime,
+                endTime: s.endTime,
+              }))}
+            />
+          </SessionSchedulePanel>
+        </ContentFadeIn>
       </div>
 
       {/* Main Card */}
-      <div className="lg:col-span-6">
+      <ContentFadeIn className="lg:col-span-6">
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="flex flex-col">
             {/* Image */}
@@ -677,15 +655,15 @@ export function DevelopmentalSeriesClient({
             </div>
           </div>
         </div>
-      </div>
+      </ContentFadeIn>
 
       {/* Right: Features & Details */}
-      <div className="lg:col-span-4 space-y-6">
+      <ContentFadeIn className="lg:col-span-4 space-y-6">
         <ProgramFeaturesAndDetails
           features={program.features}
           details={program.details}
         />
-      </div>
-    </motion.div>
+      </ContentFadeIn>
+    </div>
   );
 }

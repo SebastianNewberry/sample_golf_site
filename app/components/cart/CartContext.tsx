@@ -209,6 +209,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const clearCartItems = useCallback(async () => {
+    // Clear local state immediately so the badge never lingers after checkout.
+    setItems([]);
+    setItemCount(0);
+    setTotal(0);
+    setAppliedDiscount(null);
     try {
       await emptyCart();
       await refreshCart();

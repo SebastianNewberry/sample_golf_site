@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, ReactNode, ReactElement, useEffect } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Accordion,
@@ -9,12 +8,14 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SessionCalendar } from "@/app/components/SessionCalendar";
 import { parseSchedule } from "@/lib/session-schedule";
+import { ContentFadeIn } from "@/app/components/ContentFadeIn";
+import { ProgramSidebarHeader } from "@/app/components/ProgramSidebarHeader";
+import { ProgramSidebarNav } from "@/app/components/ProgramSidebarNav";
 import { useProgramSidebarNav } from "@/lib/use-program-sidebar-nav";
 import type { ProgramSession } from "@/db/schema";
-import { ProgramSidebarLinks } from "@/app/components/ProgramSidebarLinks";
-import { SessionSchedulePanel } from "@/app/components/SessionSchedulePanel";
 
 type RenderProps = {
   selectedSessionId: string;
@@ -36,7 +37,7 @@ interface AdultProgramPageWrapperProps {
 
 export function AdultProgramPageWrapper({
   programName,
-  currentPage,
+  currentPage: _currentPage,
   sessions,
   children,
   initialSessionId,
@@ -48,7 +49,7 @@ export function AdultProgramPageWrapper({
   const [purchaseSessionId, setPurchaseSessionId] = useState<string>(
     initialSessionId || "",
   );
-  const { showNav, toggleNav, closeNav } = useProgramSidebarNav();
+  const { showNav, toggleNav } = useProgramSidebarNav();
 
   // Initialize checks on mount/updates if initialSessionId is provided
   useEffect(() => {
@@ -118,131 +119,117 @@ export function AdultProgramPageWrapper({
     <>
       {/* Left Sidebar - Program Links + Calendar */}
       <div className="lg:col-span-3 space-y-2">
-        {/* Header with program name */}
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-gray-800">{programName}</h1>
-          <button
-            onClick={toggleNav}
-            className="lg:hidden flex items-center self-center gap-0.5 text-[8px] font-semibold text-gray-500 hover:text-gray-700 transition-colors px-1.5 py-0.5 rounded-md hover:bg-gray-100 cursor-pointer whitespace-nowrap min-w-[90px] justify-center"
-          >
-            {showNav ? "Hide Programs" : "Show Programs"}
-            {showNav ? (
-              <ChevronUp className="w-3 h-3" />
-            ) : (
-              <ChevronDown className="w-3 h-3" />
-            )}
-          </button>
-        </div>
+        <ProgramSidebarHeader
+          title={programName}
+          showNav={showNav}
+          onToggle={toggleNav}
+        />
 
-        {/* Navigation Links - Always visible on desktop, toggleable on mobile */}
-        <div className="hidden lg:block space-y-0">
-          <ProgramSidebarLinks type="adult" currentPage={currentPage} />
-        </div>
+        <ProgramSidebarNav variant="adult" mode="desktop" />
 
         {/* Mobile animated nav */}
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           {showNav && (
             <motion.div
               initial={{ opacity: 0, y: -10, height: 0 }}
               animate={{ opacity: 1, y: 0, height: "auto" }}
               exit={{ opacity: 0, y: -10, height: 0 }}
               transition={{ duration: 0.25, ease: "easeOut" }}
-              className="lg:hidden overflow-hidden space-y-0 mb-2"
+              className="lg:hidden overflow-hidden mb-2"
             >
-              <ProgramSidebarLinks
-                type="adult"
-                currentPage={currentPage}
-                onNavigate={closeNav}
-                variant="mobile"
-              />
+              <ProgramSidebarNav variant="adult" mode="mobile" />
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* Session Calendar - below navigation links */}
-        <SessionSchedulePanel
-          footnote={
-            sessions.some((s) => {
-              const schedule = s.schedule ? parseSchedule(s.schedule) : null;
-              const startDate =
-                schedule && schedule.length > 0
-                  ? new Date(schedule[0].date)
-                  : null;
-              const isStarted = startDate ? new Date() > startDate : false;
-              return isStarted || (s.isBooked ?? false);
-            }) ? (
+        <ContentFadeIn className="mt-6">
+          <Card>
+            <CardHeader className="py-4">
+              <CardTitle className="text-lg">Session Schedule</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {sessions.length > 0 ? (
+                <Accordion
+                  type="single"
+                  collapsible
+                  value={expandedSessionId}
+                  onValueChange={handleAccordionChange}
+                  className="w-full"
+                >
+                  {sortedSessions.map((session) => {
+                    const schedule = session.schedule
+                      ? parseSchedule(session.schedule)
+                      : null;
+                    const startDate =
+                      schedule && schedule.length > 0
+                        ? new Date(schedule[0].date)
+                        : null;
+                    const isStarted = startDate
+                      ? new Date() > startDate
+                      : false;
+
+                    return (
+                      <AccordionItem
+                        key={session.id}
+                        value={session.id}
+                        className="border-b last:border-0 px-4"
+                      >
+                        <AccordionTrigger className="text-left hover:no-underline py-3">
+                          <span className="font-medium text-sm">
+                            {session.name ? session.name : "Session Details"}
+                            {isStarted && (
+                              <span className="text-red-600 ml-1">
+                                (Started)
+                              </span>
+                            )}
+                            {!isStarted && session.isBooked && (
+                              <span className="text-red-600 ml-1">
+                                (Sold Out)
+                              </span>
+                            )}
+                          </span>
+                        </AccordionTrigger>
+                        <AccordionContent className="pb-4">
+                          <SessionCalendar schedule={schedule} />
+                        </AccordionContent>
+                      </AccordionItem>
+                    );
+                  })}
+                </Accordion>
+              ) : (
+                <div className="p-6 text-center text-gray-500 text-sm font-medium">
+                  No Sessions Yet
+                </div>
+              )}
+            </CardContent>
+          </Card>
+          {sessions.some((s) => {
+            const schedule = s.schedule ? parseSchedule(s.schedule) : null;
+            const startDate =
+              schedule && schedule.length > 0
+                ? new Date(schedule[0].date)
+                : null;
+            const isStarted = startDate ? new Date() > startDate : false;
+            return isStarted || (s.isBooked ?? false);
+          }) && (
               <p className="text-xs text-red-500 mt-2 font-medium">
                 * Call to inquire about joining past sessions that have already
                 started or are sold out
               </p>
-            ) : null
-          }
-        >
-          {sessions.length > 0 ? (
-            <Accordion
-              type="single"
-              collapsible
-              value={expandedSessionId}
-              onValueChange={handleAccordionChange}
-              className="w-full"
-            >
-              {sortedSessions.map((session) => {
-                const schedule = session.schedule
-                  ? parseSchedule(session.schedule)
-                  : null;
-                const startDate =
-                  schedule && schedule.length > 0
-                    ? new Date(schedule[0].date)
-                    : null;
-                const isStarted = startDate
-                  ? new Date() > startDate
-                  : false;
-
-                return (
-                  <AccordionItem
-                    key={session.id}
-                    value={session.id}
-                    className="border-b last:border-0 px-4"
-                  >
-                    <AccordionTrigger className="text-left hover:no-underline py-3">
-                      <span className="font-medium text-sm">
-                        {session.name ? session.name : "Session Details"}
-                        {isStarted && (
-                          <span className="text-red-600 ml-1">
-                            (Started)
-                          </span>
-                        )}
-                        {!isStarted && session.isBooked && (
-                          <span className="text-red-600 ml-1">
-                            (Sold Out)
-                          </span>
-                        )}
-                      </span>
-                    </AccordionTrigger>
-                    <AccordionContent className="pb-4">
-                      <SessionCalendar schedule={schedule} />
-                    </AccordionContent>
-                  </AccordionItem>
-                );
-              })}
-            </Accordion>
-          ) : (
-            <div className="p-6 text-center text-gray-500 text-sm font-medium">
-              No Sessions Yet
-            </div>
-          )}
-        </SessionSchedulePanel>
+            )}
+        </ContentFadeIn>
       </div>
 
       {/* Main Content */}
-      <div className="lg:col-span-6">
+      <ContentFadeIn className="lg:col-span-6">
         {isRenderFunction
           ? (children as (props: RenderProps) => ReactElement)({
             selectedSessionId: purchaseSessionId,
             onSessionChange: handlePurchaseChange,
           })
           : children}
-      </div>
+      </ContentFadeIn>
     </>
   );
 }
