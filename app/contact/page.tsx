@@ -52,7 +52,7 @@ export default function ContactPage() {
                     href="tel:2485633561"
                     className="text-gray-700 hover:text-green-600 mt-1 inline-block"
                   >
-                    (248) 563-3561 - mobile
+                    (248) 563-3561
                   </a>
                 </div>
 
@@ -66,7 +66,7 @@ export default function ContactPage() {
                     href="tel:5865965387"
                     className="text-gray-700 hover:text-green-600 mt-1 inline-block"
                   >
-                    (586) 596-5387 - mobile
+                    (586) 596-5387
                   </a>
                 </div>
 
@@ -80,7 +80,7 @@ export default function ContactPage() {
                     href="tel:3134029484"
                     className="text-gray-700 hover:text-green-600 mt-1 inline-block"
                   >
-                    (313) 402-9484 - mobile
+                    (313) 402-9484
                   </a>
                 </div>
               </div>

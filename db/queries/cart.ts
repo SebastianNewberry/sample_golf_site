@@ -11,6 +11,7 @@ import {
 } from "@/db/schema";
 import { eq, and, asc, isNull, inArray, or, gt, sql } from "drizzle-orm";
 import { checkTimeSlotAvailability } from "./bookings";
+import { cartItemLineTotal } from "@/lib/pricing-options";
 
 /**
  * Get cart by session ID
@@ -164,9 +165,14 @@ export async function getCartWithItems(sessionId: string) {
         const slots = slotData.slots || (slotData.date ? [slotData] : []);
 
         for (const slot of slots) {
-          const dateStr = typeof slot.date === "string" ? slot.date.split("T")[0] : "";
-          const baseDate = dateStr.includes("-") 
-            ? new Date(Number(dateStr.split("-")[0]), Number(dateStr.split("-")[1]) - 1, Number(dateStr.split("-")[2]))
+          const dateStr =
+            typeof slot.date === "string" ? slot.date.split("T")[0] : "";
+          const baseDate = dateStr.includes("-")
+            ? new Date(
+                Number(dateStr.split("-")[0]),
+                Number(dateStr.split("-")[1]) - 1,
+                Number(dateStr.split("-")[2]),
+              )
             : new Date(slot.date);
           const [startH, startM] = slot.startTime.split(":").map(Number);
           const [endH, endM] = slot.endTime.split(":").map(Number);
@@ -368,6 +374,31 @@ export async function updateCartItemPrice(itemId: string, priceAtAdd: string) {
 }
 
 /**
+ * Update cart item quantity, price, and/or metadata together.
+ */
+export async function updateCartItemDetails(
+  itemId: string,
+  data: {
+    quantity?: number;
+    priceAtAdd?: string;
+    metadata?: string;
+  },
+) {
+  const result = await db
+    .update(cartItem)
+    .set({
+      ...(data.quantity !== undefined ? { quantity: data.quantity } : {}),
+      ...(data.priceAtAdd !== undefined ? { priceAtAdd: data.priceAtAdd } : {}),
+      ...(data.metadata !== undefined ? { metadata: data.metadata } : {}),
+      updatedAt: new Date(),
+    })
+    .where(eq(cartItem.id, itemId))
+    .returning();
+
+  return result[0];
+}
+
+/**
  * Remove item from cart
  */
 export async function removeCartItem(itemId: string) {
@@ -417,13 +448,13 @@ export async function getCartTotal(cartId: string) {
     .select({
       quantity: cartItem.quantity,
       priceAtAdd: cartItem.priceAtAdd,
+      metadata: cartItem.metadata,
     })
     .from(cartItem)
     .where(eq(cartItem.cartId, cartId));
 
   const rawTotal = items.reduce((total, item) => {
-    return total + item.quantity * parseFloat(item.priceAtAdd);
+    return total + cartItemLineTotal(item);
   }, 0);
-  // Round to 2 decimal places to avoid floating-point precision errors (e.g. $474.99 instead of $475.00)
   return Math.round(rawTotal * 100) / 100;
 }

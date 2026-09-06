@@ -3,13 +3,22 @@
  */
 
 import { getProgramById } from "@/db/queries/programs";
-import { updateCartItemPrice } from "@/db/queries/cart";
+import {
+  updateCartItemDetails,
+  updateCartItemPrice,
+} from "@/db/queries/cart";
+import {
+  applyPackageToMetadata,
+  cartItemLineTotal,
+  findOnCoursePackageForPlayers,
+  getOnCoursePlayerRange,
+  parseCartMetadata,
+  parsePricingOptions,
+  perPlayerUnitPrice,
+  type PricingOption,
+} from "@/lib/pricing-options";
 
-export interface PricingOption {
-  id: string;
-  price: number | string;
-  playersCount?: number;
-}
+export type { PricingOption };
 
 export interface CartItemForPricing {
   id: string;
@@ -31,6 +40,9 @@ export interface CartItemForPricing {
 
 export interface ResolvedCartPrice {
   priceAtAdd: string;
+  lineTotal: string;
+  metadata?: string;
+  packageSwitched?: boolean;
   error?: string;
 }
 
@@ -44,19 +56,6 @@ export interface PriceUpdate {
 export interface ReconcileResult {
   priceUpdates: PriceUpdate[];
   errors: Record<string, string>;
-}
-
-function parsePricingOptions(pricingOptions: unknown): PricingOption[] {
-  if (!pricingOptions) return [];
-  try {
-    const parsed =
-      typeof pricingOptions === "string"
-        ? JSON.parse(pricingOptions)
-        : pricingOptions;
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
 }
 
 function isPackagePricingProgram(program: {
@@ -77,6 +76,14 @@ function roundCents(price: number): number {
   return Math.round(price * 100);
 }
 
+function findOptionById(
+  options: PricingOption[],
+  packageId: unknown,
+): PricingOption | null {
+  if (typeof packageId !== "string" || !packageId) return null;
+  return options.find((option) => option.id === packageId) ?? null;
+}
+
 /**
  * Resolve authoritative per-unit priceAtAdd for a cart item from current program data.
  */
@@ -91,46 +98,97 @@ export function resolveCartItemPrice(
   item: Pick<CartItemForPricing, "metadata" | "quantity">,
 ): ResolvedCartPrice {
   if (!isPackagePricingProgram(program)) {
-    return { priceAtAdd: Number(program.price).toFixed(2) };
+    const priceAtAdd = Number(program.price).toFixed(2);
+    return {
+      priceAtAdd,
+      lineTotal: cartItemLineTotal({
+        quantity: item.quantity,
+        priceAtAdd,
+        metadata: item.metadata,
+      }).toFixed(2),
+    };
   }
 
   const options = parsePricingOptions(program.pricingOptions);
   if (options.length === 0) {
-    return { priceAtAdd: Number(program.price).toFixed(2) };
+    const priceAtAdd = Number(program.price).toFixed(2);
+    return {
+      priceAtAdd,
+      lineTotal: cartItemLineTotal({
+        quantity: item.quantity,
+        priceAtAdd,
+        metadata: item.metadata,
+      }).toFixed(2),
+    };
   }
 
-  let metadataObj: { packageId?: string } = {};
-  if (item.metadata) {
+  const metadataObj = parseCartMetadata(item.metadata);
+  if (item.metadata && Object.keys(metadataObj).length === 0) {
     try {
-      metadataObj = JSON.parse(item.metadata);
+      JSON.parse(item.metadata);
     } catch {
-      return { priceAtAdd: "", error: "Invalid item metadata." };
+      return { priceAtAdd: "", lineTotal: "", error: "Invalid item metadata." };
     }
   }
 
-  const packageId = metadataObj.packageId;
-  const matchedOption = packageId
-    ? options.find((o) => o.id === packageId)
-    : null;
+  let matchedOption = findOptionById(options, metadataObj.packageId);
 
   if (!matchedOption) {
     return {
       priceAtAdd: "",
+      lineTotal: "",
       error: "The selected pricing package is no longer available.",
     };
+  }
+
+  let packageSwitched = false;
+  let nextMetadata: string | undefined;
+
+  if (matchedOption.isOnCourse) {
+    const resolved = findOnCoursePackageForPlayers(
+      options,
+      matchedOption,
+      item.quantity,
+    );
+    if (!resolved) {
+      const range = getOnCoursePlayerRange(options, matchedOption);
+      return {
+        priceAtAdd: "",
+        lineTotal: "",
+        error: range
+          ? `On-course coaching is limited to ${range.max} player${range.max === 1 ? "" : "s"}.`
+          : "No on-course package is available for this number of players.",
+      };
+    }
+
+    packageSwitched = resolved.id !== matchedOption.id;
+    matchedOption = resolved;
+    nextMetadata = applyPackageToMetadata(item.metadata, matchedOption);
   }
 
   const packagePrice = Number(matchedOption.price);
   const basePlayersCount = Number(matchedOption.playersCount) || 1;
 
-  // Series stores full package price; private instruction stores per-player price.
   if (program.schedulingType === "series") {
-    return { priceAtAdd: packagePrice.toFixed(2) };
+    return { priceAtAdd: packagePrice.toFixed(2), lineTotal: packagePrice.toFixed(2) };
   }
 
-  const perPlayerPrice =
-    Math.round((packagePrice / basePlayersCount) * 100) / 100;
-  return { priceAtAdd: perPlayerPrice.toFixed(2) };
+  const priceAtAdd = perPlayerUnitPrice(packagePrice, basePlayersCount);
+  const metadataForTotal = nextMetadata ?? item.metadata;
+  const lineTotal = matchedOption.isOnCourse
+    ? packagePrice.toFixed(2)
+    : cartItemLineTotal({
+        quantity: item.quantity,
+        priceAtAdd,
+        metadata: metadataForTotal,
+      }).toFixed(2);
+
+  return {
+    priceAtAdd,
+    lineTotal,
+    metadata: nextMetadata,
+    packageSwitched,
+  };
 }
 
 /**
@@ -142,7 +200,10 @@ export async function reconcileCartPricing(
   const priceUpdates: PriceUpdate[] = [];
   const errors: Record<string, string> = {};
 
-  const programCache = new Map<string, Awaited<ReturnType<typeof getProgramById>>>();
+  const programCache = new Map<
+    string,
+    Awaited<ReturnType<typeof getProgramById>>
+  >();
 
   for (const item of items) {
     let programData = programCache.get(item.programId);
@@ -164,9 +225,21 @@ export async function reconcileCartPricing(
 
     const storedCents = roundCents(Number(item.priceAtAdd));
     const resolvedCents = roundCents(Number(resolved.priceAtAdd));
+    const metadataChanged = Boolean(
+      resolved.metadata && resolved.metadata !== item.metadata,
+    );
 
-    if (storedCents !== resolvedCents) {
-      await updateCartItemPrice(item.id, resolved.priceAtAdd);
+    if (storedCents !== resolvedCents || metadataChanged) {
+      if (metadataChanged && resolved.metadata) {
+        await updateCartItemDetails(item.id, {
+          priceAtAdd: resolved.priceAtAdd,
+          metadata: resolved.metadata,
+        });
+        item.metadata = resolved.metadata;
+      } else {
+        await updateCartItemPrice(item.id, resolved.priceAtAdd);
+      }
+
       priceUpdates.push({
         itemId: item.id,
         programName: programData.name,

@@ -3,8 +3,10 @@ import "./globals.css";
 import { Montserrat, Playfair_Display } from "next/font/google";
 import Navigation from "./components/Navigation";
 import { CartProvider } from "./components/cart/CartContext";
+import { ProgramVisibilityProvider } from "./components/ProgramVisibilityContext";
 import Footer from "./components/Footer";
 import logo from "@/public/logo.webp";
+import { getProgramVisibility } from "@/db/queries/programs";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -37,18 +39,22 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const programs = await getProgramVisibility();
+
   return (
     <html lang="en" className={`${montserrat.variable} ${playfair.variable}`}>
       <body className="antialiased flex flex-col min-h-screen font-sans">
         <CartProvider>
-          <Navigation />
-          <div className="flex-grow">{children}</div>
-          <Footer />
+          <ProgramVisibilityProvider programs={programs}>
+            <Navigation />
+            <div className="flex-grow">{children}</div>
+            <Footer />
+          </ProgramVisibilityProvider>
         </CartProvider>
       </body>
     </html>

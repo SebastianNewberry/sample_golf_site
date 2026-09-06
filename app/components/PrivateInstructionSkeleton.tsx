@@ -1,8 +1,15 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { PageTitleShimmer, Shimmer } from "@/app/components/Shimmer";
+import { Shimmer } from "@/app/components/Shimmer";
+import { SessionSchedulePanel } from "@/app/components/SessionSchedulePanel";
+import {
+  ProgramFeaturesDetailsSkeleton,
+  ProgramLoadingSidebar,
+} from "@/app/components/ProgramPageSkeleton";
+import { getCatalogEntryByHref } from "@/lib/program-catalog";
 import {
   programCardImageContainer,
   programCardImageFrameJuniorPrivate,
@@ -21,11 +28,6 @@ const layoutSpans: Record<
   junior: { center: "lg:col-span-6", right: "lg:col-span-4" },
 };
 
-const layoutNavRows: Record<PrivateInstructionLayout, number> = {
-  adult: 6,
-  junior: 3,
-};
-
 /**
  * Skeleton for private instruction pages.
  * Adult and junior pages use different 13-column splits — must match each client.
@@ -35,8 +37,16 @@ export function PrivateInstructionSkeleton({
 }: {
   layout?: PrivateInstructionLayout;
 }) {
+  const pathname = usePathname();
+  const entry = getCatalogEntryByHref(pathname ?? "");
   const spans = layoutSpans[layout];
-  const navRowCount = layoutNavRows[layout];
+  const title =
+    entry?.pageTitle ??
+    (layout === "adult"
+      ? "Adult Private Golf Instruction"
+      : "Junior Private Golf Instruction");
+  const slug =
+    entry?.slug ?? (layout === "adult" ? "private" : "private-instruction");
   const imageFrame =
     layout === "junior"
       ? programCardImageFrameJuniorPrivate
@@ -51,25 +61,15 @@ export function PrivateInstructionSkeleton({
       transition={{ duration: 0.35, ease: "easeOut" }}
     >
       <div className={programPageGrid}>
-        {/* Left: nav + SessionCalendar summary */}
         <div className="space-y-2 lg:col-span-3">
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <PageTitleShimmer />
-            <Shimmer className="h-6 min-w-[90px] w-[90px] shrink-0 rounded bg-gray-300/70 lg:hidden" />
-          </div>
+          <ProgramLoadingSidebar type={layout} slug={slug} title={title} />
 
-          <div className="hidden space-y-0 lg:block">
-            {Array.from({ length: navRowCount }).map((_, i) => (
-              <div key={i} className="flex items-center bg-white px-4 py-3">
-                <Shimmer className="h-[1.125rem] min-h-[1.125rem] w-full rounded" />
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6">
-            <div className="relative overflow-visible rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
-              <Shimmer className="mb-3 h-4 w-full rounded" />
-
+          <SessionSchedulePanel
+            footnote={
+              <Shimmer className="mt-2 h-3 w-full rounded bg-muted/50" />
+            }
+          >
+            <div className="relative overflow-visible p-3">
               <div className="grid grid-cols-2 gap-2 overflow-visible">
                 {[1, 2, 3].map((m) => (
                   <div
@@ -129,12 +129,9 @@ export function PrivateInstructionSkeleton({
                 <Shimmer className="h-3 w-24 rounded bg-muted/60" />
               </div>
             </div>
-
-            <Shimmer className="mt-2 h-3 w-full rounded bg-muted/50" />
-          </div>
+          </SessionSchedulePanel>
         </div>
 
-        {/* Center: hero + description + pricing + scheduling */}
         <div className={cn("min-w-0", spans.center)}>
           <div className="overflow-hidden rounded-xl bg-white shadow-lg">
             <div className={programCardImageContainer}>
@@ -224,34 +221,8 @@ export function PrivateInstructionSkeleton({
           </div>
         </div>
 
-        {/* Right: features + details */}
         <div className={cn("min-w-0 space-y-6", spans.right)}>
-          <div className="rounded-xl bg-white p-8 shadow-sm">
-            <Shimmer className="mb-4 h-8 w-full rounded" />
-            <div className="space-y-3">
-              {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <Shimmer className="h-5 w-5 shrink-0 rounded-full" />
-                  <Shimmer className="h-5 min-w-0 flex-1 rounded" />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-xl bg-white p-8 shadow-sm">
-            <Shimmer className="mb-4 h-8 w-full rounded" />
-            <div className="space-y-6">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex gap-3">
-                  <Shimmer className="mt-0.5 h-7 w-7 shrink-0 rounded" />
-                  <div className="min-w-0 flex-1 space-y-3">
-                    <Shimmer className="h-5 w-full rounded" />
-                    <Shimmer className="h-4 w-full rounded" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <ProgramFeaturesDetailsSkeleton />
         </div>
       </div>
     </motion.div>

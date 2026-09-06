@@ -12,18 +12,26 @@ import {
 interface SessionCalendarProps {
   schedule: SessionDate[] | null;
   hideSessionCount?: boolean;
+  embedded?: boolean;
 }
 
 export function SessionCalendar({
   schedule,
   hideSessionCount,
+  embedded = false,
 }: SessionCalendarProps) {
+  const chromeClass = embedded
+    ? "relative overflow-visible p-3"
+    : "mt-4 bg-white border border-gray-200 rounded-lg p-3 shadow-sm relative overflow-visible";
+
   if (!schedule || schedule.length === 0) {
     return (
-      <div className="mt-4 bg-white border border-gray-200 rounded-lg p-3 shadow-sm relative overflow-visible">
-        <h3 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">
-          Session Schedule
-        </h3>
+      <div className={chromeClass}>
+        {!embedded && (
+          <h3 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">
+            Session Schedule
+          </h3>
+        )}
         <div className="p-3 text-center text-gray-500 text-sm font-medium">
           No Sessions Yet
         </div>
@@ -149,10 +157,12 @@ export function SessionCalendar({
   })();
 
   return (
-    <div className="mt-4 bg-white border border-gray-200 rounded-lg p-3 shadow-sm relative overflow-visible">
-      <h3 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">
-        Session Schedule
-      </h3>
+    <div className={chromeClass}>
+      {!embedded && (
+        <h3 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">
+          Session Schedule
+        </h3>
+      )}
 
       <div className="grid grid-cols-2 gap-2 overflow-visible">
         {months.map((monthDate, monthIndex) => {

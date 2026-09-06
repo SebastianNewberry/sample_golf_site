@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { AddToCartButton } from "@/app/components/AddToCartButton";
 import { BuyNowButton } from "@/app/components/BuyNowButton";
 import { QuantitySelect } from "@/app/components/QuantitySelect";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { CalendarClock, Phone, AlertCircle, Loader2 } from "lucide-react";
 import {
   Select,
@@ -16,6 +15,9 @@ import {
 import { checkSessionAvailability } from "@/app/actions/cart";
 import { useCart } from "@/app/components/cart/CartContext";
 import { formatPrice } from "@/lib/utils";
+import { useProgramVisibility } from "@/app/components/ProgramVisibilityContext";
+import { DisabledActionTooltip } from "@/app/components/DisabledActionTooltip";
+import { getPurchaseBlockReason } from "@/lib/purchase-availability";
 
 interface Session {
   id: string;
@@ -77,6 +79,8 @@ export function ProgramPurchaseSection({
   const setSelectedSession = onSessionChange ?? setInternalSessionId;
 
   const { items } = useCart();
+  const { isIdActive } = useProgramVisibility();
+  const isProgramActive = isIdActive(programId);
 
   // Fetch availability when selected session changes
   useEffect(() => {
@@ -120,6 +124,7 @@ export function ProgramPurchaseSection({
   const isFull =
     maxQuantity <= 0 && isSessionSelected && !isCheckingAvailability;
   const isDisabled =
+    !isProgramActive ||
     !hasSessions ||
     !isSessionSelected ||
     isFull ||
@@ -128,6 +133,11 @@ export function ProgramPurchaseSection({
     allSessionsUnavailable;
 
   const isQuantityDisabled = isDisabled || maxQuantity <= 0;
+  const purchaseBlockReason = getPurchaseBlockReason({
+    isProgramActive,
+    noSessions: allSessionsUnavailable,
+    needsSelection: !isSessionSelected,
+  });
 
 
 
@@ -159,10 +169,10 @@ export function ProgramPurchaseSection({
             <Select
               value={selectedSession}
               onValueChange={setSelectedSession}
-              disabled={!hasSessions || allSessionsUnavailable}
+              disabled={!isProgramActive || !hasSessions || allSessionsUnavailable}
             >
               <SelectTrigger className="w-full bg-gray-50 focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:bg-white disabled:opacity-50">
-                <SelectValue placeholder={!hasSessions || allSessionsUnavailable ? "No sessions available" : "Choose your dates..."} />
+                <SelectValue placeholder={!isProgramActive ? "Program no longer available" : !hasSessions || allSessionsUnavailable ? "No sessions available" : "Choose your dates..."} />
               </SelectTrigger>
               <SelectContent>
                 {sortSessionsAvailableFirst(sessions).map((session) => {
@@ -244,30 +254,21 @@ export function ProgramPurchaseSection({
       )}
 
       <div className="space-y-3">
-        {isDisabled && (!isSessionSelected || allSessionsUnavailable) ? (
-          <TooltipProvider delayDuration={0}>
-            <Tooltip disableHoverableContent>
-              <TooltipTrigger asChild>
-                <div className="w-full cursor-not-allowed">
-                  <BuyNowButton
-                    programId={programId}
-                    programSessionId={selectedSession || undefined}
-                    registrationType={registrationType}
-                    price={programPrice}
-                    quantity={quantity}
-                    className="w-full py-3.5 font-bold text-base rounded-xl shadow-md transition-all bg-gray-200 text-gray-400 pointer-events-none"
-                    size="lg"
-                    disabled={isDisabled}
-                  >
-                    BUY NOW
-                  </BuyNowButton>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="pointer-events-none">
-                <p>{allSessionsUnavailable ? "No sessions currently available" : "Please select a session from the dropdown above"}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+        {purchaseBlockReason ? (
+          <DisabledActionTooltip reason={purchaseBlockReason}>
+            <BuyNowButton
+              programId={programId}
+              programSessionId={selectedSession || undefined}
+              registrationType={registrationType}
+              price={programPrice}
+              quantity={quantity}
+              className="w-full py-3.5 font-bold text-base rounded-xl shadow-md transition-all bg-gray-200 text-gray-400 pointer-events-none"
+              size="lg"
+              disabled
+            >
+              BUY NOW
+            </BuyNowButton>
+          </DisabledActionTooltip>
         ) : (
           <BuyNowButton
             programId={programId}
@@ -287,30 +288,21 @@ export function ProgramPurchaseSection({
           </BuyNowButton>
         )}
 
-        {isDisabled && (!isSessionSelected || allSessionsUnavailable) ? (
-          <TooltipProvider delayDuration={0}>
-            <Tooltip disableHoverableContent>
-              <TooltipTrigger asChild>
-                <div className="w-full cursor-not-allowed">
-                  <AddToCartButton
-                    programId={programId}
-                    programSessionId={selectedSession || undefined}
-                    registrationType={registrationType}
-                    price={programPrice}
-                    quantity={quantity}
-                    className="w-full py-3.5 font-bold text-base border-2 rounded-xl transition-all border-gray-200 text-gray-400 bg-gray-50 pointer-events-none"
-                    size="lg"
-                    disabled={isDisabled}
-                  >
-                    ADD TO CART
-                  </AddToCartButton>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="pointer-events-none">
-                <p>{allSessionsUnavailable ? "No sessions currently available" : "Please select a session from the dropdown above"}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+        {purchaseBlockReason ? (
+          <DisabledActionTooltip reason={purchaseBlockReason}>
+            <AddToCartButton
+              programId={programId}
+              programSessionId={selectedSession || undefined}
+              registrationType={registrationType}
+              price={programPrice}
+              quantity={quantity}
+              className="w-full py-3.5 font-bold text-base border-2 rounded-xl transition-all border-gray-200 text-gray-400 bg-gray-50 pointer-events-none"
+              size="lg"
+              disabled
+            >
+              ADD TO CART
+            </AddToCartButton>
+          </DisabledActionTooltip>
         ) : (
           <AddToCartButton
             programId={programId}

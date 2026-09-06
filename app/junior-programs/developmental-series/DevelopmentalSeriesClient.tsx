@@ -11,7 +11,6 @@ import {
   Clock,
   Users,
 } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/app/components/cart/CartContext";
 import { addToCart } from "@/app/actions/cart";
@@ -33,6 +32,11 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ProgramSession } from "@/db/schema";
 import { useProgramSidebarNav } from "@/lib/use-program-sidebar-nav";
+import { ProgramSidebarLinks } from "@/app/components/ProgramSidebarLinks";
+import { SessionSchedulePanel } from "@/app/components/SessionSchedulePanel";
+import { DisabledActionTooltip } from "@/app/components/DisabledActionTooltip";
+import { useProgramVisibility } from "@/app/components/ProgramVisibilityContext";
+import { getPurchaseBlockReason } from "@/lib/purchase-availability";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface DevelopmentalSeriesClientProps {
@@ -80,6 +84,8 @@ export function DevelopmentalSeriesClient({
   const [selectedSlots, setSelectedSlots] = useState<SeriesSlot[]>([]);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const { showNav, toggleNav, closeNav } = useProgramSidebarNav();
+  const { isIdActive } = useProgramVisibility();
+  const isProgramActive = isIdActive(program.id);
 
   // The first active session is the current series
   const activeSession = useMemo(() => {
@@ -295,6 +301,13 @@ export function DevelopmentalSeriesClient({
     }
   };
 
+  const purchaseBlockReason = getPurchaseBlockReason({
+    isProgramActive,
+    noSessions: availableSlots.length === 0,
+    needsSelection: selectedSlots.length < maxSlots || !selectedPackageId,
+    selectionLabel: "Please select a package above first",
+  });
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -336,24 +349,7 @@ export function DevelopmentalSeriesClient({
 
         {/* Desktop nav links */}
         <div className="hidden lg:block space-y-0">
-          <Link
-            href="/junior-programs/beginner-series"
-            className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            JUNIOR BEGINNER SERIES
-          </Link>
-          <Link
-            href="/junior-programs/developmental-series"
-            className="block bg-white border-l-4 border-orange-500 px-4 py-3 text-sm font-bold text-gray-800"
-          >
-            JUNIOR DEVELOPMENTAL SERIES
-          </Link>
-          <Link
-            href="/junior-programs/private-instruction"
-            className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            JUNIOR PRIVATE GOLF INSTRUCTION
-          </Link>
+          <ProgramSidebarLinks type="junior" currentPage="developmental-series" />
         </div>
 
         {/* Mobile animated nav */}
@@ -366,46 +362,34 @@ export function DevelopmentalSeriesClient({
               transition={{ duration: 0.25, ease: "easeOut" }}
               className="lg:hidden overflow-hidden space-y-0 mb-2"
             >
-              <Link
-                href="/junior-programs/beginner-series"
-                onClick={closeNav}
-                className="block bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                JUNIOR BEGINNER SERIES
-              </Link>
-              <Link
-                href="/junior-programs/developmental-series"
-                onClick={closeNav}
-                className="block bg-white border-l-4 border-orange-500 px-4 py-2.5 text-sm font-bold text-gray-800"
-              >
-                JUNIOR DEVELOPMENTAL SERIES
-              </Link>
-              <Link
-                href="/junior-programs/private-instruction"
-                onClick={closeNav}
-                className="block bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                JUNIOR PRIVATE GOLF INSTRUCTION
-              </Link>
+              <ProgramSidebarLinks
+                type="junior"
+                currentPage="developmental-series"
+                onNavigate={closeNav}
+                variant="mobile"
+              />
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Calendar preview of available dates */}
-        <div className="mt-6">
+        <SessionSchedulePanel
+          footnote={
+            <p className="text-xs text-gray-500 mt-2 px-1">
+              * Dates above are available dates, but you only sign up for
+              individual sessions.
+            </p>
+          }
+        >
           <SessionCalendar
+            embedded
+            hideSessionCount
             schedule={availableSlots.map((s) => ({
               date: s.date,
               startTime: s.startTime,
               endTime: s.endTime,
             }))}
-            hideSessionCount
           />
-          <p className="text-xs text-gray-500 mt-2 px-1">
-            * Dates above are available dates, but you only sign up for
-            individual sessions.
-          </p>
-        </div>
+        </SessionSchedulePanel>
       </div>
 
       {/* Main Card */}
@@ -461,7 +445,8 @@ export function DevelopmentalSeriesClient({
                 {pricingOptions.length > 0 ? (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {pricingOptions.map((pkg: any) => {
-                      const isUnavailable = availableSlots.length === 0;
+                      const isUnavailable =
+                        !isProgramActive || availableSlots.length === 0;
                       const content = (
                         <div
                           key={pkg.id}
@@ -498,7 +483,11 @@ export function DevelopmentalSeriesClient({
                                 {content}
                               </TooltipTrigger>
                               <TooltipContent side="bottom" className="pointer-events-none">
-                                <p>No sessions currently available</p>
+                                <p>
+                                  {!isProgramActive
+                                    ? "Program no longer available"
+                                    : "No sessions currently available"}
+                                </p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -546,25 +535,26 @@ export function DevelopmentalSeriesClient({
                         )}
                       </div>
 
-                      {!selectedPackageId ? (
-                        <TooltipProvider delayDuration={0}>
-                          <Tooltip disableHoverableContent>
-                            <TooltipTrigger asChild>
-                              <div className="w-full cursor-not-allowed">
-                                <Button
-                                  className="w-full h-14 bg-white border-2 border-gray-200 text-gray-400 pointer-events-none text-sm font-bold flex items-center justify-center gap-3 rounded-xl shadow-sm"
-                                  disabled
-                                >
-                                  <CalendarClock className="w-6 h-6" />
-                                  Open Calendar
-                                </Button>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom" className="pointer-events-none">
-                              <p>{availableSlots.length === 0 ? "No sessions currently available" : "Please select a package above first"}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                      {!selectedPackageId || !isProgramActive ? (
+                        <DisabledActionTooltip
+                          reason={
+                            getPurchaseBlockReason({
+                              isProgramActive,
+                              noSessions: availableSlots.length === 0,
+                              needsSelection: !selectedPackageId,
+                              selectionLabel:
+                                "Please select a package above first",
+                            }) ?? "Please select a package above first"
+                          }
+                        >
+                          <Button
+                            className="w-full h-14 bg-white border-2 border-gray-200 text-gray-400 pointer-events-none text-sm font-bold flex items-center justify-center gap-3 rounded-xl shadow-sm"
+                            disabled
+                          >
+                            <CalendarClock className="w-6 h-6" />
+                            Open Calendar
+                          </Button>
+                        </DisabledActionTooltip>
                       ) : (
                         <Button
                           onClick={() => setIsCalendarOpen(true)}
@@ -589,25 +579,16 @@ export function DevelopmentalSeriesClient({
                     </h3>
 
                     <div className="space-y-3">
-                      {selectedSlots.length < maxSlots || !selectedPackageId ? (
-                        <TooltipProvider delayDuration={0}>
-                          <Tooltip disableHoverableContent>
-                            <TooltipTrigger asChild>
-                              <div className="w-full cursor-not-allowed">
-                                <button
-                                  disabled
-                                  className="w-full py-3 font-bold text-sm bg-gray-200 text-gray-400 pointer-events-none rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
-                                >
-                                  <CreditCard className="w-5 h-5" />
-                                  BUY NOW
-                                </button>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom" className="pointer-events-none">
-                              <p>{availableSlots.length === 0 ? "No sessions currently available" : "Please select a package above first"}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                      {purchaseBlockReason ? (
+                        <DisabledActionTooltip reason={purchaseBlockReason}>
+                          <button
+                            disabled
+                            className="w-full py-3 font-bold text-sm bg-gray-200 text-gray-400 pointer-events-none rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+                          >
+                            <CreditCard className="w-5 h-5" />
+                            BUY NOW
+                          </button>
+                        </DisabledActionTooltip>
                       ) : (
                         <button
                           disabled={isBuyNowLoading || isAddingToCart}
@@ -626,24 +607,15 @@ export function DevelopmentalSeriesClient({
                       )}
 
 
-                      {selectedSlots.length < maxSlots || !selectedPackageId ? (
-                        <TooltipProvider delayDuration={0}>
-                          <Tooltip disableHoverableContent>
-                            <TooltipTrigger asChild>
-                              <div className="w-full cursor-not-allowed">
-                                <button
-                                  disabled
-                                  className="w-full py-3 font-bold text-sm border-2 rounded-xl transition-all flex items-center justify-center gap-2 bg-gray-50 border-gray-100 text-gray-300 pointer-events-none"
-                                >
-                                  <ShoppingCart className="w-5 h-5" /> ADD TO CART
-                                </button>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom" className="pointer-events-none">
-                              <p>{availableSlots.length === 0 ? "No sessions currently available" : "Please select a package above first"}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                      {purchaseBlockReason ? (
+                        <DisabledActionTooltip reason={purchaseBlockReason}>
+                          <button
+                            disabled
+                            className="w-full py-3 font-bold text-sm border-2 rounded-xl transition-all flex items-center justify-center gap-2 bg-gray-50 border-gray-100 text-gray-300 pointer-events-none"
+                          >
+                            <ShoppingCart className="w-5 h-5" /> ADD TO CART
+                          </button>
+                        </DisabledActionTooltip>
                       ) : (
                         <button
                           disabled={isBuyNowLoading || isAddingToCart}

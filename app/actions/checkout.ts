@@ -6,24 +6,22 @@ import { getCartWithItems, deleteCart } from "@/db/queries/cart";
 import {
   createCheckoutSession,
   updateCheckoutSessionPaymentIntent,
+  completeCheckoutSession,
 } from "@/db/queries/checkout-sessions";
-import { getGiftCardByCode, deductGiftCardBalance } from "@/db/queries/gift-cards";
-import { getPromoCodeByCode, incrementPromoCodeUses } from "@/db/queries/promo-codes";
+import {
+  getGiftCardByCode,
+  applyGiftCardRedemption,
+} from "@/db/queries/gift-cards";
+import {
+  getPromoCodeByCode,
+  recordPromoCodeRedemption,
+} from "@/db/queries/promo-codes";
 
 const CART_SESSION_COOKIE = "cart_session_id";
 
 import { validateCartAvailability } from "@/app/actions/validation";
-import { createBooking } from "@/db/queries/bookings";
-import { getOrCreateRegularUser } from "@/db/queries/users";
-import { createAdultRegistration } from "@/db/queries/adult-registrations";
-import {
-  createJuniorRegistration,
-  createJuniorProgramRegistration,
-  deleteJuniorProgramRegistration,
-} from "@/db/queries/junior-registrations";
-import { deleteAdultRegistration } from "@/db/queries/adult-registrations";
-import { deleteBooking } from "@/db/queries/bookings";
-import { checkProgramSessionCapacity } from "@/db/queries/programs";
+import { cartItemLineTotal } from "@/lib/pricing-options";
+import { calculateSalesTax } from "@/lib/tax";
 
 interface AdultFormData {
   firstName: string;
@@ -110,9 +108,7 @@ export async function createCheckoutPaymentIntent(data: CheckoutData) {
     // CAPACITY CHECK
     // --------------------------------------------------------
     // Passing cart.items (which has metadata) to validation
-    const availability = await validateCartAvailability(
-      cart.items,
-    );
+    const availability = await validateCartAvailability(cart.items);
     if (!availability.valid) {
       let errorMessage = "Some items in your cart are no longer available.";
 
@@ -147,10 +143,11 @@ export async function createCheckoutPaymentIntent(data: CheckoutData) {
     // STRICT TOTAL CALCULATION
     // --------------------------------------------------------
     const serverTotalAmount = refreshedCart.items.reduce((sum, item) => {
-      return sum + Number(item.priceAtAdd) * item.quantity;
+      return sum + cartItemLineTotal(item);
     }, 0);
 
     const primaryEmail = getPrimaryEmail(data.items[0]);
+    const primaryName = getPrimaryName(data.items[0]);
     const checkoutId = crypto.randomUUID();
 
     // --------------------------------------------------------
@@ -162,7 +159,11 @@ export async function createCheckoutPaymentIntent(data: CheckoutData) {
     if (data.discountCode && data.discountType && data.discountId) {
       if (data.discountType === "gift_card") {
         const giftCard = await getGiftCardByCode(data.discountCode);
-        if (giftCard && giftCard.isActive && parseFloat(giftCard.currentBalance) > 0) {
+        if (
+          giftCard &&
+          giftCard.isActive &&
+          parseFloat(giftCard.currentBalance) > 0
+        ) {
           const balance = parseFloat(giftCard.currentBalance);
           validatedDiscountAmount = Math.min(balance, serverTotalAmount);
           discountMetadata = {
@@ -175,7 +176,8 @@ export async function createCheckoutPaymentIntent(data: CheckoutData) {
       } else if (data.discountType === "promo") {
         const promo = await getPromoCodeByCode(data.discountCode);
         if (promo && promo.isActive) {
-          const isWithinLimits = promo.maxUses === null || promo.currentUses < promo.maxUses;
+          const isWithinLimits =
+            promo.maxUses === null || promo.currentUses < promo.maxUses;
           const isWithinDates =
             (!promo.validFrom || new Date() >= promo.validFrom) &&
             (!promo.validUntil || new Date() <= promo.validUntil);
@@ -203,7 +205,24 @@ export async function createCheckoutPaymentIntent(data: CheckoutData) {
       }
     }
 
-    const chargeAmount = Math.max(0, serverTotalAmount - validatedDiscountAmount);
+    const listedAfterDiscount = Math.max(
+      0,
+      serverTotalAmount - validatedDiscountAmount,
+    );
+
+    const taxResult = await calculateSalesTax({
+      amountCents: Math.round(listedAfterDiscount * 100),
+      reference: checkoutId,
+    });
+    const taxAmount = taxResult.taxCents / 100;
+    const chargeAmount = taxResult.totalCents / 100;
+
+    const discountLabel =
+      validatedDiscountAmount > 0
+        ? data.discountType === "gift_card"
+          ? `Gift Card (${data.discountCode?.slice(0, 4)}...)`
+          : `Promo (${data.discountCode})`
+        : undefined;
 
     // Store checkout data in database
     const savedSession = await createCheckoutSession({
@@ -225,29 +244,63 @@ export async function createCheckoutPaymentIntent(data: CheckoutData) {
                 ?.priceAtAdd || "0",
           };
         }),
+        orderSummary: {
+          subtotalAmount: serverTotalAmount.toFixed(2),
+          discountAmount: validatedDiscountAmount.toFixed(2),
+          taxAmount: taxAmount.toFixed(2),
+          totalAmount: chargeAmount.toFixed(2),
+          taxInclusive: taxResult.inclusive,
+          ...(discountLabel ? { discountLabel } : {}),
+        },
       },
-      totalAmount: serverTotalAmount.toFixed(2),
+      totalAmount: chargeAmount.toFixed(2),
+      taxAmount: taxAmount.toFixed(2),
+      subtotalAmount: serverTotalAmount.toFixed(2),
+      discountAmount: validatedDiscountAmount.toFixed(2),
+      taxInclusive: taxResult.inclusive,
+      promoCodeId:
+        data.discountType === "promo" ? data.discountId : undefined,
+      giftCardId:
+        data.discountType === "gift_card" ? data.discountId : undefined,
+      customerEmail: primaryEmail,
+      customerName: primaryName,
     });
 
     console.log(
-      `[Checkout] Created session ${checkoutId} with ${data.items.length} items. DB ID: ${savedSession.id}. Total: $${serverTotalAmount}. Discount: $${validatedDiscountAmount}. Charge: $${chargeAmount}`,
+      `[Checkout] Created session ${checkoutId} with ${data.items.length} items. DB ID: ${savedSession.id}. Listed: $${serverTotalAmount}. Discount: $${validatedDiscountAmount}. Tax: $${taxAmount}. Charge: $${chargeAmount}. Inclusive: ${taxResult.inclusive}`,
     );
 
     // --------------------------------------------------------
     // FULL COVERAGE: Gift card covers entire order
     // --------------------------------------------------------
     if (chargeAmount <= 0 && validatedDiscountAmount > 0) {
-      // Deduct gift card balance immediately (no Stripe involved)
       if (data.discountType === "gift_card" && data.discountId) {
-        await deductGiftCardBalance(data.discountId, validatedDiscountAmount);
+        await applyGiftCardRedemption({
+          giftCardId: data.discountId,
+          amount: validatedDiscountAmount,
+          checkoutSessionId: savedSession.id,
+          stripePaymentIntentId: `gift_card_full_${checkoutId}`,
+          customerEmail: primaryEmail,
+          customerName: primaryName,
+        });
       }
-      // Increment promo code uses immediately
       if (data.discountType === "promo" && data.discountId) {
-        await incrementPromoCodeUses(data.discountId);
+        await recordPromoCodeRedemption({
+          promoCodeId: data.discountId,
+          promoCode: data.discountCode || data.discountId,
+          checkoutSessionId: savedSession.id,
+          stripePaymentIntentId: `gift_card_full_${checkoutId}`,
+          customerEmail: primaryEmail,
+          customerName: primaryName,
+          discountAmount: validatedDiscountAmount.toFixed(2),
+        });
       }
 
-      // Update checkout session as completed
-      await updateCheckoutSessionPaymentIntent(checkoutId, `gift_card_full_${checkoutId}`);
+      await updateCheckoutSessionPaymentIntent(
+        checkoutId,
+        `gift_card_full_${checkoutId}`,
+      );
+      await completeCheckoutSession(checkoutId);
 
       return {
         success: true,
@@ -264,12 +317,17 @@ export async function createCheckoutPaymentIntent(data: CheckoutData) {
       itemCount: data.items.length.toString(),
       reservationBookingIds: "[]",
       groupRegistrationIds: "[]",
+      taxAmount: taxAmount.toFixed(2),
+      taxInclusive: taxResult.inclusive ? "true" : "false",
+      ...(taxResult.calculationId
+        ? { taxCalculationId: taxResult.calculationId }
+        : {}),
       ...discountMetadata,
     };
 
     // Create PaymentIntent (Embedded Checkout)
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(chargeAmount * 100), // Amount in cents — discounted!
+      amount: taxResult.totalCents,
       currency: "usd",
       metadata: metadata,
       automatic_payment_methods: {
@@ -302,9 +360,15 @@ export async function createCheckoutPaymentIntent(data: CheckoutData) {
   }
 }
 
-/**
- * Get primary email from form data
- */
+function getPrimaryName(item: CheckoutItem): string {
+  if (item.registrationType === "adult") {
+    const data = item.formData as AdultFormData;
+    return `${data.firstName} ${data.lastName}`.trim();
+  }
+  const data = item.formData as JuniorFormData;
+  return `${data.primaryContactFirstName} ${data.primaryContactLastName}`.trim();
+}
+
 function getPrimaryEmail(item: CheckoutItem): string {
   if (item.registrationType === "adult") {
     return (item.formData as AdultFormData).email;

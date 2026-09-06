@@ -13,6 +13,7 @@ import pgaMember from "@/public/adult_private_instruction.webp";
 import usKidsGolfCertified from "@/public/us_kids_golf.webp";
 import { CartIcon } from "./cart/CartIcon";
 import { useNavHoverMenu } from "@/lib/use-nav-hover-menu";
+import { useProgramVisibility } from "@/app/components/ProgramVisibilityContext";
 
 const adultPrograms = [
   {
@@ -100,6 +101,22 @@ export default function Navigation() {
   const [open, setOpen] = useState(false);
   const [juniorProgramsOpen, setJuniorProgramsOpen] = useState(false);
   const [adultProgramsOpen, setAdultProgramsOpen] = useState(false);
+  const { isHrefActive, firstActiveHref } = useProgramVisibility();
+
+  const visibleAdultPrograms = adultPrograms.filter((program) =>
+    isHrefActive(program.href),
+  );
+  const visibleJuniorProgramLinks = juniorPrograms.filter(
+    (program) =>
+      program.type !== "separator" &&
+      program.type !== "section" &&
+      Boolean(program.href) &&
+      isHrefActive(program.href ?? ""),
+  );
+  const adultProgramsHref =
+    firstActiveHref("adult") ?? "/adult-programs/get-golf-ready-level-1";
+  const juniorProgramsHref =
+    firstActiveHref("junior") ?? "/junior-programs/beginner-series";
 
   const closeDesktopMenus = useCallback(() => {
     setJuniorProgramsOpen(false);
@@ -199,13 +216,14 @@ export default function Navigation() {
             </Link>
 
             {/* Junior Programs Dropdown — single hover zone (no separate bridge strip) */}
+            {visibleJuniorProgramLinks.length > 0 && (
             <div
               className="relative"
               onMouseEnter={handleJuniorMenuEnter}
               onMouseLeave={handleJuniorMenuLeave}
             >
               <Link
-                href="/junior-programs/beginner-series"
+                href={juniorProgramsHref}
                 onClick={handleDesktopLinkClick}
                 className={`inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-bold cursor-pointer ${
                   isJuniorProgramsActive ? "text-orange-600" : "text-gray-800"
@@ -230,13 +248,7 @@ export default function Navigation() {
                     >
                       {/* Top Row - Program Links */}
                       <div className="grid grid-cols-3 gap-4">
-                        {juniorPrograms
-                          .filter(
-                            (program) =>
-                              program.type !== "separator" &&
-                              program.type !== "section",
-                          )
-                          .map((program) => (
+                        {visibleJuniorProgramLinks.map((program) => (
                             <Link
                               key={program.title}
                               href={program.href || ""}
@@ -347,15 +359,17 @@ export default function Navigation() {
                 )}
               </AnimatePresence>
             </div>
+            )}
 
             {/* Adult Programs Dropdown — single hover zone (no separate bridge strip) */}
+            {visibleAdultPrograms.length > 0 && (
             <div
               className="relative"
               onMouseEnter={handleAdultMenuEnter}
               onMouseLeave={handleAdultMenuLeave}
             >
               <Link
-                href="/adult-programs/get-golf-ready-level-1"
+                href={adultProgramsHref}
                 onClick={handleDesktopLinkClick}
                 className={`inline-flex items-center gap-1 rounded-md px-4 py-2 text-sm font-bold cursor-pointer ${
                   isAdultProgramsActive ? "text-orange-600" : "text-gray-800"
@@ -378,7 +392,7 @@ export default function Navigation() {
                       exit={{ pointerEvents: "none", transition: { duration: 0 } }}
                       className="grid grid-cols-2 gap-2"
                     >
-                      {adultPrograms.map((program) => (
+                      {visibleAdultPrograms.map((program) => (
                         <li key={program.title}>
                           <Link
                             href={program.href || "/"}
@@ -408,6 +422,7 @@ export default function Navigation() {
                 )}
               </AnimatePresence>
             </div>
+            )}
 
             <Link
               href="/contact"
@@ -463,6 +478,7 @@ export default function Navigation() {
               exit={{ opacity: 0, y: -6, pointerEvents: "none" }}
               className="border-t border-gray-300 py-2 xl:hidden"
             >
+              {visibleJuniorProgramLinks.length > 0 && (
               <details ref={juniorDetailsRef} className="px-3">
                 <summary
                   className={`hover:bg-gray-300 flex cursor-pointer list-none items-center justify-between rounded-md px-0 py-2 text-sm font-bold ${
@@ -476,13 +492,7 @@ export default function Navigation() {
                   <div className="space-y-4">
                     {/* Program Links */}
                     <ul className="grid grid-cols-1 gap-1">
-                      {juniorPrograms
-                        .filter(
-                          (program) =>
-                            program.type !== "separator" &&
-                            program.type !== "section",
-                        )
-                        .map((program) => (
+                      {visibleJuniorProgramLinks.map((program) => (
                           <li key={program.title}>
                             <Link
                               href={program.href || "/"}
@@ -585,7 +595,9 @@ export default function Navigation() {
                   </div>
                 </div>
               </details>
+              )}
 
+              {visibleAdultPrograms.length > 0 && (
               <details ref={adultDetailsRef} className="px-3">
                 <summary
                   className={`hover:bg-gray-300 flex cursor-pointer list-none items-center justify-between rounded-md px-0 py-2 text-sm font-bold ${
@@ -597,7 +609,7 @@ export default function Navigation() {
                 </summary>
                 <div className="mt-2 rounded-lg p-2 bg-gray-200">
                   <ul className="grid grid-cols-2 gap-1">
-                    {adultPrograms.map((program) => (
+                    {visibleAdultPrograms.map((program) => (
                       <li key={program.title}>
                         <Link
                           href={program.href || "/"}
@@ -626,6 +638,7 @@ export default function Navigation() {
                   </ul>
                 </div>
               </details>
+              )}
 
               <Link
                 href="/"

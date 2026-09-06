@@ -4,6 +4,15 @@ import { db } from "@/db/index";
 import { checkoutSession } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
+export interface CheckoutOrderSummary {
+  subtotalAmount: string;
+  discountAmount: string;
+  taxAmount: string;
+  totalAmount: string;
+  taxInclusive: boolean;
+  discountLabel?: string;
+}
+
 interface CheckoutFormData {
   items: {
     cartItemId: string;
@@ -11,7 +20,10 @@ interface CheckoutFormData {
     programSessionId?: string;
     registrationType: "adult" | "junior";
     formData: Record<string, unknown>;
+    metadata?: string;
+    priceAtAdd?: string;
   }[];
+  orderSummary?: CheckoutOrderSummary;
 }
 
 /**
@@ -23,6 +35,14 @@ export async function createCheckoutSession(data: {
   stripePaymentIntentId?: string;
   formData: CheckoutFormData;
   totalAmount: string;
+  taxAmount?: string;
+  subtotalAmount?: string;
+  discountAmount?: string;
+  taxInclusive?: boolean;
+  promoCodeId?: string;
+  giftCardId?: string;
+  customerEmail?: string;
+  customerName?: string;
 }) {
   const result = await db
     .insert(checkoutSession)
@@ -32,6 +52,14 @@ export async function createCheckoutSession(data: {
       stripePaymentIntentId: data.stripePaymentIntentId,
       formData: JSON.stringify(data.formData),
       totalAmount: data.totalAmount,
+      taxAmount: data.taxAmount ?? "0",
+      subtotalAmount: data.subtotalAmount ?? "0",
+      discountAmount: data.discountAmount ?? "0",
+      taxInclusive: data.taxInclusive ?? true,
+      promoCodeId: data.promoCodeId,
+      giftCardId: data.giftCardId,
+      customerEmail: data.customerEmail,
+      customerName: data.customerName,
     })
     .returning();
 
@@ -108,6 +136,7 @@ export async function completeCheckoutSession(checkoutId: string) {
     .update(checkoutSession)
     .set({
       status: "completed",
+      completedAt: new Date(),
     })
     .where(eq(checkoutSession.checkoutId, checkoutId))
     .returning();

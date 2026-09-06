@@ -1,8 +1,15 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
-import { cn } from "@/lib/utils";
-import { PageTitleShimmer, Shimmer } from "@/app/components/Shimmer";
+import { ChevronDown } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Shimmer } from "@/app/components/Shimmer";
+import { ProgramSidebarLinks } from "@/app/components/ProgramSidebarLinks";
+import { SessionSchedulePanel } from "@/app/components/SessionSchedulePanel";
+import {
+  getCatalogEntryByHref,
+  type ProgramAudience,
+} from "@/lib/program-catalog";
 import {
   programCardImageContainer,
   programCardImageFrame,
@@ -21,93 +28,71 @@ export {
 
 export const programPageSingleGrid = programPageGrid;
 
-/** Desktop-only height reservation; not rendered below lg (1024px). */
-function InvisibleCalendarSpacer() {
+export function ProgramLoadingSidebar({
+  type,
+  slug,
+  title,
+}: {
+  type: ProgramAudience;
+  slug: string;
+  title: string;
+}) {
   return (
-    <div className="mt-6 hidden lg:block lg:invisible" aria-hidden="true">
-      <div className="relative overflow-visible rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
-        <Shimmer className="mb-3 h-4 w-full rounded" />
-        <div className="grid grid-cols-2 gap-2 overflow-visible">
-          {[1, 2, 3].map((m) => (
-            <div
-              key={m}
-              className="w-full overflow-visible rounded-lg border border-gray-200"
-            >
-              <div className="rounded-t-lg bg-green-600/80 px-1 py-1 text-center">
-                <Shimmer className="mx-auto h-3 w-10 rounded-sm bg-green-500/50" />
-              </div>
-              <div className="grid grid-cols-7 bg-gray-100">
-                {[1, 2, 3, 4, 5, 6, 7].map((d) => (
-                  <div
-                    key={d}
-                    className="flex aspect-square items-center justify-center border-b border-gray-200"
-                  >
-                    <Shimmer className="h-2 w-2 rounded-sm bg-muted/60" />
-                  </div>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 gap-px rounded-b-lg bg-gray-200 p-0.5">
-                {Array.from({ length: 35 }).map((_, idx) => (
-                  <div
-                    key={idx}
-                    className="flex aspect-square items-center justify-center bg-white"
-                  >
-                    {idx >= 2 && idx < 32 && (
-                      <Shimmer
-                        className={cn(
-                          "h-4 w-4 rounded-sm",
-                          [5, 8, 12, 15, 19, 22, 26].includes(idx)
-                            ? "bg-green-400/60"
-                            : "bg-muted/50",
-                        )}
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div className="mt-3 space-y-2 border-t border-gray-100 pt-3">
-          {[1, 2].map((i) => (
-            <div key={i} className="border-l-2 border-green-300 py-0.5 pl-3">
-              <Shimmer className="mb-1 h-3.5 w-full rounded" />
-              <Shimmer className="h-3 w-4/5 rounded bg-muted/60" />
-            </div>
-          ))}
-        </div>
-        <div className="mt-3 flex items-center gap-2">
-          <div className="h-4 w-4 shrink-0 rounded-sm bg-green-500/50" />
-          <Shimmer className="h-3 w-24 rounded bg-muted/60" />
-        </div>
+    <>
+      <div className="mb-4 flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold text-gray-800">{title}</h1>
+        <span className="lg:hidden flex items-center self-center gap-0.5 text-[8px] font-semibold text-gray-500 px-1.5 py-0.5 rounded-md whitespace-nowrap min-w-[90px] justify-center">
+          Show Programs
+          <ChevronDown className="w-3 h-3" />
+        </span>
       </div>
-      <Shimmer className="mt-2 h-3 w-full rounded bg-muted/50" />
-    </div>
+
+      <div className="hidden space-y-0 lg:block">
+        <ProgramSidebarLinks type={type} currentPage={slug} />
+      </div>
+    </>
   );
 }
 
-/** Visible session schedule card — replaces the calendar for adult pages. */
-function SessionScheduleCard() {
+export function ProgramFeaturesDetailsSkeleton() {
   return (
-    <div className="mt-6 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-      <div className="border-b border-gray-100 px-4 py-3">
-        <Shimmer className="h-5 w-2/3 rounded" />
-      </div>
-      {[1, 2, 3, 4].map((i) => (
-        <div
-          key={i}
-          className="flex items-center justify-between border-b border-gray-50 px-4 py-3 last:border-0"
-        >
-          <Shimmer className="h-4 min-w-0 flex-1 rounded" />
-          <Shimmer className="ml-3 h-4 w-4 shrink-0 rounded-sm" />
+    <>
+      <div className="rounded-xl bg-white p-8 shadow-sm">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">
+          Program Features
+        </h2>
+        <div className="space-y-3">
+          {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <div key={i} className="flex items-center gap-3">
+              <Shimmer className="h-5 w-5 shrink-0 rounded-full" />
+              <Shimmer className="h-5 min-w-0 flex-1 rounded" />
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
+      </div>
+
+      <div className="rounded-xl bg-white p-8 shadow-sm">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">
+          Program Details
+        </h2>
+        <div className="space-y-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex gap-3">
+              <Shimmer className="mt-0.5 h-7 w-7 shrink-0 rounded" />
+              <div className="min-w-0 flex-1 space-y-3">
+                <Shimmer className="h-5 w-full rounded" />
+                <Shimmer className="h-4 w-full rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
   );
 }
 
 export function ProgramPageSkeleton({
-  navRowCount = 3,
+  navRowCount: _navRowCount = 3,
   tallImage = false,
 }: {
   /** Number of nav link rows in the left column. Adult pages use 6, junior use 3. */
@@ -115,9 +100,16 @@ export function ProgramPageSkeleton({
   /** Golf for Women — matches taller hero frame */
   tallImage?: boolean;
 }) {
-  const imageFrame = tallImage
-    ? programCardImageFrameTall
-    : programCardImageFrame;
+  const pathname = usePathname();
+  const entry = getCatalogEntryByHref(pathname ?? "");
+  const type: ProgramAudience =
+    entry?.type ?? (pathname?.includes("junior") ? "junior" : "adult");
+  const title = entry?.pageTitle ?? "";
+  const slug = entry?.slug ?? "";
+  const imageFrame =
+    tallImage || entry?.hero === "tall"
+      ? programCardImageFrameTall
+      : programCardImageFrame;
   const reduceMotion = useReducedMotion();
 
   return (
@@ -128,26 +120,21 @@ export function ProgramPageSkeleton({
       transition={{ duration: 0.35, ease: "easeOut" }}
     >
       <div className={programPageGrid}>
-        {/* Left: nav + session area */}
         <div className="space-y-2 lg:col-span-3">
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <PageTitleShimmer />
-            <Shimmer className="h-6 min-w-[90px] w-[90px] shrink-0 rounded bg-gray-300/70 lg:hidden" />
-          </div>
-
-          <div className="hidden space-y-0 lg:block">
-            {Array.from({ length: navRowCount }).map((_, i) => (
-              <div key={i} className="flex items-center bg-white px-4 py-3">
-                <Shimmer className="h-[1.125rem] min-h-[1.125rem] w-full rounded" />
+          <ProgramLoadingSidebar type={type} slug={slug} title={title} />
+          <SessionSchedulePanel>
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between border-b border-gray-50 px-4 py-3 last:border-0"
+              >
+                <Shimmer className="h-4 min-w-0 flex-1 rounded" />
+                <Shimmer className="ml-3 h-4 w-4 shrink-0 rounded-sm" />
               </div>
             ))}
-          </div>
-
-          <SessionScheduleCard />
-          <InvisibleCalendarSpacer />
+          </SessionSchedulePanel>
         </div>
 
-        {/* Center: ProgramCard (title, copy, price, session, buttons) — not private instruction */}
         <div className="min-w-0 lg:col-span-6">
           <div className="overflow-hidden rounded-xl bg-white shadow-lg">
             <div className={programCardImageContainer}>
@@ -189,34 +176,8 @@ export function ProgramPageSkeleton({
           </div>
         </div>
 
-        {/* Right */}
         <div className="min-w-0 space-y-6 lg:col-span-4">
-          <div className="rounded-xl bg-white p-8 shadow-sm">
-            <Shimmer className="mb-4 h-8 w-full rounded" />
-            <div className="space-y-3">
-              {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <Shimmer className="h-5 w-5 shrink-0 rounded-full" />
-                  <Shimmer className="h-5 min-w-0 flex-1 rounded" />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="rounded-xl bg-white p-8 shadow-sm">
-            <Shimmer className="mb-4 h-8 w-full rounded" />
-            <div className="space-y-6">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex gap-3">
-                  <Shimmer className="mt-0.5 h-7 w-7 shrink-0 rounded" />
-                  <div className="min-w-0 flex-1 space-y-3">
-                    <Shimmer className="h-5 w-full rounded" />
-                    <Shimmer className="h-4 w-full rounded" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <ProgramFeaturesDetailsSkeleton />
         </div>
       </div>
     </motion.div>

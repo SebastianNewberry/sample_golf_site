@@ -19,7 +19,12 @@
     "hooks": "@/hooks"
   },
   "registries": {
-    "@aceternity": "https://ui.aceternity.com/registry/{name}.json",
+    "@aceternity": {
+      "url": "https://ui.aceternity.com/registry/{name}.json",
+      "headers": {
+        "Authorization": "Bearer ${ACETERNITY_API_KEY}"
+      }
+    },
     "@shadcnblocks": {
       "url": "https://shadcnblocks.com/r/{name}",
       "headers": {

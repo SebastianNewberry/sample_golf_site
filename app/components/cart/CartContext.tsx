@@ -14,6 +14,7 @@ import {
   updateCartItem,
   emptyCart,
 } from "@/app/actions/cart";
+import { cartItemLineTotal, parseCartMetadata } from "@/lib/pricing-options";
 
 export interface AppliedDiscount {
   type: "gift_card" | "promo";
@@ -43,6 +44,7 @@ interface CartItem {
     duration: string;
     imageUrl: string | null;
     schedulingType?: string | null;
+    pricingOptions?: unknown;
   } | null;
   session: {
     id: string;
@@ -153,10 +155,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       // Recalculate totals
       const newItemCount = newItems.reduce((sum, i) => sum + i.quantity, 0);
       const newTotal = newItems.reduce(
-        (sum, i) => sum + parseFloat(i.priceAtAdd) * i.quantity,
+        (sum, i) => sum + cartItemLineTotal(i),
         0,
       );
-      // Batch state updates using React 18 automatic batching
       setItemCount(newItemCount);
       setTotal(newTotal);
       return newItems;
@@ -172,32 +173,37 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const updateQuantity = async (itemId: string, quantity: number) => {
     if (quantity <= 0) {
-      // If quantity is 0 or negative, remove the item
       await removeItem(itemId);
       return;
     }
 
-    // Optimistic update: update local state immediately
+    const existing = items.find((item) => item.id === itemId);
+    const isOnCourse = Boolean(
+      parseCartMetadata(existing?.metadata).isOnCourse,
+    );
+
+    if (isOnCourse) {
+      await updateCartItem(itemId, quantity);
+      await refreshCart();
+      return;
+    }
+
     setItems((prevItems) => {
       const newItems = prevItems.map((item) =>
         item.id === itemId ? { ...item, quantity } : item,
       );
-      // Recalculate totals
       const newItemCount = newItems.reduce((sum, i) => sum + i.quantity, 0);
       const newTotal = newItems.reduce(
-        (sum, i) => sum + parseFloat(i.priceAtAdd) * i.quantity,
+        (sum, i) => sum + cartItemLineTotal(i),
         0,
       );
-      // Batch state updates using React 18 automatic batching
       setItemCount(newItemCount);
       setTotal(newTotal);
       return newItems;
     });
 
-    // Sync with database in the background (fire and forget)
     updateCartItem(itemId, quantity).catch((error) => {
       console.error("Error updating quantity:", error);
-      // If database update fails, refresh cart to get correct state
       refreshCart();
     });
   };

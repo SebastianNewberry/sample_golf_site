@@ -1,12 +1,9 @@
 import "server-only";
 
 import { db } from "@/db";
-import { promoCode } from "@/db/schema";
+import { promoCode, promoCodeRedemption } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
 
-/**
- * Look up a promo code by its code string
- */
 export async function getPromoCodeByCode(code: string) {
   const result = await db
     .select()
@@ -15,9 +12,6 @@ export async function getPromoCodeByCode(code: string) {
   return result[0] || null;
 }
 
-/**
- * Increment the usage counter for a promo code (called from webhook)
- */
 export async function incrementPromoCodeUses(id: string) {
   const [updated] = await db
     .update(promoCode)
@@ -30,9 +24,42 @@ export async function incrementPromoCodeUses(id: string) {
   return updated;
 }
 
-/**
- * Get all promo codes (for admin views)
- */
+export async function recordPromoCodeRedemption(params: {
+  promoCodeId: string;
+  promoCode: string;
+  checkoutSessionId?: string;
+  stripePaymentIntentId?: string;
+  customerEmail?: string;
+  customerName?: string;
+  discountAmount: string;
+}) {
+  if (params.checkoutSessionId) {
+    const [existing] = await db
+      .select()
+      .from(promoCodeRedemption)
+      .where(eq(promoCodeRedemption.checkoutSessionId, params.checkoutSessionId))
+      .limit(1);
+
+    if (existing) return existing;
+  }
+
+  const [created] = await db
+    .insert(promoCodeRedemption)
+    .values({
+      promoCodeId: params.promoCodeId,
+      promoCode: params.promoCode.toUpperCase(),
+      checkoutSessionId: params.checkoutSessionId,
+      stripePaymentIntentId: params.stripePaymentIntentId,
+      customerEmail: params.customerEmail,
+      customerName: params.customerName,
+      discountAmount: params.discountAmount,
+    })
+    .returning();
+
+  await incrementPromoCodeUses(params.promoCodeId);
+  return created;
+}
+
 export async function getAllPromoCodes() {
   return await db
     .select()

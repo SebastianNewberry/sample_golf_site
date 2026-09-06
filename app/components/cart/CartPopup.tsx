@@ -14,6 +14,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { formatPrice } from "@/lib/utils";
+import {
+  cartItemLineTotal,
+  getCartItemOnCourseLimits,
+} from "@/lib/pricing-options";
 
 // Re-using the program image map (simplified for popup)
 const PROGRAM_IMAGE_MAP: Record<string, string> = {
@@ -60,8 +64,13 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
       const enrolled = item.session.enrolledCount ?? 0;
       const maxAvailable = item.session.capacity - enrolled;
       if (newQty > maxAvailable) {
-        return; // Prevent going over capacity
+        return;
       }
+    }
+
+    const limits = getCartItemOnCourseLimits(item);
+    if (limits.isOnCourse && newQty > limits.max) {
+      return;
     }
 
     if (newQty > 0) updateQuantity(itemId, newQty);
@@ -115,6 +124,7 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
                 const isPrivateInstruction =
                   item.program?.name?.toLowerCase().includes("private") ||
                   (item.metadata && !item.session);
+                const playerLimits = getCartItemOnCourseLimits(item);
 
                 // Calculate max quantity if session exists
                 let maxQuantity = Infinity;
@@ -179,19 +189,9 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
                       <div className="flex items-end justify-between mt-3">
                         <div className="flex items-center gap-2 border border-gray-200 rounded-md bg-white">
                           {(() => {
-                            // For private instructions, get the base player count from metadata
-                            let minQuantity = 1;
-                            if (isPrivateInstruction && item.metadata) {
-                              try {
-                                const meta = JSON.parse(item.metadata);
-                                if (
-                                  meta.playersCount &&
-                                  meta.playersCount > 0
-                                ) {
-                                  minQuantity = meta.playersCount;
-                                }
-                              } catch {}
-                            }
+                            const minQuantity = isPrivateInstruction
+                              ? playerLimits.min
+                              : 1;
                             const isAtMinimum = item.quantity <= minQuantity;
 
                             return isAtMinimum ? (
@@ -236,50 +236,56 @@ export function CartPopup({ isOpen, setIsOpen }: CartPopupProps) {
                             {item.quantity} Player
                             {item.quantity !== 1 ? "s" : ""}
                           </span>
-                          {item.quantity >= maxQuantity &&
-                          !isPrivateInstruction ? (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <span
-                                  tabIndex={0}
-                                  className="inline-flex cursor-not-allowed"
-                                >
-                                  <button
-                                    disabled
-                                    className="w-6 h-6 flex items-center justify-center text-gray-500 opacity-50 pointer-events-none"
-                                  >
-                                    +
-                                  </button>
-                                </span>
-                              </TooltipTrigger>
-                              <TooltipContent side="bottom">
-                                <p>Session capacity reached</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          ) : (
-                            <button
-                              onClick={(e) =>
-                                handleUpdateQuantity(
-                                  e,
-                                  item.id,
-                                  item.quantity + 1,
-                                )
-                              }
-                              className="w-6 h-6 flex items-center justify-center text-gray-500 hover:bg-gray-100 cursor-pointer"
-                            >
-                              +
-                            </button>
-                          )}
+                          {(() => {
+                            const atMax =
+                              (item.session &&
+                                !isPrivateInstruction &&
+                                item.quantity >= maxQuantity) ||
+                              (playerLimits.isOnCourse &&
+                                item.quantity >= playerLimits.max);
+
+                            if (atMax) {
+                              return (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span
+                                      tabIndex={0}
+                                      className="inline-flex cursor-not-allowed"
+                                    >
+                                      <button
+                                        disabled
+                                        className="w-6 h-6 flex items-center justify-center text-gray-500 opacity-50 pointer-events-none"
+                                      >
+                                        +
+                                      </button>
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="bottom">
+                                    <p>Session capacity reached</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              );
+                            }
+
+                            return (
+                              <button
+                                onClick={(e) =>
+                                  handleUpdateQuantity(
+                                    e,
+                                    item.id,
+                                    item.quantity + 1,
+                                  )
+                                }
+                                className="w-6 h-6 flex items-center justify-center text-gray-500 hover:bg-gray-100 cursor-pointer"
+                              >
+                                +
+                              </button>
+                            );
+                          })()}
                         </div>
                         <div className="flex items-center justify-end">
                           <span className="text-sm font-bold text-gray-800">
-                            ${formatPrice(
-                              Math.round(
-                                parseFloat(item.priceAtAdd) *
-                                  item.quantity *
-                                  100,
-                              ) / 100
-                            )}
+                            ${formatPrice(cartItemLineTotal(item))}
                           </span>
                         </div>
                       </div>

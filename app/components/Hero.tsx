@@ -21,13 +21,13 @@ export default function Hero() {
 
       {/* Content */}
       <div className="relative z-10 text-center px-4 max-w-5xl mx-auto">
-        <p className="text-white text-base md:text-lg font-light tracking-wide mb-4 italic">
+        <p className="mb-4 font-serif text-base font-light tracking-wide text-white italic md:text-lg">
           Welcome To
         </p>
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 tracking-[0.15em] uppercase drop-shadow-sm">
-          TOSKI GOLF ACADEMY
+        <h1 className="mb-4 text-4xl font-bold tracking-[0.15em] text-white uppercase drop-shadow-sm md:text-5xl lg:text-6xl">
+          Toski Golf Academy
         </h1>
-        <p className="text-white text-base md:text-lg font-light tracking-wide italic">
+        <p className="font-serif text-base font-light tracking-wide text-white italic md:text-lg">
           - Troy, Michigan -
         </p>
         <div className="mt-8">

@@ -7,12 +7,21 @@ import {
   getCartWithItems,
   removeCartItem,
   updateCartItemQuantity,
+  updateCartItemDetails,
   clearCart,
   getCartItemCount,
   getCartTotal,
 } from "@/db/queries/cart";
-import { getProgramById, getSlotEnrollmentCount } from "@/db/queries/programs";
+import { getProgramById, getSlotEnrollmentCount, checkProgramSessionCapacity } from "@/db/queries/programs";
 import { reconcileCartPricing } from "@/lib/cart-pricing";
+import {
+  applyPackageToMetadata,
+  findOnCoursePackageForPlayers,
+  getOnCoursePlayerRange,
+  parseCartMetadata,
+  parsePricingOptions,
+  perPlayerUnitPrice,
+} from "@/lib/pricing-options";
 
 const CART_SESSION_COOKIE = "cart_session_id";
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
@@ -76,6 +85,10 @@ export async function addToCart(data: {
       return { success: false, error: "Program not found" };
     }
 
+    if (!programData.isActive) {
+      return { success: false, error: "Program no longer available" };
+    }
+
     let finalPrice = data.price; // Start with frontend price
     let validated = false;
 
@@ -103,62 +116,51 @@ export async function addToCart(data: {
         finalPrice = Number(programData.price);
         validated = true;
       } else {
-        // Handle JSON pricing options
-        let options: any[] = [];
-        try {
-          options =
-            typeof programData.pricingOptions === "string"
-              ? JSON.parse(programData.pricingOptions)
-              : programData.pricingOptions;
-        } catch (e) {
-          console.error("Error parsing pricing options", e);
-        }
-
-        // We need the frontend to send the packageId in metadata
-        // For now, if we don't have packageId, we try to match by price and sessionCount...
-        // But the best is extracting it from metadata if they sent it
-        let metadataObj: any = {};
-        if (data.metadata) {
-          try {
-            metadataObj = JSON.parse(data.metadata);
-          } catch (e) {}
-        }
-
+        const options = parsePricingOptions(programData.pricingOptions);
+        const metadataObj = parseCartMetadata(data.metadata);
         const packageId = metadataObj.packageId;
-        let matchedOption = null;
-
-        if (packageId) {
-          matchedOption = options.find((o) => o.id === packageId);
-        } else {
-          // Fallback matching logic (if frontend hasn't been updated to send packageId yet)
-          // We look for an option with matching price.
-          matchedOption = options.find(
-            (o) => Number(o.price) === Number(data.price),
-          );
-        }
+        let matchedOption =
+          typeof packageId === "string" && packageId
+            ? (options.find((o) => o.id === packageId) ?? null)
+            : (options.find((o) => Number(o.price) === Number(data.price)) ??
+              null);
 
         if (!matchedOption) {
           return { success: false, error: "Invalid pricing package selected." };
         }
 
-        // Strict validation!
-        console.log("DEBUG ADD TO CART VALIDATION:", {
-          frontendPrice: data.price,
-          packageId,
-          matchedOptionPrice: matchedOption.price,
-          frontendPriceType: typeof data.price,
-          matchedOptionPriceType: typeof matchedOption.price,
-        });
+        const requestedPlayers = Math.max(
+          1,
+          Math.floor(
+            Number(data.quantity) || Number(matchedOption.playersCount) || 1,
+          ),
+        );
 
-        // Round to nearest penny to avoid JS floating point comparison errors
-        const clientPrice = Math.round(Number(data.price) * 100);
-        const serverPrice = Math.round(Number(matchedOption.price) * 100);
-
-        if (clientPrice !== serverPrice) {
-          return {
-            success: false,
-            error: "Price mismatch. Security validation failed.",
-          };
+        if (matchedOption.isOnCourse) {
+          const resolved = findOnCoursePackageForPlayers(
+            options,
+            matchedOption,
+            requestedPlayers,
+          );
+          if (!resolved) {
+            const range = getOnCoursePlayerRange(options, matchedOption);
+            return {
+              success: false,
+              error: range
+                ? `On-course coaching is limited to ${range.max} player${range.max === 1 ? "" : "s"}.`
+                : "No on-course package is available for this number of players.",
+            };
+          }
+          matchedOption = resolved;
+        } else {
+          const clientPrice = Math.round(Number(data.price) * 100);
+          const serverPrice = Math.round(Number(matchedOption.price) * 100);
+          if (clientPrice !== serverPrice) {
+            return {
+              success: false,
+              error: "Price mismatch. Security validation failed.",
+            };
+          }
         }
 
         // Extract slots for validation
@@ -238,28 +240,28 @@ export async function addToCart(data: {
         finalPrice = Number(matchedOption.price);
         validated = true;
 
-        // For private instructions: store per-player price and quantity = total players
-        // This allows adding/removing individual players in the cart
         const basePlayersCount = Number(matchedOption.playersCount) || 1;
-        const perPlayerPrice =
-          Math.round((finalPrice / basePlayersCount) * 100) / 100;
-        const totalPlayers = data.quantity || basePlayersCount;
+        const totalPlayers = matchedOption.isOnCourse
+          ? basePlayersCount
+          : requestedPlayers;
+        const perPlayerPrice = perPlayerUnitPrice(finalPrice, basePlayersCount);
 
-        // Validate that requested players >= base players
-        if (totalPlayers < basePlayersCount) {
+        if (!matchedOption.isOnCourse && totalPlayers < basePlayersCount) {
           return {
             success: false,
             error: `This package requires at least ${basePlayersCount} players.`,
           };
         }
 
+        const metadata = applyPackageToMetadata(data.metadata, matchedOption);
+
         const item = await addItemToCart({
           cartId: cart.id,
           programId: data.programId,
           programSessionId: data.programSessionId,
           registrationType: data.registrationType,
-          priceAtAdd: perPlayerPrice.toFixed(2),
-          metadata: data.metadata,
+          priceAtAdd: perPlayerPrice,
+          metadata,
           quantity: totalPlayers,
         });
 
@@ -374,8 +376,13 @@ export async function getCart() {
       };
     }
 
+    let priceUpdates: Awaited<
+      ReturnType<typeof reconcileCartPricing>
+    >["priceUpdates"] = [];
+
     if (cartData.items.length > 0) {
-      await reconcileCartPricing(cartData.items);
+      const reconcileResult = await reconcileCartPricing(cartData.items);
+      priceUpdates = reconcileResult.priceUpdates;
     }
 
     const refreshedCart = await getCartWithItems(sessionId);
@@ -406,7 +413,7 @@ export async function getCart() {
       items: refreshedCart.items,
       total,
       itemCount,
-      priceUpdates: undefined,
+      priceUpdates: priceUpdates.length > 0 ? priceUpdates : undefined,
     };
   } catch (error) {
     console.error("Error getting cart:", error);
@@ -468,8 +475,60 @@ export async function updateCartItem(itemId: string, quantity: number) {
 
     const programData = await getProgramById(item.programId);
     const isSeries = programData?.schedulingType === "series";
+    const metadataObj = parseCartMetadata(item.metadata);
+    const options = parsePricingOptions(programData?.pricingOptions);
+    const selectedPackage =
+      typeof metadataObj.packageId === "string"
+        ? options.find((option) => option.id === metadataObj.packageId)
+        : undefined;
+    const isOnCourse = Boolean(
+      metadataObj.isOnCourse || selectedPackage?.isOnCourse,
+    );
 
-    // If increasing quantity, check capacity (group sessions only)
+    if (isOnCourse) {
+      const currentPackage =
+        selectedPackage?.isOnCourse
+          ? selectedPackage
+          : options.find((option) => option.isOnCourse);
+      if (!currentPackage) {
+        return {
+          success: false,
+          error: "The selected on-course package is no longer available.",
+        };
+      }
+      const resolved = findOnCoursePackageForPlayers(
+        options,
+        currentPackage,
+        quantity,
+      );
+      if (!resolved) {
+        const range = getOnCoursePlayerRange(options, currentPackage);
+        return {
+          success: false,
+          error: range
+            ? `On-course coaching is limited to ${range.max} player${range.max === 1 ? "" : "s"}.`
+            : "No on-course package is available for this number of players.",
+        };
+      }
+
+      const nextMetadata = applyPackageToMetadata(item.metadata, resolved);
+      const priceAtAdd = perPlayerUnitPrice(
+        Number(resolved.price),
+        Number(resolved.playersCount) || 1,
+      );
+
+      await updateCartItemDetails(itemId, {
+        quantity,
+        priceAtAdd,
+        metadata: nextMetadata,
+      });
+
+      return {
+        success: true,
+        message: "Cart updated",
+      };
+    }
+
     if (
       quantity > item.quantity &&
       item.programSessionId &&
@@ -480,8 +539,6 @@ export async function updateCartItem(itemId: string, quantity: number) {
         item.programSessionId,
       );
 
-      // remaining is what's left in DB (Total Capacity - Enrolled).
-      // Since 'Enrolled' does not include items in cart, 'remaining' represents the absolute ceiling for this item's quantity.
       if (quantity > remaining) {
         return {
           success: false,
@@ -494,9 +551,7 @@ export async function updateCartItem(itemId: string, quantity: number) {
 
     if (cartData.items.length > 0) {
       await reconcileCartPricing(
-        cartData.items.map((i) =>
-          i.id === itemId ? { ...i, quantity } : i,
-        ),
+        cartData.items.map((i) => (i.id === itemId ? { ...i, quantity } : i)),
       );
     }
 
@@ -534,8 +589,6 @@ export async function emptyCart() {
 /**
  * Check if a program session has availability
  */
-import { checkProgramSessionCapacity } from "@/db/queries/programs";
-
 export async function checkSessionAvailability(sessionId: string) {
   try {
     const { available, remaining } =

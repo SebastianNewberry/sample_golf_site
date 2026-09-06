@@ -12,7 +12,6 @@ import {
   Users,
 } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import {
   programCardImageClass,
   programCardImageContainer,
@@ -31,7 +30,17 @@ import { PrivateInstructionCalendar } from "@/app/components/PrivateInstructionC
 import { Button } from "@/components/ui/button";
 import { format, isSameDay } from "date-fns";
 import { useProgramSidebarNav } from "@/lib/use-program-sidebar-nav";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { ProgramSidebarLinks } from "@/app/components/ProgramSidebarLinks";
+import { SessionSchedulePanel } from "@/app/components/SessionSchedulePanel";
+import { DisabledActionTooltip } from "@/app/components/DisabledActionTooltip";
+import { useProgramVisibility } from "@/app/components/ProgramVisibilityContext";
+import { getPurchaseBlockReason } from "@/lib/purchase-availability";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface AdultPrivateGolfInstructionClientProps {
   program: any;
@@ -62,12 +71,14 @@ export function AdultPrivateGolfInstructionClient({
   const [selectedSlots, setSelectedSlots] = useState<any[]>([]); // Array of slots
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const { showNav, toggleNav, closeNav } = useProgramSidebarNav();
+  const { isIdActive } = useProgramVisibility();
+  const isProgramActive = isIdActive(program.id);
 
   const { items } = useCart();
 
   // Helper to parse local date string YYYY-MM-DD
   const parseLocalDate = (dateStr: string) => {
-    const [y, m, d] = dateStr.split('-').map(Number);
+    const [y, m, d] = dateStr.split("-").map(Number);
     return new Date(y, m - 1, d);
   };
 
@@ -85,7 +96,10 @@ export function AdultPrivateGolfInstructionClient({
             const data = JSON.parse(item.metadata);
             return (data.slots || []).map((s: any) => ({
               ...s,
-              date: typeof s.date === "string" && s.date.includes("-") ? parseLocalDate(s.date.split("T")[0]) : new Date(s.date),
+              date:
+                typeof s.date === "string" && s.date.includes("-")
+                  ? parseLocalDate(s.date.split("T")[0])
+                  : new Date(s.date),
             }));
           }
         } catch (e) {
@@ -104,7 +118,6 @@ export function AdultPrivateGolfInstructionClient({
     return new Date(estString);
   };
 
-
   // Use the pre-calculated available slots passed from server
   const availableSlots = useMemo(() => {
     const nowEST = getNowEST();
@@ -112,7 +125,10 @@ export function AdultPrivateGolfInstructionClient({
     return initialAvailableSlots
       .map((slot) => ({
         ...slot,
-        date: typeof slot.date === "string" ? parseLocalDate(slot.date) : new Date(slot.date), // Ensure date object is local
+        date:
+          typeof slot.date === "string"
+            ? parseLocalDate(slot.date)
+            : new Date(slot.date), // Ensure date object is local
       }))
       .filter((slot) => {
         // Filter out past slots
@@ -320,6 +336,13 @@ export function AdultPrivateGolfInstructionClient({
     }
   };
 
+  const purchaseBlockReason = getPurchaseBlockReason({
+    isProgramActive,
+    noSessions: availableSlots.length === 0,
+    needsSelection: selectedSlots.length < maxSlots || !selectedDuration,
+    selectionLabel: "Please select a package above first",
+  });
+
   return (
     <>
       <PrivateInstructionCalendar
@@ -365,42 +388,7 @@ export function AdultPrivateGolfInstructionClient({
 
             {/* Desktop nav links */}
             <div className="hidden lg:block space-y-0">
-              <Link
-                href="/adult-programs/get-golf-ready-level-1"
-                className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                GET GOLF READY (LEVEL I)
-              </Link>
-              <Link
-                href="/adult-programs/get-golf-ready-level-2"
-                className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                GET GOLF READY (LEVEL II)
-              </Link>
-              <Link
-                href="/adult-programs/short-game"
-                className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                ADULT SHORT GAME SERIES
-              </Link>
-              <Link
-                href="/adult-programs/women"
-                className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                GOLF FOR WOMEN
-              </Link>
-              <Link
-                href="/adult-programs/private"
-                className="block bg-white border-l-4 border-orange-500 px-4 py-3 text-sm font-bold text-gray-800"
-              >
-                ADULT PRIVATE GOLF INSTRUCTION
-              </Link>
-              <Link
-                href="/adult-programs/open-practice"
-                className="block bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                ADULT OPEN PRACTICE
-              </Link>
+              <ProgramSidebarLinks type="adult" currentPage="private" />
             </div>
 
             {/* Mobile animated nav */}
@@ -413,55 +401,27 @@ export function AdultPrivateGolfInstructionClient({
                   transition={{ duration: 0.25, ease: "easeOut" }}
                   className="lg:hidden overflow-hidden space-y-0 mb-2"
                 >
-                  <Link
-                    href="/adult-programs/get-golf-ready-level-1"
-                    onClick={closeNav}
-                    className="block bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    GET GOLF READY (LEVEL I)
-                  </Link>
-                  <Link
-                    href="/adult-programs/get-golf-ready-level-2"
-                    onClick={closeNav}
-                    className="block bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    GET GOLF READY (LEVEL II)
-                  </Link>
-                  <Link
-                    href="/adult-programs/short-game"
-                    onClick={closeNav}
-                    className="block bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    ADULT SHORT GAME SERIES
-                  </Link>
-                  <Link
-                    href="/adult-programs/women"
-                    onClick={closeNav}
-                    className="block bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    GOLF FOR WOMEN
-                  </Link>
-                  <Link
-                    href="/adult-programs/private"
-                    onClick={closeNav}
-                    className="block bg-white border-l-4 border-orange-500 px-4 py-2.5 text-sm font-bold text-gray-800"
-                  >
-                    ADULT PRIVATE GOLF INSTRUCTION
-                  </Link>
-                  <Link
-                    href="/adult-programs/open-practice"
-                    onClick={closeNav}
-                    className="block bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    ADULT OPEN PRACTICE
-                  </Link>
+                  <ProgramSidebarLinks
+                    type="adult"
+                    currentPage="private"
+                    onNavigate={closeNav}
+                    variant="mobile"
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Session Calendar - Summary of Availability */}
-            <div className="mt-6">
+            <SessionSchedulePanel
+              footnote={
+                <p className="text-xs text-gray-500 mt-2 px-1">
+                  * Dates above are available dates, but you only sign up for
+                  individual sessions.
+                </p>
+              }
+            >
               <SessionCalendar
+                embedded
+                hideSessionCount
                 schedule={availableSlots.map((s) => ({
                   date: s.date.toLocaleDateString("en-CA", {
                     timeZone: "America/New_York",
@@ -469,13 +429,8 @@ export function AdultPrivateGolfInstructionClient({
                   startTime: s.startTime,
                   endTime: s.endTime,
                 }))}
-                hideSessionCount
               />
-              <p className="text-xs text-gray-500 mt-2 px-1">
-                * Dates above are available dates, but you only sign up for
-                individual sessions.
-              </p>
-            </div>
+            </SessionSchedulePanel>
           </div>
 
           {/* Main Card: Image + Description + Price */}
@@ -532,7 +487,8 @@ export function AdultPrivateGolfInstructionClient({
                           {pricingOptions
                             .filter((p: any) => !p.isOnCourse)
                             .map((pkg: any) => {
-                              const isUnavailable = availableSlots.length === 0;
+                              const isUnavailable =
+                                !isProgramActive || availableSlots.length === 0;
                               const content = (
                                 <div
                                   key={pkg.id}
@@ -542,9 +498,12 @@ export function AdultPrivateGolfInstructionClient({
                                   className={`p-2 rounded-xl border-2 transition-all flex flex-col items-center justify-center text-center gap-1 min-h-[8rem]
                                     ${isUnavailable ? "opacity-50 cursor-not-allowed bg-gray-50 border-gray-200" : "cursor-pointer"}
                                     ${
-                                      !isUnavailable && selectedPackageId === pkg.id
+                                      !isUnavailable &&
+                                      selectedPackageId === pkg.id
                                         ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))] shadow-sm"
-                                        : !isUnavailable ? "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm" : ""
+                                        : !isUnavailable
+                                          ? "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
+                                          : ""
                                     }`}
                                 >
                                   <p className="text-gray-600 font-medium">
@@ -565,13 +524,20 @@ export function AdultPrivateGolfInstructionClient({
 
                               if (isUnavailable) {
                                 return (
-                                  <TooltipProvider key={pkg.id} delayDuration={0}>
+                                  <TooltipProvider
+                                    key={pkg.id}
+                                    delayDuration={0}
+                                  >
                                     <Tooltip disableHoverableContent>
                                       <TooltipTrigger asChild>
                                         {content}
                                       </TooltipTrigger>
                                       <TooltipContent side="bottom">
-                                        <p>No sessions currently available</p>
+                                        <p>
+                                          {!isProgramActive
+                                            ? "Program no longer available"
+                                            : "No sessions currently available"}
+                                        </p>
                                       </TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
@@ -603,7 +569,8 @@ export function AdultPrivateGolfInstructionClient({
                           {pricingOptions
                             .filter((p: any) => p.isOnCourse)
                             .map((pkg: any) => {
-                              const isUnavailable = availableSlots.length === 0;
+                              const isUnavailable =
+                                !isProgramActive || availableSlots.length === 0;
                               const content = (
                                 <div
                                   key={pkg.id}
@@ -613,9 +580,12 @@ export function AdultPrivateGolfInstructionClient({
                                   className={`p-4 rounded-xl border-2 transition-all flex items-center justify-between
                                     ${isUnavailable ? "opacity-50 cursor-not-allowed bg-gray-50 border-gray-200" : "cursor-pointer"}
                                     ${
-                                      !isUnavailable && selectedPackageId === pkg.id
+                                      !isUnavailable &&
+                                      selectedPackageId === pkg.id
                                         ? "bg-[hsl(var(--golf-orange))]/5 border-[hsl(var(--golf-orange))] shadow-sm"
-                                        : !isUnavailable ? "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm" : ""
+                                        : !isUnavailable
+                                          ? "bg-white border-gray-100 hover:border-green-200 hover:bg-green-50 shadow-sm"
+                                          : ""
                                     }`}
                                 >
                                   <div>
@@ -624,8 +594,8 @@ export function AdultPrivateGolfInstructionClient({
                                     </p>
                                     <p className="text-xs text-gray-500 mt-1">
                                       {pkg.playersCount === 1
-                                        ? "Private Session"
-                                        : `$${Math.round(pkg.price / pkg.playersCount)} / person`}
+                                        ? "1 Player"
+                                        : `${pkg.playersCount} Players`}
                                     </p>
                                     {(pkg.coachesCount ?? 0) > 0 ? (
                                       <p className="text-xs text-[hsl(var(--golf-green))] font-semibold mt-1">
@@ -645,13 +615,20 @@ export function AdultPrivateGolfInstructionClient({
 
                               if (isUnavailable) {
                                 return (
-                                  <TooltipProvider key={pkg.id} delayDuration={0}>
+                                  <TooltipProvider
+                                    key={pkg.id}
+                                    delayDuration={0}
+                                  >
                                     <Tooltip disableHoverableContent>
                                       <TooltipTrigger asChild>
                                         {content}
                                       </TooltipTrigger>
                                       <TooltipContent side="bottom">
-                                        <p>No sessions currently available</p>
+                                        <p>
+                                          {!isProgramActive
+                                            ? "Program no longer available"
+                                            : "No sessions currently available"}
+                                        </p>
                                       </TooltipContent>
                                     </Tooltip>
                                   </TooltipProvider>
@@ -703,25 +680,26 @@ export function AdultPrivateGolfInstructionClient({
                             )}
                           </div>
 
-                          {!selectedDuration ? (
-                            <TooltipProvider delayDuration={0}>
-                              <Tooltip disableHoverableContent>
-                                <TooltipTrigger asChild>
-                                  <div className="w-full cursor-not-allowed">
-                                    <Button
-                                      className="w-full h-14 bg-white border-2 border-gray-200 text-gray-400 pointer-events-none text-sm font-bold flex items-center justify-center gap-3 rounded-xl shadow-sm"
-                                      disabled
-                                    >
-                                      <CalendarClock className="w-6 h-6" />
-                                      Open Calendar
-                                    </Button>
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom" className="pointer-events-none">
-                                  <p>{availableSlots.length === 0 ? "No sessions currently available" : "Please select a package above first"}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                          {!selectedDuration || !isProgramActive ? (
+                            <DisabledActionTooltip
+                              reason={
+                                getPurchaseBlockReason({
+                                  isProgramActive,
+                                  noSessions: availableSlots.length === 0,
+                                  needsSelection: !selectedDuration,
+                                  selectionLabel:
+                                    "Please select a package above first",
+                                }) ?? "Please select a package above first"
+                              }
+                            >
+                              <Button
+                                className="w-full h-14 bg-white border-2 border-gray-200 text-gray-400 pointer-events-none text-sm font-bold flex items-center justify-center gap-3 rounded-xl shadow-sm"
+                                disabled
+                              >
+                                <CalendarClock className="w-6 h-6" />
+                                Open Calendar
+                              </Button>
+                            </DisabledActionTooltip>
                           ) : (
                             <Button
                               onClick={() => setIsCalendarOpen(true)}
@@ -746,25 +724,16 @@ export function AdultPrivateGolfInstructionClient({
                         </h3>
 
                         <div className="space-y-3">
-                          {selectedSlots.length < maxSlots || !selectedDuration ? (
-                            <TooltipProvider delayDuration={0}>
-                              <Tooltip disableHoverableContent>
-                                <TooltipTrigger asChild>
-                                  <div className="w-full cursor-not-allowed">
-                                    <button
-                                      disabled
-                                      className="w-full py-3 font-bold text-sm bg-gray-200 text-gray-400 pointer-events-none rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
-                                    >
-                                      <CreditCard className="w-5 h-5" />
-                                      BUY NOW
-                                    </button>
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom" className="pointer-events-none">
-                                  <p>{availableSlots.length === 0 ? "No sessions currently available" : "Please select a package above first"}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                          {purchaseBlockReason ? (
+                            <DisabledActionTooltip reason={purchaseBlockReason}>
+                              <button
+                                disabled
+                                className="w-full py-3 font-bold text-sm bg-gray-200 text-gray-400 pointer-events-none rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+                              >
+                                <CreditCard className="w-5 h-5" />
+                                BUY NOW
+                              </button>
+                            </DisabledActionTooltip>
                           ) : (
                             <button
                               disabled={isBuyNowLoading || isAddingToCart}
@@ -782,24 +751,16 @@ export function AdultPrivateGolfInstructionClient({
                             </button>
                           )}
 
-                          {selectedSlots.length < maxSlots || !selectedDuration ? (
-                            <TooltipProvider delayDuration={0}>
-                              <Tooltip disableHoverableContent>
-                                <TooltipTrigger asChild>
-                                  <div className="w-full cursor-not-allowed">
-                                    <button
-                                      disabled
-                                      className="w-full py-3 font-bold text-sm border-2 rounded-xl transition-all flex items-center justify-center gap-2 bg-gray-50 border-gray-100 text-gray-300 pointer-events-none"
-                                    >
-                                      <ShoppingCart className="w-5 h-5" /> ADD TO CART
-                                    </button>
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom" className="pointer-events-none">
-                                  <p>{availableSlots.length === 0 ? "No sessions currently available" : "Please select a package above first"}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                          {purchaseBlockReason ? (
+                            <DisabledActionTooltip reason={purchaseBlockReason}>
+                              <button
+                                disabled
+                                className="w-full py-3 font-bold text-sm border-2 rounded-xl transition-all flex items-center justify-center gap-2 bg-gray-50 border-gray-100 text-gray-300 pointer-events-none"
+                              >
+                                <ShoppingCart className="w-5 h-5" /> ADD
+                                TO CART
+                              </button>
+                            </DisabledActionTooltip>
                           ) : (
                             <button
                               disabled={isBuyNowLoading || isAddingToCart}

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { db } from "@/db";
 import {
   program,
@@ -11,12 +12,23 @@ import {
 } from "@/db/schema";
 import { eq, or, like, and, gt, count, not, sql } from "drizzle-orm";
 
+export const getProgramVisibility = cache(async () => {
+  return db
+    .select({
+      id: program.id,
+      isActive: program.isActive,
+      type: program.type,
+      name: program.name,
+    })
+    .from(program);
+});
+
 // Get all programs with their sessions
 export async function getProgramsWithSessions(type: "adult" | "junior") {
   const programs = await db
     .select()
     .from(program)
-    .where(eq(program.type, type));
+    .where(and(eq(program.type, type), eq(program.isActive, true)));
 
   const programsWithSessions = await Promise.all(
     programs.map(async (p) => {

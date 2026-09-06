@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, ReactNode, ReactElement, useEffect } from "react";
-import Link from "next/link";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -10,11 +9,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SessionCalendar } from "@/app/components/SessionCalendar";
 import { parseSchedule } from "@/lib/session-schedule";
 import { useProgramSidebarNav } from "@/lib/use-program-sidebar-nav";
 import type { ProgramSession } from "@/db/schema";
+import { ProgramSidebarLinks } from "@/app/components/ProgramSidebarLinks";
+import { SessionSchedulePanel } from "@/app/components/SessionSchedulePanel";
 
 type RenderProps = {
   selectedSessionId: string;
@@ -136,33 +136,7 @@ export function JuniorProgramPageWrapper({
 
         {/* Navigation Links - Always visible on desktop, toggleable on mobile */}
         <div className="hidden lg:block space-y-0">
-          <Link
-            href="/junior-programs/beginner-series"
-            className={`block px-4 py-3 text-sm ${currentPage === "beginner-series"
-                ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-                : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-              }`}
-          >
-            JUNIOR BEGINNER SERIES
-          </Link>
-          <Link
-            href="/junior-programs/developmental-series"
-            className={`block px-4 py-3 text-sm ${currentPage === "developmental-series"
-                ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-                : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-              }`}
-          >
-            JUNIOR DEVELOPMENTAL SERIES
-          </Link>
-          <Link
-            href="/junior-programs/private-instruction"
-            className={`block px-4 py-3 text-sm ${currentPage === "private-instruction"
-                ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-                : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-              }`}
-          >
-            JUNIOR PRIVATE GOLF INSTRUCTION
-          </Link>
+          <ProgramSidebarLinks type="junior" currentPage={currentPage} />
         </div>
 
         {/* Mobile animated nav */}
@@ -175,48 +149,36 @@ export function JuniorProgramPageWrapper({
               transition={{ duration: 0.25, ease: "easeOut" }}
               className="lg:hidden overflow-hidden space-y-0 mb-2"
             >
-              <Link
-                href="/junior-programs/beginner-series"
-                onClick={closeNav}
-                className={`block px-4 py-2.5 text-sm ${currentPage === "beginner-series"
-                    ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-                    : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-                  }`}
-              >
-                JUNIOR BEGINNER SERIES
-              </Link>
-              <Link
-                href="/junior-programs/developmental-series"
-                onClick={closeNav}
-                className={`block px-4 py-2.5 text-sm ${currentPage === "developmental-series"
-                    ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-                    : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-                  }`}
-              >
-                JUNIOR DEVELOPMENTAL SERIES
-              </Link>
-              <Link
-                href="/junior-programs/private-instruction"
-                onClick={closeNav}
-                className={`block px-4 py-2.5 text-sm ${currentPage === "private-instruction"
-                    ? "bg-white border-l-4 border-orange-500 font-bold text-gray-800"
-                    : "bg-white text-gray-700 hover:bg-gray-50 font-medium"
-                  }`}
-              >
-                JUNIOR PRIVATE GOLF INSTRUCTION
-              </Link>
+              <ProgramSidebarLinks
+                type="junior"
+                currentPage={currentPage}
+                onNavigate={closeNav}
+                variant="mobile"
+              />
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* Session Calendar - below navigation links */}
-        <div className="mt-6">
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-lg">Session Schedule</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {sessions.length > 0 ? (
+        <SessionSchedulePanel
+          footnote={
+            sessions.some((s) => {
+              const schedule = s.schedule ? parseSchedule(s.schedule) : null;
+              const startDate =
+                schedule && schedule.length > 0
+                  ? new Date(schedule[0].date)
+                  : null;
+              const isStarted = startDate ? new Date() > startDate : false;
+              return isStarted || (s.isBooked ?? false);
+            }) ? (
+              <p className="text-xs text-red-500 mt-2 font-medium">
+                * Call to inquire about joining past sessions that have already
+                started or are sold out
+              </p>
+            ) : null
+          }
+        >
+          {sessions.length > 0 ? (
                 <Accordion
                   type="single"
                   collapsible
@@ -264,28 +226,12 @@ export function JuniorProgramPageWrapper({
                     );
                   })}
                 </Accordion>
-              ) : (
-                <div className="p-6 text-center text-gray-500 text-sm font-medium">
-                  No Sessions Yet
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          {sessions.some((s) => {
-            const schedule = s.schedule ? parseSchedule(s.schedule) : null;
-            const startDate =
-              schedule && schedule.length > 0
-                ? new Date(schedule[0].date)
-                : null;
-            const isStarted = startDate ? new Date() > startDate : false;
-            return isStarted || (s.isBooked ?? false);
-          }) && (
-              <p className="text-xs text-red-500 mt-2 font-medium">
-                * Call to inquire about joining past sessions that have already
-                started or are sold out
-              </p>
-            )}
-        </div>
+          ) : (
+            <div className="p-6 text-center text-gray-500 text-sm font-medium">
+              No Sessions Yet
+            </div>
+          )}
+        </SessionSchedulePanel>
       </div>
 
       {/* Main Content */}

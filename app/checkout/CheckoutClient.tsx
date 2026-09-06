@@ -206,12 +206,19 @@ export function CheckoutClient() {
   const [formDataList, setFormDataList] = useState<CartItemFormData[]>([]);
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string>("");
-  
+
   // Payment states
   const [clientSecret, setClientSecret] = useState<string>("");
   const [paymentTotal, setPaymentTotal] = useState<number>(0);
 
-  const { items, total, discountAmount, finalTotal, isLoading, appliedDiscount } = useCart();
+  const {
+    items,
+    total,
+    discountAmount,
+    finalTotal,
+    isLoading,
+    appliedDiscount,
+  } = useCart();
 
   // Check for success redirect
   const isSuccess = searchParams.get("success") === "true";
@@ -572,8 +579,9 @@ export function CheckoutClient() {
                               </p>
                             </div>
                             <p className="font-bold text-green-700">
-                              ${formatPrice(
-                                parseFloat(item.priceAtAdd) * item.quantity
+                              $
+                              {formatPrice(
+                                parseFloat(item.priceAtAdd) * item.quantity,
                               )}
                             </p>
                           </div>
@@ -763,7 +771,8 @@ export function CheckoutClient() {
                       {item.quantity > 1 && ` (×${item.quantity})`}
                     </span>
                     <span className="font-medium text-gray-800 shrink-0">
-                      ${formatPrice(parseFloat(item.priceAtAdd) * item.quantity)}
+                      $
+                      {formatPrice(parseFloat(item.priceAtAdd) * item.quantity)}
                     </span>
                   </div>
                 ))}
@@ -778,7 +787,9 @@ export function CheckoutClient() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Subtotal</span>
-                      <span className="text-gray-800">${formatPrice(total)}</span>
+                      <span className="text-gray-800">
+                        ${formatPrice(total)}
+                      </span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-green-600">
@@ -802,7 +813,9 @@ export function CheckoutClient() {
                 ) : (
                   <div className="flex justify-between text-lg font-bold text-gray-800">
                     <span>Total</span>
-                    <span className="text-green-700">${formatPrice(total)}</span>
+                    <span className="text-green-700">
+                      ${formatPrice(total)}
+                    </span>
                   </div>
                 )}
               </div>

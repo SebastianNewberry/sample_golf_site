@@ -30,6 +30,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { formatPrice } from "@/lib/utils";
+import { useProgramVisibility } from "@/app/components/ProgramVisibilityContext";
+import {
+  cartItemLineTotal,
+  getCartItemOnCourseLimits,
+} from "@/lib/pricing-options";
 
 // Mapping of program IDs to their corresponding images
 // Used as fallback when imageUrl is not available from database
@@ -71,6 +76,9 @@ export default function CartContent() {
     clearCart,
     refreshCart,
   } = useCart();
+  const { firstActiveHref } = useProgramVisibility();
+  const adultBrowseHref = firstActiveHref("adult");
+  const juniorBrowseHref = firstActiveHref("junior");
   const router = useRouter();
   const searchParams = useSearchParams();
   const [validationErrors, setValidationErrors] = React.useState<
@@ -279,19 +287,23 @@ export default function CartContent() {
               Browse our programs to get started!
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/adult-programs/get-golf-ready-level-1">
-                <Button className="bg-orange-500 enabled:hover:bg-orange-600 text-white py-3 px-8 text-lg cursor-pointer transition-transform enabled:hover:scale-105">
-                  Browse Adult Programs
-                </Button>
-              </Link>
-              <Link href="/junior-programs/beginner-series">
-                <Button
-                  variant="outline"
-                  className="py-3 px-8 text-lg cursor-pointer transition-transform enabled:hover:scale-105 border-green-600 text-green-700 enabled:hover:bg-green-50 enabled:hover:text-green-800"
-                >
-                  Browse Junior Programs
-                </Button>
-              </Link>
+              {adultBrowseHref ? (
+                <Link href={adultBrowseHref}>
+                  <Button className="bg-orange-500 enabled:hover:bg-orange-600 text-white py-3 px-8 text-lg cursor-pointer transition-transform enabled:hover:scale-105">
+                    Browse Adult Programs
+                  </Button>
+                </Link>
+              ) : null}
+              {juniorBrowseHref ? (
+                <Link href={juniorBrowseHref}>
+                  <Button
+                    variant="outline"
+                    className="py-3 px-8 text-lg cursor-pointer transition-transform enabled:hover:scale-105 border-green-600 text-green-700 enabled:hover:bg-green-50 enabled:hover:text-green-800"
+                  >
+                    Browse Junior Programs
+                  </Button>
+                </Link>
+              ) : null}
             </div>
           </div>
         </div>
@@ -364,6 +376,7 @@ export default function CartContent() {
                     const isPrivate = PRIVATE_INSTRUCTION_IDS.includes(
                       item.programId,
                     );
+                    const playerLimits = getCartItemOnCourseLimits(item);
 
                     const showFullSessionSchedule =
                       scheduleInfo && !seriesInfo && !privateInfo;
@@ -626,19 +639,9 @@ export default function CartContent() {
                                 {/* Quantity Controls */}
                                 <div className="flex items-center gap-3">
                                   {(() => {
-                                    // For private instructions, get the base player count from metadata
-                                    let minQuantity = 1;
-                                    if (isPrivate && item.metadata) {
-                                      try {
-                                        const meta = JSON.parse(item.metadata);
-                                        if (
-                                          meta.playersCount &&
-                                          meta.playersCount > 0
-                                        ) {
-                                          minQuantity = meta.playersCount;
-                                        }
-                                      } catch {}
-                                    }
+                                    const minQuantity = isPrivate
+                                      ? playerLimits.min
+                                      : 1;
                                     const isAtMinimum =
                                       item.quantity <= minQuantity;
 
@@ -701,6 +704,12 @@ export default function CartContent() {
                                       isDisabled =
                                         item.quantity >= maxAvailable;
                                     }
+                                    if (
+                                      playerLimits.isOnCourse &&
+                                      item.quantity >= playerLimits.max
+                                    ) {
+                                      isDisabled = true;
+                                    }
 
                                     if (isDisabled) {
                                       return (
@@ -740,6 +749,11 @@ export default function CartContent() {
                                             )
                                               return;
                                           }
+                                          if (
+                                            playerLimits.isOnCourse &&
+                                            item.quantity + 1 > playerLimits.max
+                                          )
+                                            return;
                                           updateQuantity(
                                             item.id,
                                             item.quantity + 1,
@@ -757,15 +771,9 @@ export default function CartContent() {
                                 {/* Price */}
                                 <div className="flex flex-col items-end shrink-0 justify-center">
                                   <p className="text-xl md:text-2xl font-bold text-green-700 leading-tight">
-                                    ${formatPrice(
-                                      Math.round(
-                                        parseFloat(item.priceAtAdd) *
-                                          item.quantity *
-                                          100,
-                                      ) / 100
-                                    )}
+                                    ${formatPrice(cartItemLineTotal(item))}
                                   </p>
-                                  <p className={`text-xs md:text-sm text-gray-500 mt-0.5 md:mt-1 ${item.quantity > 1 ? 'visible' : 'invisible'}`}>
+                                  <p className={`text-xs md:text-sm text-gray-500 mt-0.5 md:mt-1 ${!playerLimits.isOnCourse && item.quantity > 1 ? 'visible' : 'invisible'}`}>
                                     ${item.priceAtAdd} each
                                   </p>
                                 </div>

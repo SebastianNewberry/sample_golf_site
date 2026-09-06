@@ -6,9 +6,11 @@ import {
   integer,
   uuid,
   index,
+  uniqueIndex,
   json,
 } from "drizzle-orm/pg-core";
 import { decimal } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const regularUser = pgTable(
   "regular_user",
@@ -615,20 +617,44 @@ export const checkoutSession = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     checkoutId: text("checkout_id").notNull().unique(), // UUID used to identify checkout
-    cartId: uuid("cart_id")
-      .notNull()
-      .references(() => cart.id, { onDelete: "cascade" }),
+    cartId: uuid("cart_id").references(() => cart.id, { onDelete: "set null" }),
     stripePaymentIntentId: text("stripe_payment_intent_id"),
     // Store form data as JSON
     formData: text("form_data").notNull(), // JSON string of all form data
+    subtotalAmount: decimal("subtotal_amount", { precision: 10, scale: 2 })
+      .default("0")
+      .notNull(),
+    discountAmount: decimal("discount_amount", { precision: 10, scale: 2 })
+      .default("0")
+      .notNull(),
     totalAmount: decimal("total_amount", { precision: 10, scale: 2 }).notNull(),
+    taxAmount: decimal("tax_amount", { precision: 10, scale: 2 })
+      .default("0")
+      .notNull(),
+    taxInclusive: boolean("tax_inclusive").default(true).notNull(),
+    promoCodeId: uuid("promo_code_id").references(() => promoCode.id, {
+      onDelete: "set null",
+    }),
+    giftCardId: uuid("gift_card_id").references(() => giftCard.id, {
+      onDelete: "set null",
+    }),
+    customerEmail: text("customer_email"),
+    customerName: text("customer_name"),
     status: text("status").notNull().default("pending"), // 'pending', 'completed', 'expired'
+    completedAt: timestamp("completed_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
     index("checkout_session_checkout_id_idx").on(table.checkoutId),
     index("checkout_session_payment_intent_idx").on(
       table.stripePaymentIntentId,
+    ),
+    index("checkout_session_customer_email_idx").on(table.customerEmail),
+    index("checkout_session_promo_code_id_idx").on(table.promoCodeId),
+    index("checkout_session_gift_card_id_idx").on(table.giftCardId),
+    index("checkout_session_status_completed_at_idx").on(
+      table.status,
+      table.completedAt,
     ),
   ],
 );
@@ -645,11 +671,21 @@ export const cartRelations = relations(cart, ({ one, many }) => ({
 
 export const checkoutSessionRelations = relations(
   checkoutSession,
-  ({ one }) => ({
+  ({ one, many }) => ({
     cart: one(cart, {
       fields: [checkoutSession.cartId],
       references: [cart.id],
     }),
+    promoCode: one(promoCode, {
+      fields: [checkoutSession.promoCodeId],
+      references: [promoCode.id],
+    }),
+    giftCard: one(giftCard, {
+      fields: [checkoutSession.giftCardId],
+      references: [giftCard.id],
+    }),
+    promoRedemptions: many(promoCodeRedemption),
+    giftCardTransactions: many(giftCardTransaction),
   }),
 );
 
@@ -681,8 +717,14 @@ export const giftCard = pgTable(
   {
     id: uuid("id").defaultRandom().primaryKey(),
     code: text("code").notNull().unique(), // 12-char alphanumeric (A-Z excl O/I, 2-9 excl 0/1)
-    initialAmount: decimal("initial_amount", { precision: 10, scale: 2 }).notNull(),
-    currentBalance: decimal("current_balance", { precision: 10, scale: 2 }).notNull(),
+    initialAmount: decimal("initial_amount", {
+      precision: 10,
+      scale: 2,
+    }).notNull(),
+    currentBalance: decimal("current_balance", {
+      precision: 10,
+      scale: 2,
+    }).notNull(),
     purchaserEmail: text("purchaser_email").notNull(),
     purchaserName: text("purchaser_name").notNull(),
     recipientEmail: text("recipient_email"), // Optional: who the card is gifted to
@@ -716,7 +758,10 @@ export const promoCode = pgTable(
     id: uuid("id").defaultRandom().primaryKey(),
     code: text("code").notNull().unique(), // Admin-created code like "SUMMER20"
     discountType: text("discount_type").notNull(), // 'percentage' | 'fixed'
-    discountValue: decimal("discount_value", { precision: 10, scale: 2 }).notNull(), // e.g., 20 (for 20%) or 25.00 (for $25)
+    discountValue: decimal("discount_value", {
+      precision: 10,
+      scale: 2,
+    }).notNull(), // e.g., 20 (for 20%) or 25.00 (for $25)
     maxUses: integer("max_uses"), // null = unlimited
     currentUses: integer("current_uses").default(0).notNull(),
     isActive: boolean("is_active").default(true).notNull(),
@@ -728,9 +773,107 @@ export const promoCode = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
+  (table) => [index("promo_code_code_idx").on(table.code)],
+);
+
+export const giftCardTransaction = pgTable(
+  "gift_card_transaction",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    giftCardId: uuid("gift_card_id")
+      .notNull()
+      .references(() => giftCard.id, { onDelete: "cascade" }),
+    type: text("type").notNull(), // 'purchase' | 'redemption'
+    amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+    balanceAfter: decimal("balance_after", { precision: 10, scale: 2 }).notNull(),
+    checkoutSessionId: uuid("checkout_session_id").references(
+      () => checkoutSession.id,
+      { onDelete: "set null" },
+    ),
+    stripePaymentIntentId: text("stripe_payment_intent_id"),
+    customerEmail: text("customer_email"),
+    customerName: text("customer_name"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
   (table) => [
-    index("promo_code_code_idx").on(table.code),
+    index("gift_card_txn_gift_card_id_idx").on(table.giftCardId),
+    index("gift_card_txn_checkout_session_id_idx").on(table.checkoutSessionId),
+    index("gift_card_txn_customer_email_idx").on(table.customerEmail),
+    uniqueIndex("gift_card_txn_purchase_unique_idx")
+      .on(table.giftCardId)
+      .where(sql`${table.type} = 'purchase'`),
+    uniqueIndex("gift_card_txn_checkout_unique_idx")
+      .on(table.giftCardId, table.checkoutSessionId)
+      .where(sql`${table.checkoutSessionId} IS NOT NULL`),
   ],
+);
+
+export const promoCodeRedemption = pgTable(
+  "promo_code_redemption",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    promoCodeId: uuid("promo_code_id").references(() => promoCode.id, {
+      onDelete: "set null",
+    }),
+    promoCode: text("promo_code").notNull(),
+    checkoutSessionId: uuid("checkout_session_id").references(
+      () => checkoutSession.id,
+      { onDelete: "set null" },
+    ),
+    stripePaymentIntentId: text("stripe_payment_intent_id"),
+    customerEmail: text("customer_email"),
+    customerName: text("customer_name"),
+    discountAmount: decimal("discount_amount", {
+      precision: 10,
+      scale: 2,
+    }).notNull(),
+    usedAt: timestamp("used_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("promo_redemption_promo_code_id_idx").on(table.promoCodeId),
+    index("promo_redemption_customer_email_idx").on(table.customerEmail),
+    uniqueIndex("promo_redemption_checkout_unique_idx")
+      .on(table.checkoutSessionId)
+      .where(sql`${table.checkoutSessionId} IS NOT NULL`),
+  ],
+);
+
+export const giftCardRelations = relations(giftCard, ({ many }) => ({
+  transactions: many(giftCardTransaction),
+  checkoutSessions: many(checkoutSession),
+}));
+
+export const promoCodeRelations = relations(promoCode, ({ many }) => ({
+  redemptions: many(promoCodeRedemption),
+  checkoutSessions: many(checkoutSession),
+}));
+
+export const giftCardTransactionRelations = relations(
+  giftCardTransaction,
+  ({ one }) => ({
+    giftCard: one(giftCard, {
+      fields: [giftCardTransaction.giftCardId],
+      references: [giftCard.id],
+    }),
+    checkoutSession: one(checkoutSession, {
+      fields: [giftCardTransaction.checkoutSessionId],
+      references: [checkoutSession.id],
+    }),
+  }),
+);
+
+export const promoCodeRedemptionRelations = relations(
+  promoCodeRedemption,
+  ({ one }) => ({
+    promoCodeRecord: one(promoCode, {
+      fields: [promoCodeRedemption.promoCodeId],
+      references: [promoCode.id],
+    }),
+    checkoutSession: one(checkoutSession, {
+      fields: [promoCodeRedemption.checkoutSessionId],
+      references: [checkoutSession.id],
+    }),
+  }),
 );
 
 export const contactSubmission = pgTable(
@@ -832,5 +975,9 @@ export type GiftCard = typeof giftCard.$inferSelect;
 export type NewGiftCard = typeof giftCard.$inferInsert;
 export type PromoCode = typeof promoCode.$inferSelect;
 export type NewPromoCode = typeof promoCode.$inferInsert;
+export type GiftCardTransaction = typeof giftCardTransaction.$inferSelect;
+export type NewGiftCardTransaction = typeof giftCardTransaction.$inferInsert;
+export type PromoCodeRedemption = typeof promoCodeRedemption.$inferSelect;
+export type NewPromoCodeRedemption = typeof promoCodeRedemption.$inferInsert;
 export type SeriesSlotEnrollment = typeof seriesSlotEnrollment.$inferSelect;
 export type NewSeriesSlotEnrollment = typeof seriesSlotEnrollment.$inferInsert;
