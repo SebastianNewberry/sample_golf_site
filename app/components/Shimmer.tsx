@@ -18,7 +18,7 @@ type ShimmerProps = {
 
 /**
  * Animated skeleton bar with a sweeping shine (Framer Motion).
- * Works in loading.tsx boundaries via a client component boundary.
+ * Shown only while the route is fetching — no extra wait after data is ready.
  */
 export function Shimmer({
   className,

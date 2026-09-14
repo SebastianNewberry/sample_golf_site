@@ -1,6 +1,4 @@
 "use client";
-import { ContentFadeIn } from "@/app/components/ContentFadeIn";
-
 import { programPageClientGrid } from "@/app/components/program-page-layout";
 import { GetGolfReadyLevel1Client } from "./GetGolfReadyLevel1Client";
 import { AdultProgramPageWrapper } from "@/app/components/AdultProgramPageWrapper";
@@ -72,9 +70,9 @@ export function GetGolfReadyLevel1PageClient({
       </AdultProgramPageWrapper>
 
       {/* Right: Features & Details */}
-      <ContentFadeIn className="lg:col-span-4 space-y-6">
+      <div className="lg:col-span-4 space-y-6">
         <ProgramFeaturesAndDetails features={features} details={details} />
-      </ContentFadeIn>
+      </div>
     </div>
   );
 }

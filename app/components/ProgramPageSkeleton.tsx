@@ -51,7 +51,7 @@ function InvisibleCalendarSpacer() {
                     key={d}
                     className="flex aspect-square items-center justify-center border-b border-gray-200"
                   >
-                    <Shimmer className="h-2 w-2 rounded-sm bg-muted/60" />
+                    <Shimmer className="h-2 w-2 rounded-sm" />
                   </div>
                 ))}
               </div>
@@ -67,7 +67,7 @@ function InvisibleCalendarSpacer() {
                           "h-4 w-4 rounded-sm",
                           [5, 8, 12, 15, 19, 22, 26].includes(idx)
                             ? "bg-green-400/60"
-                            : "bg-muted/50",
+                            : "bg-gray-200",
                         )}
                       />
                     )}
@@ -81,16 +81,16 @@ function InvisibleCalendarSpacer() {
           {[1, 2].map((i) => (
             <div key={i} className="border-l-2 border-green-300 py-0.5 pl-3">
               <Shimmer className="mb-1 h-3.5 w-full rounded" />
-              <Shimmer className="h-3 w-4/5 rounded bg-muted/60" />
+              <Shimmer className="h-3 w-4/5 rounded" />
             </div>
           ))}
         </div>
         <div className="mt-3 flex items-center gap-2">
           <div className="h-4 w-4 shrink-0 rounded-sm bg-green-500/50" />
-          <Shimmer className="h-3 w-24 rounded bg-muted/60" />
+          <Shimmer className="h-3 w-24 rounded" />
         </div>
       </div>
-      <Shimmer className="mt-2 h-3 w-full rounded bg-muted/50" />
+      <Shimmer className="mt-2 h-3 w-full rounded" />
     </div>
   );
 }
@@ -128,7 +128,7 @@ export function ProgramPageSkeleton({
   const title = getProgramPageTitle(pathname, variant);
 
   return (
-    <div className={programPageContent}>
+    <div key={pathname ?? "program-skeleton"} className={programPageContent}>
       <div className={programPageGrid}>
         {/* Left: nav + session area — no fade so route swaps are seamless */}
         <div className="space-y-2 lg:col-span-3">
@@ -147,87 +147,96 @@ export function ProgramPageSkeleton({
             </div>
           )}
 
-          <ContentFadeIn>
-            <SessionScheduleCard />
-            <InvisibleCalendarSpacer />
-          </ContentFadeIn>
+          <SessionScheduleCard />
+          <InvisibleCalendarSpacer />
         </div>
 
-        {/* Center: ProgramCard (title, copy, price, session, buttons) — not private instruction */}
-        <ContentFadeIn className="min-w-0 lg:col-span-6">
+        {/* Center: ProgramCard — shell stays put; only shimmers fade */}
+        <div className="min-w-0 lg:col-span-6">
           <div className="overflow-hidden rounded-xl bg-white shadow-lg">
             <div className={programCardImageContainer}>
-              <div className={`${imageFrame} bg-muted/50`}>
+              <div className={`${imageFrame} bg-gray-200`}>
                 <div className="absolute inset-0 bg-gradient-to-b from-muted/30 to-muted/60" />
               </div>
             </div>
 
-            <div className="space-y-6 p-6 lg:p-8">
-              <Shimmer className="h-6 w-[min(100%,32rem)] max-w-full rounded" />
+            <div className="space-y-6 p-6">
+              {title ? (
+                <h1 className="text-lg font-bold text-gray-900 mb-2">{title}</h1>
+              ) : null}
 
-              <div className="space-y-3">
-                <Shimmer className="h-4 w-full rounded" />
-                <Shimmer className="h-4 w-[96%] rounded" />
-                <Shimmer className="h-4 w-[88%] rounded" />
-              </div>
-
-              <div className="flex flex-col items-center border-b border-gray-100 pb-4 text-center">
-                <Shimmer className="mb-2 h-11 w-48 rounded-md" />
-                <Shimmer className="h-4 w-32 rounded" />
-              </div>
-
-              <div className="flex items-start gap-2">
-                <div className="min-w-0 flex-1 space-y-2">
-                  <Shimmer className="h-5 w-36 rounded" />
-                  <Shimmer className="h-12 w-full rounded-md border border-gray-200/50 bg-muted/20" />
+              <ContentFadeIn>
+                {/* Description — matches ProgramCard `text-sm leading-relaxed` */}
+                <div className="mb-6 space-y-3">
+                  <Shimmer className="h-3.5 w-full rounded" />
+                  <Shimmer className="h-3.5 w-[96%] rounded" />
+                  <Shimmer className="h-3.5 w-[88%] rounded" />
+                  <Shimmer className="h-3.5 w-[72%] rounded" />
                 </div>
-                <div className="w-24 shrink-0 space-y-2">
-                  <Shimmer className="h-5 w-20 rounded" />
-                  <Shimmer className="h-12 w-full rounded-md border border-gray-200/50 bg-muted/20" />
-                </div>
-              </div>
 
-              <div className="space-y-3 pt-1">
-                <Shimmer className="h-14 w-full rounded-lg" />
-                <Shimmer className="h-14 w-full rounded-lg bg-muted/60" />
-              </div>
+                <div className="mb-4 flex flex-col items-center border-b border-gray-100 pb-4 text-center">
+                  <Shimmer className="mb-1 h-12 w-40 rounded-md" />
+                  <Shimmer className="h-3.5 w-28 rounded" />
+                </div>
+
+                <div className="mb-5 flex items-start gap-2">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Shimmer className="h-3.5 w-28 rounded" />
+                    <Shimmer className="h-9 w-full rounded-md border border-gray-200/50" />
+                  </div>
+                  <div className="w-24 shrink-0 space-y-2">
+                    <Shimmer className="h-3.5 w-16 rounded" />
+                    <Shimmer className="h-9 w-full rounded-md border border-gray-200/50" />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <Shimmer className="h-12 w-full rounded-xl" />
+                  <Shimmer className="h-12 w-full rounded-xl" />
+                </div>
+              </ContentFadeIn>
             </div>
           </div>
-        </ContentFadeIn>
+        </div>
 
         {/* Right */}
-        <ContentFadeIn className="min-w-0 space-y-6 lg:col-span-4">
+        <div className="min-w-0 space-y-6 lg:col-span-4">
           <div className="rounded-xl bg-white p-8 shadow-sm">
             <h2 className="mb-4 text-2xl font-bold text-gray-800">
               Program Features
             </h2>
-            <div className="space-y-3">
-              {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <Shimmer className="h-5 w-5 shrink-0 rounded-full" />
-                  <Shimmer className="h-5 min-w-0 flex-1 rounded" />
-                </div>
-              ))}
-            </div>
+            <ContentFadeIn>
+              <div className="space-y-3">
+                {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <Shimmer className="h-5 w-5 shrink-0 rounded-full" />
+                    <Shimmer className="h-4 min-w-0 flex-1 rounded" />
+                  </div>
+                ))}
+              </div>
+            </ContentFadeIn>
           </div>
 
           <div className="rounded-xl bg-white p-8 shadow-sm">
             <h2 className="mb-4 text-2xl font-bold text-gray-800">
               Program Details
             </h2>
-            <div className="space-y-6">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex gap-3">
-                  <Shimmer className="mt-0.5 h-7 w-7 shrink-0 rounded" />
-                  <div className="min-w-0 flex-1 space-y-3">
-                    <Shimmer className="h-5 w-full rounded" />
-                    <Shimmer className="h-4 w-full rounded" />
+            <ContentFadeIn>
+              <div className="grid gap-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-start gap-4 py-3">
+                    <Shimmer className="mt-0.5 h-6 w-6 shrink-0 rounded" />
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <Shimmer className="h-4 w-36 rounded" />
+                      <Shimmer className="h-3.5 w-full rounded" />
+                      {i !== 2 && <Shimmer className="h-3.5 w-4/5 rounded" />}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </ContentFadeIn>
           </div>
-        </ContentFadeIn>
+        </div>
       </div>
     </div>
   );

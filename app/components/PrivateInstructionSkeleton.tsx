@@ -46,7 +46,7 @@ export function PrivateInstructionSkeleton({
   const title = getProgramPageTitle(pathname, layout);
 
   return (
-    <div className={programPageContent}>
+    <div key={pathname ?? "private-skeleton"} className={programPageContent}>
       <div className={programPageGrid}>
         {/* Left: nav + SessionCalendar summary — no fade so route swaps are seamless */}
         <div className="space-y-2 lg:col-span-3">
@@ -65,10 +65,9 @@ export function PrivateInstructionSkeleton({
             </div>
           )}
 
-          <ContentFadeIn>
-            <SessionSchedulePanel
+          <SessionSchedulePanel
               footnote={
-                <Shimmer className="mt-2 h-3 w-full rounded bg-muted/50" />
+                <Shimmer className="mt-2 h-3 w-full rounded" />
               }
             >
             <div className="relative overflow-visible p-3">
@@ -88,7 +87,7 @@ export function PrivateInstructionSkeleton({
                           key={d}
                           className="flex aspect-square items-center justify-center border-b border-gray-200"
                         >
-                          <Shimmer className="h-2 w-2 rounded-sm bg-muted/60" />
+                          <Shimmer className="h-2 w-2 rounded-sm" />
                         </div>
                       ))}
                     </div>
@@ -104,7 +103,7 @@ export function PrivateInstructionSkeleton({
                                 "h-4 w-4 rounded-sm",
                                 [5, 8, 12, 15, 19, 22, 26].includes(idx)
                                   ? "bg-green-400/60"
-                                  : "bg-muted/50",
+                                  : "bg-gray-200",
                               )}
                             />
                           )}
@@ -122,143 +121,145 @@ export function PrivateInstructionSkeleton({
                     className="border-l-2 border-green-300 py-0.5 pl-3"
                   >
                     <Shimmer className="mb-1 h-3.5 w-full rounded" />
-                    <Shimmer className="h-3 w-4/5 rounded bg-muted/60" />
+                    <Shimmer className="h-3 w-4/5 rounded" />
                   </div>
                 ))}
               </div>
 
               <div className="mt-3 flex items-center gap-2">
                 <div className="h-4 w-4 shrink-0 rounded-sm bg-green-500/50" />
-                <Shimmer className="h-3 w-24 rounded bg-muted/60" />
+                <Shimmer className="h-3 w-24 rounded" />
               </div>
             </div>
             </SessionSchedulePanel>
-          </ContentFadeIn>
         </div>
 
         {/* Center: hero + description + pricing + scheduling */}
-        <ContentFadeIn className={cn("min-w-0", spans.center)}>
+        <div className={cn("min-w-0", spans.center)}>
           <div className="overflow-hidden rounded-xl bg-white shadow-lg">
             <div className={programCardImageContainer}>
-              <div className={`${imageFrame} bg-muted/50`}>
+              <div className={`${imageFrame} bg-gray-200`}>
                 <div className="absolute inset-0 bg-gradient-to-b from-muted/30 to-muted/60" />
               </div>
             </div>
 
-            <div className="space-y-8 p-6 lg:p-8">
-              <Shimmer className="h-6 w-full rounded" />
+            <div className="p-6 lg:p-8">
+              {title ? (
+                <h1 className="text-lg font-bold text-gray-900 mb-2">{title}</h1>
+              ) : null}
 
-              <div className="space-y-4">
-                <Shimmer className="h-4 w-full rounded" />
-                <Shimmer className="h-4 w-full rounded" />
-                <Shimmer className="h-4 w-full rounded" />
-              </div>
-              <div className="space-y-4">
-                <Shimmer className="h-4 w-full rounded" />
-                <Shimmer className="h-4 w-full rounded" />
-              </div>
-
-              <div>
-                <div className="mb-4 flex items-center gap-2">
-                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100/80">
-                    <Shimmer className="h-3.5 w-2.5 rounded-sm bg-green-300/60" />
+              <ContentFadeIn>
+                <div className="mb-8 space-y-4">
+                  <div className="space-y-1">
+                    <Shimmer className="h-3.5 w-full rounded" />
+                    <Shimmer className="h-3.5 w-full rounded" />
+                    <Shimmer className="h-3.5 w-[90%] rounded" />
                   </div>
-                  <Shimmer className="h-5 min-w-0 flex-1 rounded" />
+                  <div className="space-y-1">
+                    <Shimmer className="h-3.5 w-full rounded" />
+                    <Shimmer className="h-3.5 w-4/5 rounded" />
+                  </div>
                 </div>
 
-                <div
-                  className={cn(
-                    "grid gap-4",
-                    layout === "adult"
-                      ? "grid-cols-2 md:grid-cols-3"
-                      : "grid-cols-2 md:grid-cols-4",
-                  )}
-                >
-                  {(layout === "adult" ? [1, 2, 3] : [1, 2, 3, 4]).map((i) => (
-                    <div
-                      key={i}
-                      className="flex min-h-[8rem] flex-col items-center justify-center gap-2 rounded-xl border-2 border-gray-100 bg-white p-4 shadow-sm"
-                    >
-                      <Shimmer className="h-4 w-full rounded" />
-                      <Shimmer className="h-8 w-full rounded" />
-                      <Shimmer className="h-3 w-full rounded bg-muted/50" />
-                    </div>
-                  ))}
-                </div>
-              </div>
+                <div className="mb-10">
+                  <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-gray-800">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-700">
+                      1
+                    </span>
+                    {layout === "adult"
+                      ? "Select Package"
+                      : "Select Private Instruction Package"}
+                  </h3>
 
-              <div className="border-t border-gray-100 pt-8">
-                <div className="flex flex-col gap-8 md:flex-row">
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-4 flex items-center gap-2">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100/80">
-                        <Shimmer className="h-3.5 w-2.5 rounded-sm bg-green-300/60" />
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div
+                        key={i}
+                        className="flex min-h-[8rem] flex-col items-center justify-center gap-1 rounded-xl border-2 border-gray-100 bg-white p-2 shadow-sm"
+                      >
+                        <Shimmer className="h-4 w-20 rounded" />
+                        <Shimmer className="my-1 h-8 w-16 rounded" />
+                        <Shimmer className="h-3 w-24 rounded" />
                       </div>
-                      <Shimmer className="h-5 min-w-0 flex-1 rounded" />
-                    </div>
-                    <div className="rounded-xl border border-gray-100 bg-gray-50 p-6">
-                      <Shimmer className="mb-2 h-4 w-full rounded" />
-                      <Shimmer className="mb-6 h-3 w-full rounded bg-muted/50" />
-                      <Shimmer className="h-14 w-full rounded-xl border-2 border-green-200/50 bg-white" />
-                    </div>
+                    ))}
                   </div>
+                </div>
 
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-4 flex items-center gap-2">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100/80">
-                        <Shimmer className="h-3.5 w-2.5 rounded-sm bg-green-300/60" />
+                <div className="border-t pt-8">
+                  <div className="flex flex-col items-start gap-8 md:flex-row">
+                    <div className="w-full flex-1">
+                      <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-gray-800">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-700">
+                          2
+                        </span>
+                        Select Dates & Times
+                      </h3>
+                      <div className="flex h-full flex-col justify-center rounded-xl border border-gray-100 bg-gray-50 p-6">
+                        <div className="mb-6 space-y-1">
+                          <Shimmer className="h-3.5 w-44 rounded" />
+                          <Shimmer className="h-3 w-36 rounded" />
+                        </div>
+                        <Shimmer className="h-14 w-full rounded-xl border-2 border-green-200/50 bg-white" />
                       </div>
-                      <Shimmer className="h-5 min-w-0 flex-1 rounded" />
                     </div>
-                    <div className="space-y-3">
-                      <Shimmer className="h-12 w-full rounded-xl" />
-                      <Shimmer className="h-12 w-full rounded-xl bg-muted/60" />
+
+                    <div className="w-full flex-1">
+                      <h3 className="mb-4 flex items-center gap-2 text-base font-bold text-gray-800">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-sm font-bold text-green-700">
+                          3
+                        </span>
+                        Checkout
+                      </h3>
+                      <div className="space-y-3">
+                        <Shimmer className="h-12 w-full rounded-xl" />
+                        <Shimmer className="h-12 w-full rounded-xl" />
+                      </div>
                     </div>
                   </div>
                 </div>
-
-                <div className="mt-8 flex flex-col items-stretch border-t pt-6">
-                  <Shimmer className="mb-3 h-4 w-full rounded bg-muted/50" />
-                  <Shimmer className="h-4 w-full rounded" />
-                </div>
-              </div>
+              </ContentFadeIn>
             </div>
           </div>
-        </ContentFadeIn>
+        </div>
 
         {/* Right: features + details */}
-        <ContentFadeIn className={cn("min-w-0 space-y-6", spans.right)}>
+        <div className={cn("min-w-0 space-y-6", spans.right)}>
           <div className="rounded-xl bg-white p-8 shadow-sm">
             <h2 className="mb-4 text-2xl font-bold text-gray-800">
               Program Features
             </h2>
-            <div className="space-y-3">
-              {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <Shimmer className="h-5 w-5 shrink-0 rounded-full" />
-                  <Shimmer className="h-5 min-w-0 flex-1 rounded" />
-                </div>
-              ))}
-            </div>
+            <ContentFadeIn>
+              <div className="space-y-3">
+                {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <Shimmer className="h-5 w-5 shrink-0 rounded-full" />
+                    <Shimmer className="h-4 min-w-0 flex-1 rounded" />
+                  </div>
+                ))}
+              </div>
+            </ContentFadeIn>
           </div>
 
           <div className="rounded-xl bg-white p-8 shadow-sm">
             <h2 className="mb-4 text-2xl font-bold text-gray-800">
               Program Details
             </h2>
-            <div className="space-y-6">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex gap-3">
-                  <Shimmer className="mt-0.5 h-7 w-7 shrink-0 rounded" />
-                  <div className="min-w-0 flex-1 space-y-3">
-                    <Shimmer className="h-5 w-full rounded" />
-                    <Shimmer className="h-4 w-full rounded" />
+            <ContentFadeIn>
+              <div className="grid gap-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-start gap-4 py-3">
+                    <Shimmer className="mt-0.5 h-6 w-6 shrink-0 rounded" />
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <Shimmer className="h-4 w-36 rounded" />
+                      <Shimmer className="h-3.5 w-full rounded" />
+                      {i !== 2 && <Shimmer className="h-3.5 w-4/5 rounded" />}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </ContentFadeIn>
           </div>
-        </ContentFadeIn>
+        </div>
       </div>
     </div>
   );

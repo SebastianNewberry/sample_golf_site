@@ -29,6 +29,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ProgramSession } from "@/db/schema";
+import { ProgramPageTitle } from "@/app/components/ProgramPageTitle";
 import { ContentFadeIn } from "@/app/components/ContentFadeIn";
 import { ProgramSidebarHeader } from "@/app/components/ProgramSidebarHeader";
 import { ProgramSidebarNav } from "@/app/components/ProgramSidebarNav";
@@ -348,8 +349,7 @@ export function DevelopmentalSeriesClient({
           )}
         </AnimatePresence>
 
-        <ContentFadeIn>
-          <SessionSchedulePanel
+            <SessionSchedulePanel
             footnote={
               <p className="text-xs text-gray-500 mt-2 px-1">
                 * Dates above are available dates, but you only sign up for
@@ -367,11 +367,10 @@ export function DevelopmentalSeriesClient({
               }))}
             />
           </SessionSchedulePanel>
-        </ContentFadeIn>
       </div>
 
       {/* Main Card */}
-      <ContentFadeIn className="lg:col-span-6">
+      <div className="lg:col-span-6">
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="flex flex-col">
             {/* Image */}
@@ -387,10 +386,13 @@ export function DevelopmentalSeriesClient({
 
             {/* Content */}
             <div className="p-6 lg:p-8">
-              <h1 className="text-lg font-bold text-gray-900 mb-2">
-                Junior Developmental Series
-              </h1>
+              <ProgramPageTitle
+                variant="junior"
+                fallback="Junior Developmental Series"
+                className="text-lg font-bold text-gray-900 mb-2"
+              />
 
+              <ContentFadeIn>
               <div className="space-y-4 mb-8">
                 <p className="text-sm text-gray-600 leading-relaxed">
                   Our <strong>Junior Developmental Series</strong> is designed
@@ -652,18 +654,19 @@ export function DevelopmentalSeriesClient({
                   </a>
                 </div>
               </div>
+              </ContentFadeIn>
             </div>
           </div>
         </div>
-      </ContentFadeIn>
+      </div>
 
       {/* Right: Features & Details */}
-      <ContentFadeIn className="lg:col-span-4 space-y-6">
+      <div className="lg:col-span-4 space-y-6">
         <ProgramFeaturesAndDetails
           features={program.features}
           details={program.details}
         />
-      </ContentFadeIn>
+      </div>
     </div>
   );
 }

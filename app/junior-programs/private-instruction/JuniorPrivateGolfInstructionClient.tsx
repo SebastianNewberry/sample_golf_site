@@ -32,6 +32,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { format, isSameDay } from "date-fns";
+import { ProgramPageTitle } from "@/app/components/ProgramPageTitle";
 import { ContentFadeIn } from "@/app/components/ContentFadeIn";
 import { ProgramSidebarHeader } from "@/app/components/ProgramSidebarHeader";
 import { ProgramSidebarNav } from "@/app/components/ProgramSidebarNav";
@@ -385,8 +386,7 @@ export function JuniorPrivateGolfInstructionClient({
               )}
             </AnimatePresence>
 
-            <ContentFadeIn>
-              <SessionSchedulePanel
+            <SessionSchedulePanel
                 footnote={
                   <p className="text-xs text-gray-500 mt-2 px-1">
                     * Dates above are available dates, but you only sign up for
@@ -406,11 +406,10 @@ export function JuniorPrivateGolfInstructionClient({
                   }))}
                 />
               </SessionSchedulePanel>
-            </ContentFadeIn>
           </div>
 
           {/* Main Card: Image + Description + Price */}
-          <ContentFadeIn className="lg:col-span-6">
+          <div className="lg:col-span-6">
             <div className="bg-white rounded-xl shadow-lg overflow-hidden">
               {/* Two-column layout: Image + Description | Pricing */}
               <div className="flex flex-col">
@@ -430,10 +429,13 @@ export function JuniorPrivateGolfInstructionClient({
 
                 {/* Content */}
                 <div className="p-6 lg:p-8">
-                  <h1 className="text-lg font-bold text-gray-900 mb-2">
-                    Junior Private Golf Instruction
-                  </h1>
+                  <ProgramPageTitle
+                    variant="junior"
+                    fallback="Junior Private Golf Instruction"
+                    className="text-lg font-bold text-gray-900 mb-2"
+                  />
 
+                  <ContentFadeIn>
                   <div className="space-y-4 mb-8">
                     <p className="text-sm text-gray-600 leading-relaxed">
                       Our junior private golf lesson offers individual
@@ -802,18 +804,19 @@ export function JuniorPrivateGolfInstructionClient({
                       </a>
                     </div>
                   </div>
+                  </ContentFadeIn>
                 </div>
               </div>
             </div>
-          </ContentFadeIn>
+          </div>
 
           {/* Right: Features & Details */}
-          <ContentFadeIn className="lg:col-span-4 space-y-6">
+          <div className="lg:col-span-4 space-y-6">
             <ProgramFeaturesAndDetails
               features={program.features || []}
               details={program.details || []}
             />
-          </ContentFadeIn>
+          </div>
         </div>
       </div>
     </>

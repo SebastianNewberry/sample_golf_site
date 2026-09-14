@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { ProgramPurchaseSection } from "@/app/components/ProgramPurchaseSection";
+import { ProgramPageTitle } from "@/app/components/ProgramPageTitle";
+import { ContentFadeIn } from "@/app/components/ContentFadeIn";
 import {
   programCardImageClass,
   programCardImageContainer,
@@ -51,9 +53,12 @@ export function DevelopmentalSeriesCard({
       </div>
 
       <div className="p-6">
-        <h1 className="text-lg font-bold text-gray-900 mb-2">
-          Junior Developmental Series
-        </h1>
+        <ProgramPageTitle
+          variant="junior"
+          fallback="Junior Developmental Series"
+          className="text-lg font-bold text-gray-900 mb-2"
+        />
+        <ContentFadeIn>
         <p className="text-gray-700 text-sm leading-relaxed mb-2">
           Our <strong>Junior Developmental Series</strong> is designed for
           intermediate to advanced junior golfers looking to expand their golf
@@ -112,6 +117,7 @@ export function DevelopmentalSeriesCard({
           selectedSessionId={currentSessionId}
           onSessionChange={handleSessionChange}
         />
+        </ContentFadeIn>
       </div>
     </div>
   );

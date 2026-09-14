@@ -4,9 +4,8 @@ import { motion, useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
 
 /**
- * Fade-in for data-driven page regions. The program sidebar (title + links)
- * must stay outside of this so it renders identically in loading skeletons
- * and real pages, making route swaps seamless.
+ * Fade-in for data-driven regions (shimmers or loaded copy).
+ * Keep card chrome, nav, and titles outside so they do not flash.
  */
 export function ContentFadeIn({
   className,

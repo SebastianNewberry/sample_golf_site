@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ContentFadeIn } from "@/app/components/ContentFadeIn";
 import { programPageClientGrid } from "@/app/components/program-page-layout";
 import { DevelopmentalSeriesCard } from "@/app/components/DevelopmentalSeriesCard";
 import { JuniorProgramPageWrapper } from "@/app/components/JuniorProgramPageWrapper";
@@ -52,9 +51,9 @@ export function DevelopmentalSeriesPageWrapper({
       </JuniorProgramPageWrapper>
 
       {/* Right: Features & Details */}
-      <ContentFadeIn className="lg:col-span-4 space-y-6">
+      <div className="lg:col-span-4 space-y-6">
         <ProgramFeaturesAndDetails features={features} details={details} />
-      </ContentFadeIn>
+      </div>
     </div>
   );
 }

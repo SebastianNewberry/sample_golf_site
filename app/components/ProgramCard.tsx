@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { ReactNode } from "react";
 import { ProgramPurchaseSection } from "@/app/components/ProgramPurchaseSection";
+import { ProgramPageTitle } from "@/app/components/ProgramPageTitle";
+import { ContentFadeIn } from "@/app/components/ContentFadeIn";
 import { SafeHTML } from "@/app/components/SafeHTML";
 import {
   programCardImageContainer,
@@ -74,26 +76,32 @@ export function ProgramCard({
 
       {/* Description and Price below image */}
       <div className="p-6">
-        <h1 className="text-lg font-bold text-gray-900 mb-2">{title}</h1>
-        <div className="text-gray-700 text-sm leading-relaxed mb-6 [&_p]:mb-3 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-2 [&_h2]:mt-4 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mb-2 [&_h3]:mt-3 [&_ul]:list-disc [&_ul]:ml-5 [&_ol]:list-decimal [&_ol]:ml-5 [&_li]:mb-1 font-sans">
-          <SafeHTML html={description} />
-        </div>
-
-        {/* Price & Buttons */}
-        <ProgramPurchaseSection
-          programId={programId}
-          programName={title}
-          programPrice={programPrice}
-          duration={duration}
-          sessions={sessions}
-          registrationType={registrationType}
-          selectedSessionId={selectedSessionId}
-          onSessionChange={onSessionChange}
-          showContactButton={showContactButton}
+        <ProgramPageTitle
+          variant={registrationType}
+          fallback={title}
+          className="text-lg font-bold text-gray-900 mb-2"
         />
+        <ContentFadeIn>
+          <div className="text-gray-700 text-sm leading-relaxed mb-6 [&_p]:mb-3 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-2 [&_h2]:mt-4 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mb-2 [&_h3]:mt-3 [&_ul]:list-disc [&_ul]:ml-5 [&_ol]:list-decimal [&_ol]:ml-5 [&_li]:mb-1 font-sans">
+            <SafeHTML html={description} />
+          </div>
 
-        {/* Extra content after purchase section */}
-        {extraContent}
+          {/* Price & Buttons */}
+          <ProgramPurchaseSection
+            programId={programId}
+            programName={title}
+            programPrice={programPrice}
+            duration={duration}
+            sessions={sessions}
+            registrationType={registrationType}
+            selectedSessionId={selectedSessionId}
+            onSessionChange={onSessionChange}
+            showContactButton={showContactButton}
+          />
+
+          {/* Extra content after purchase section */}
+          {extraContent}
+        </ContentFadeIn>
       </div>
     </div>
   );

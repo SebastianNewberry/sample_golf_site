@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ReactNode } from "react";
+import { ContentFadeIn } from "@/app/components/ContentFadeIn";
 
 export function SessionSchedulePanel({
   children,
@@ -14,9 +15,11 @@ export function SessionSchedulePanel({
         <CardHeader className="py-4">
           <CardTitle className="text-lg">Session Schedule</CardTitle>
         </CardHeader>
-        <CardContent className="p-0">{children}</CardContent>
+        <CardContent className="p-0">
+          <ContentFadeIn>{children}</ContentFadeIn>
+        </CardContent>
       </Card>
-      {footnote}
+      {footnote ? <ContentFadeIn>{footnote}</ContentFadeIn> : null}
     </div>
   );
 }

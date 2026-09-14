@@ -8,13 +8,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SessionCalendar } from "@/app/components/SessionCalendar";
 import { parseSchedule } from "@/lib/session-schedule";
-import { ContentFadeIn } from "@/app/components/ContentFadeIn";
 import { ProgramSidebarHeader } from "@/app/components/ProgramSidebarHeader";
 import { ProgramSidebarNav } from "@/app/components/ProgramSidebarNav";
 import { useProgramSidebarNav } from "@/lib/use-program-sidebar-nav";
+import { SessionSchedulePanel } from "@/app/components/SessionSchedulePanel";
 import type { ProgramSession } from "@/db/schema";
 
 type RenderProps = {
@@ -142,94 +141,89 @@ export function AdultProgramPageWrapper({
           )}
         </AnimatePresence>
 
-        {/* Session Calendar - below navigation links */}
-        <ContentFadeIn className="mt-6">
-          <Card>
-            <CardHeader className="py-4">
-              <CardTitle className="text-lg">Session Schedule</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {sessions.length > 0 ? (
-                <Accordion
-                  type="single"
-                  collapsible
-                  value={expandedSessionId}
-                  onValueChange={handleAccordionChange}
-                  className="w-full"
-                >
-                  {sortedSessions.map((session) => {
-                    const schedule = session.schedule
-                      ? parseSchedule(session.schedule)
-                      : null;
-                    const startDate =
-                      schedule && schedule.length > 0
-                        ? new Date(schedule[0].date)
-                        : null;
-                    const isStarted = startDate
-                      ? new Date() > startDate
-                      : false;
-
-                    return (
-                      <AccordionItem
-                        key={session.id}
-                        value={session.id}
-                        className="border-b last:border-0 px-4"
-                      >
-                        <AccordionTrigger className="text-left hover:no-underline py-3">
-                          <span className="font-medium text-sm">
-                            {session.name ? session.name : "Session Details"}
-                            {isStarted && (
-                              <span className="text-red-600 ml-1">
-                                (Started)
-                              </span>
-                            )}
-                            {!isStarted && session.isBooked && (
-                              <span className="text-red-600 ml-1">
-                                (Sold Out)
-                              </span>
-                            )}
-                          </span>
-                        </AccordionTrigger>
-                        <AccordionContent className="pb-4">
-                          <SessionCalendar schedule={schedule} />
-                        </AccordionContent>
-                      </AccordionItem>
-                    );
-                  })}
-                </Accordion>
-              ) : (
-                <div className="p-6 text-center text-gray-500 text-sm font-medium">
-                  No Sessions Yet
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          {sessions.some((s) => {
-            const schedule = s.schedule ? parseSchedule(s.schedule) : null;
-            const startDate =
-              schedule && schedule.length > 0
-                ? new Date(schedule[0].date)
-                : null;
-            const isStarted = startDate ? new Date() > startDate : false;
-            return isStarted || (s.isBooked ?? false);
-          }) && (
+        <SessionSchedulePanel
+          footnote={
+            sessions.some((s) => {
+              const schedule = s.schedule ? parseSchedule(s.schedule) : null;
+              const startDate =
+                schedule && schedule.length > 0
+                  ? new Date(schedule[0].date)
+                  : null;
+              const isStarted = startDate ? new Date() > startDate : false;
+              return isStarted || (s.isBooked ?? false);
+            }) ? (
               <p className="text-xs text-red-500 mt-2 font-medium">
                 * Call to inquire about joining past sessions that have already
                 started or are sold out
               </p>
-            )}
-        </ContentFadeIn>
+            ) : undefined
+          }
+        >
+          {sessions.length > 0 ? (
+            <Accordion
+              type="single"
+              collapsible
+              value={expandedSessionId}
+              onValueChange={handleAccordionChange}
+              className="w-full"
+            >
+              {sortedSessions.map((session) => {
+                const schedule = session.schedule
+                  ? parseSchedule(session.schedule)
+                  : null;
+                const startDate =
+                  schedule && schedule.length > 0
+                    ? new Date(schedule[0].date)
+                    : null;
+                const isStarted = startDate
+                  ? new Date() > startDate
+                  : false;
+
+                return (
+                  <AccordionItem
+                    key={session.id}
+                    value={session.id}
+                    className="border-b last:border-0 px-4"
+                  >
+                    <AccordionTrigger className="text-left hover:no-underline py-3">
+                      <span className="font-medium text-sm">
+                        {session.name ? session.name : "Session Details"}
+                        {isStarted && (
+                          <span className="text-red-600 ml-1">
+                            (Started)
+                          </span>
+                        )}
+                        {!isStarted && session.isBooked && (
+                          <span className="text-red-600 ml-1">
+                            (Sold Out)
+                          </span>
+                        )}
+                      </span>
+                    </AccordionTrigger>
+                    <AccordionContent className="pb-4">
+                      <SessionCalendar schedule={schedule} />
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
+          ) : (
+            <div className="p-6 text-center text-gray-500 text-sm font-medium">
+              No Sessions Yet
+            </div>
+          )}
+        </SessionSchedulePanel>
       </div>
 
       {/* Main Content */}
-      <ContentFadeIn className="lg:col-span-6">
+      <div className="lg:col-span-6">
         {isRenderFunction
           ? (children as (props: RenderProps) => ReactElement)({
             selectedSessionId: purchaseSessionId,
             onSessionChange: handlePurchaseChange,
           })
           : children}
-      </ContentFadeIn>
+      </div>
     </>
   );
 }
