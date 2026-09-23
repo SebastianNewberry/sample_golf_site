@@ -12,7 +12,11 @@ import {
 import { useRouter } from "next/navigation";
 import { useCart } from "@/app/components/cart/CartContext";
 import { addToCart } from "@/app/actions/cart";
-import { Loader2, Check, ShoppingCart, CreditCard } from "lucide-react";
+import { Loader2, CreditCard } from "lucide-react";
+import {
+  CartButtonLabel,
+  type CartButtonStatus,
+} from "@/app/components/CartButtonLabel";
 import {
   programCardImageClass,
   programCardImageContainer,
@@ -30,7 +34,6 @@ import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ProgramSession } from "@/db/schema";
 import { ProgramPageTitle } from "@/app/components/ProgramPageTitle";
-import { ContentFadeIn } from "@/app/components/ContentFadeIn";
 import { ProgramSidebarHeader } from "@/app/components/ProgramSidebarHeader";
 import { ProgramSidebarNav } from "@/app/components/ProgramSidebarNav";
 import { useProgramSidebarNav } from "@/lib/use-program-sidebar-nav";
@@ -234,7 +237,7 @@ export function DevelopmentalSeriesClient({
 
   // Cart Actions
   const handleAddToCart = async () => {
-    if (selectedSlots.length === 0 || !selectedPackageId) return;
+    if (isAddingToCart || selectedSlots.length === 0 || !selectedPackageId) return;
 
     const metadata = JSON.stringify({
       packageId: selectedPackageId,
@@ -267,7 +270,7 @@ export function DevelopmentalSeriesClient({
   };
 
   const handleBuyNow = async () => {
-    if (selectedSlots.length === 0 || !selectedPackageId) return;
+    if (isAddingToCart || selectedSlots.length === 0 || !selectedPackageId) return;
 
     setIsBuyNowLoading(true);
 
@@ -308,6 +311,13 @@ export function DevelopmentalSeriesClient({
     needsSelection: selectedSlots.length < maxSlots || !selectedPackageId,
     selectionLabel: "Please select a package above first",
   });
+  const addToCartStatus: CartButtonStatus = isAddingToCart
+    ? "adding"
+    : showSuccess
+      ? "success"
+      : "idle";
+  // Selected slots are cleared after a successful add; keep the success state visible until it times out.
+  const cartBlockReason = addToCartStatus === "idle" ? purchaseBlockReason : null;
 
   return (
     <div className={programPageClientGrid}>
@@ -392,7 +402,6 @@ export function DevelopmentalSeriesClient({
                 className="text-lg font-bold text-gray-900 mb-2"
               />
 
-              <ContentFadeIn>
               <div className="space-y-4 mb-8">
                 <p className="text-sm text-gray-600 leading-relaxed">
                   Our <strong>Junior Developmental Series</strong> is designed
@@ -559,21 +568,15 @@ export function DevelopmentalSeriesClient({
                     </h3>
 
                     <div className="space-y-3">
-                      {purchaseBlockReason ? (
-                        <DisabledActionTooltip reason={purchaseBlockReason}>
-                          <button
-                            disabled
-                            className="w-full py-3 font-bold text-sm bg-gray-200 text-gray-400 pointer-events-none rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
-                          >
-                            <CreditCard className="w-5 h-5" />
-                            BUY NOW
-                          </button>
-                        </DisabledActionTooltip>
-                      ) : (
+                      <DisabledActionTooltip reason={cartBlockReason}>
                         <button
-                          disabled={isBuyNowLoading || isAddingToCart}
+                          disabled={Boolean(purchaseBlockReason) || isBuyNowLoading}
                           onClick={handleBuyNow}
-                          className="w-full py-3 font-bold text-sm bg-orange-500 enabled:hover:bg-orange-600 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white rounded-xl shadow-md enabled:hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                          className={`w-full py-3 font-bold text-sm rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 ${
+                            purchaseBlockReason || isBuyNowLoading
+                              ? "bg-gray-200 text-gray-400"
+                              : "bg-orange-500 hover:bg-orange-600 hover:shadow-lg text-white cursor-pointer"
+                          } ${cartBlockReason ? "pointer-events-none" : ""}`}
                         >
                           {isBuyNowLoading ? (
                             <Loader2 className="w-5 h-5 animate-spin" />
@@ -582,60 +585,32 @@ export function DevelopmentalSeriesClient({
                           )}
                           {isBuyNowLoading
                             ? "PROCESSING..."
-                            : `BUY NOW ${selectedPrice > 0 ? `- $${selectedPrice}` : ""}`}
+                            : `BUY NOW ${!purchaseBlockReason && selectedPrice > 0 ? `- $${selectedPrice}` : ""}`}
                         </button>
-                      )}
+                      </DisabledActionTooltip>
 
-
-                      {purchaseBlockReason ? (
-                        <DisabledActionTooltip reason={purchaseBlockReason}>
-                          <button
-                            disabled
-                            className="w-full py-3 font-bold text-sm border-2 rounded-xl transition-all flex items-center justify-center gap-2 bg-gray-50 border-gray-100 text-gray-300 pointer-events-none"
-                          >
-                            <ShoppingCart className="w-5 h-5" /> ADD TO CART
-                          </button>
-                        </DisabledActionTooltip>
-                      ) : (
+                      <DisabledActionTooltip reason={cartBlockReason}>
                         <button
-                          disabled={isBuyNowLoading || isAddingToCart}
+                          disabled={Boolean(cartBlockReason) || isBuyNowLoading}
                           onClick={handleAddToCart}
-                          className="w-full py-3 font-bold text-sm border-2 rounded-xl transition-all flex items-center justify-center gap-2 bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 border-green-600 disabled:bg-gray-50 disabled:border-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed cursor-pointer"
+                          aria-busy={isAddingToCart}
+                          className={`w-full py-3 font-bold text-sm border-2 rounded-xl transition-colors flex items-center justify-center ${
+                            cartBlockReason || isBuyNowLoading
+                              ? "bg-gray-50 border-gray-100 text-gray-300"
+                              : addToCartStatus === "idle"
+                                ? "bg-green-50 text-green-700 border-green-600 hover:bg-green-200 hover:border-green-700 cursor-pointer"
+                                : "bg-green-50 text-green-700 border-green-600"
+                          } ${cartBlockReason ? "pointer-events-none" : ""}`}
                         >
-                          <AnimatePresence mode="wait">
-                            {isAddingToCart ? (
-                              <motion.span
-                                key="load"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="flex items-center gap-2"
-                              >
-                                <Loader2 className="w-5 h-5 animate-spin" />{" "}
-                                ADDING...
-                              </motion.span>
-                            ) : showSuccess ? (
-                              <motion.span
-                                key="success"
-                                initial={{ scale: 0.8 }}
-                                animate={{ scale: 1 }}
-                                className="flex items-center gap-2 text-green-600"
-                              >
-                                <Check className="w-5 h-5" /> ADDED!
-                              </motion.span>
-                            ) : (
-                              <motion.span
-                                key="default"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="flex items-center gap-2"
-                              >
-                                <ShoppingCart className="w-5 h-5" /> ADD TO CART
-                              </motion.span>
-                            )}
-                          </AnimatePresence>
+                          <CartButtonLabel
+                            status={addToCartStatus}
+                            idleLabel="ADD TO CART"
+                            addingLabel="ADDING..."
+                            successLabel="ADDED!"
+                            iconClassName="w-5 h-5"
+                          />
                         </button>
-                      )}
+                      </DisabledActionTooltip>
                     </div>
                   </div>
                 </div>
@@ -654,7 +629,6 @@ export function DevelopmentalSeriesClient({
                   </a>
                 </div>
               </div>
-              </ContentFadeIn>
             </div>
           </div>
         </div>

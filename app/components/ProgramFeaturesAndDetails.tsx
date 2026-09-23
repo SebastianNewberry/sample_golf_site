@@ -2,7 +2,6 @@
 
 import { CheckCircle2 } from "lucide-react";
 import { ProgramDetailsSection } from "./ProgramDetailsSection";
-import { ContentFadeIn } from "@/app/components/ContentFadeIn";
 import type { ProgramDetail } from "@/lib/program-details";
 
 interface ProgramFeaturesAndDetailsProps {
@@ -21,8 +20,7 @@ export function ProgramFeaturesAndDetails({
         <h2 className="text-2xl font-bold text-gray-800 mb-4">
           Program Features
         </h2>
-        <ContentFadeIn>
-          <div className="space-y-3">
+        <div className="space-y-3">
             {(features || []).map((feature, index) => (
               <div key={index} className="flex items-center gap-3">
                 <CheckCircle2
@@ -33,7 +31,6 @@ export function ProgramFeaturesAndDetails({
               </div>
             ))}
           </div>
-        </ContentFadeIn>
       </div>
 
       {/* Program Details */}
@@ -41,9 +38,7 @@ export function ProgramFeaturesAndDetails({
         <h2 className="text-2xl font-bold text-gray-800 mb-4">
           Program Details
         </h2>
-        <ContentFadeIn>
-          <ProgramDetailsSection details={details} />
-        </ContentFadeIn>
+        <ProgramDetailsSection details={details} />
       </div>
     </>
   );

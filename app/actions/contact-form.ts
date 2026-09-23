@@ -3,12 +3,13 @@
 import { z } from "zod";
 import { insertContactSubmission } from "@/db/queries/contact-submissions";
 import type { NewContactSubmission } from "@/db/schema";
+import { usPhoneNumberSchema } from "@/lib/utils";
 
 // Zod schema for contact form validation
 const contactFormSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
+  phoneNumber: usPhoneNumberSchema,
   email: z.email("Invalid email address"),
   subject: z.string().min(1, "Subject is required"),
   message: z.string().min(1, "Message is required"),

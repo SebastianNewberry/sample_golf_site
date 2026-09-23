@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Shimmer } from "@/app/components/Shimmer";
-import { ContentFadeIn } from "@/app/components/ContentFadeIn";
 import { ProgramSidebarHeader } from "@/app/components/ProgramSidebarHeader";
 import { ProgramSidebarNav } from "@/app/components/ProgramSidebarNav";
 import { SessionSchedulePanel } from "@/app/components/SessionSchedulePanel";
@@ -16,6 +15,7 @@ import {
 } from "@/app/components/program-page-layout";
 import { getProgramPageTitle } from "@/lib/program-nav-links";
 import { getProgramMobileNavOpen } from "@/lib/use-program-sidebar-nav";
+import { ProgramSkeletonHandoff } from "@/app/components/ProgramSkeletonHandoff";
 
 type PrivateInstructionLayout = "adult" | "junior";
 
@@ -46,6 +46,7 @@ export function PrivateInstructionSkeleton({
   const title = getProgramPageTitle(pathname, layout);
 
   return (
+    <ProgramSkeletonHandoff>
     <div key={pathname ?? "private-skeleton"} className={programPageContent}>
       <div className={programPageGrid}>
         {/* Left: nav + SessionCalendar summary — no fade so route swaps are seamless */}
@@ -148,7 +149,6 @@ export function PrivateInstructionSkeleton({
                 <h1 className="text-lg font-bold text-gray-900 mb-2">{title}</h1>
               ) : null}
 
-              <ContentFadeIn>
                 <div className="mb-8 space-y-4">
                   <div className="space-y-1">
                     <Shimmer className="h-3.5 w-full rounded" />
@@ -217,7 +217,6 @@ export function PrivateInstructionSkeleton({
                     </div>
                   </div>
                 </div>
-              </ContentFadeIn>
             </div>
           </div>
         </div>
@@ -228,7 +227,6 @@ export function PrivateInstructionSkeleton({
             <h2 className="mb-4 text-2xl font-bold text-gray-800">
               Program Features
             </h2>
-            <ContentFadeIn>
               <div className="space-y-3">
                 {[1, 2, 3, 4, 5, 6, 7].map((i) => (
                   <div key={i} className="flex items-center gap-3">
@@ -237,14 +235,12 @@ export function PrivateInstructionSkeleton({
                   </div>
                 ))}
               </div>
-            </ContentFadeIn>
           </div>
 
           <div className="rounded-xl bg-white p-8 shadow-sm">
             <h2 className="mb-4 text-2xl font-bold text-gray-800">
               Program Details
             </h2>
-            <ContentFadeIn>
               <div className="grid gap-4">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="flex items-start gap-4 py-3">
@@ -257,10 +253,10 @@ export function PrivateInstructionSkeleton({
                   </div>
                 ))}
               </div>
-            </ContentFadeIn>
           </div>
         </div>
       </div>
     </div>
+    </ProgramSkeletonHandoff>
   );
 }

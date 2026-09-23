@@ -35,7 +35,7 @@ export default function CenteredWithLogo() {
             <Logo />
           </div>
 
-          <ul className="flex list-none flex-col items-center gap-4 font-sans text-sm font-medium text-neutral-600 sm:flex-row sm:gap-8">
+          <ul className="hidden list-none flex-row items-center gap-8 font-sans text-sm font-medium text-neutral-600 sm:flex">
             {pages.map((page) => (
               <li key={page.href} className="list-none">
                 <Link
@@ -48,7 +48,20 @@ export default function CenteredWithLogo() {
             ))}
           </ul>
 
-          <p className="mt-6 text-center font-sans text-sm text-neutral-500">
+          <ul className="mx-auto grid w-max max-w-full grid-cols-2 justify-items-start gap-x-10 gap-y-5 text-left font-sans text-sm font-medium text-neutral-600 sm:hidden">
+            {pages.map((page) => (
+              <li key={page.href} className="list-none">
+                <Link
+                  className="whitespace-nowrap transition-colors hover:text-neutral-900"
+                  href={page.href}
+                >
+                  {page.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+
+          <p className="mt-6 hidden text-center font-sans text-sm text-neutral-500 sm:block">
             <a
               href="tel:+12485633561"
               className="transition-colors hover:text-neutral-800"
@@ -56,6 +69,21 @@ export default function CenteredWithLogo() {
               (248) 563-3561
             </a>
             <span className="mx-2 text-neutral-300">·</span>
+            <a
+              href="mailto:toskigolfacademy@gmail.com"
+              className="transition-colors hover:text-neutral-800"
+            >
+              toskigolfacademy@gmail.com
+            </a>
+          </p>
+
+          <p className="mt-6 flex flex-col items-center gap-1 text-center font-sans text-sm text-neutral-500 sm:hidden">
+            <a
+              href="tel:+12485633561"
+              className="whitespace-nowrap transition-colors hover:text-neutral-800"
+            >
+              (248) 563-3561
+            </a>
             <a
               href="mailto:toskigolfacademy@gmail.com"
               className="transition-colors hover:text-neutral-800"

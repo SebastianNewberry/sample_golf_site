@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Shimmer } from "@/app/components/Shimmer";
-import { ContentFadeIn } from "@/app/components/ContentFadeIn";
 import { ProgramSidebarHeader } from "@/app/components/ProgramSidebarHeader";
 import { ProgramSidebarNav } from "@/app/components/ProgramSidebarNav";
 import { SessionSchedulePanel } from "@/app/components/SessionSchedulePanel";
@@ -19,6 +18,7 @@ import {
   type ProgramNavVariant,
 } from "@/lib/program-nav-links";
 import { getProgramMobileNavOpen } from "@/lib/use-program-sidebar-nav";
+import { ProgramSkeletonHandoff } from "@/app/components/ProgramSkeletonHandoff";
 
 export { PageTitleShimmer, Shimmer } from "@/app/components/Shimmer";
 export {
@@ -128,6 +128,7 @@ export function ProgramPageSkeleton({
   const title = getProgramPageTitle(pathname, variant);
 
   return (
+    <ProgramSkeletonHandoff>
     <div key={pathname ?? "program-skeleton"} className={programPageContent}>
       <div className={programPageGrid}>
         {/* Left: nav + session area — no fade so route swaps are seamless */}
@@ -165,8 +166,7 @@ export function ProgramPageSkeleton({
                 <h1 className="text-lg font-bold text-gray-900 mb-2">{title}</h1>
               ) : null}
 
-              <ContentFadeIn>
-                {/* Description — matches ProgramCard `text-sm leading-relaxed` */}
+              {/* Description — matches ProgramCard `text-sm leading-relaxed` */}
                 <div className="mb-6 space-y-3">
                   <Shimmer className="h-3.5 w-full rounded" />
                   <Shimmer className="h-3.5 w-[96%] rounded" />
@@ -194,7 +194,6 @@ export function ProgramPageSkeleton({
                   <Shimmer className="h-12 w-full rounded-xl" />
                   <Shimmer className="h-12 w-full rounded-xl" />
                 </div>
-              </ContentFadeIn>
             </div>
           </div>
         </div>
@@ -205,7 +204,6 @@ export function ProgramPageSkeleton({
             <h2 className="mb-4 text-2xl font-bold text-gray-800">
               Program Features
             </h2>
-            <ContentFadeIn>
               <div className="space-y-3">
                 {[1, 2, 3, 4, 5, 6, 7].map((i) => (
                   <div key={i} className="flex items-center gap-3">
@@ -214,14 +212,12 @@ export function ProgramPageSkeleton({
                   </div>
                 ))}
               </div>
-            </ContentFadeIn>
           </div>
 
           <div className="rounded-xl bg-white p-8 shadow-sm">
             <h2 className="mb-4 text-2xl font-bold text-gray-800">
               Program Details
             </h2>
-            <ContentFadeIn>
               <div className="grid gap-4">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="flex items-start gap-4 py-3">
@@ -234,10 +230,10 @@ export function ProgramPageSkeleton({
                   </div>
                 ))}
               </div>
-            </ContentFadeIn>
           </div>
         </div>
       </div>
     </div>
+    </ProgramSkeletonHandoff>
   );
 }

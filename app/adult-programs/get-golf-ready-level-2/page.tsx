@@ -1,65 +1,33 @@
-import { CheckCircle2 } from "lucide-react";
+"use client";
+
 import defaultImage from "@/public/golf_ready_level2.webp";
-import {
-  getProgramById,
-  getProgramSessionsWithEnrollment,
-} from "@/db/queries/programs";
-import { ProgramDetailsSection } from "@/app/components/ProgramDetailsSection";
-import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
-import {
-  programPageContent,
-  programPageGrid,
-} from "@/app/components/program-page-layout";
+import { LoadedProgramPage } from "@/app/components/LoadedProgramPage";
 import { GetGolfReadyLevel2PageClient } from "./GetGolfReadyLevel2PageClient";
 
-export default async function GetGolfReadyLevel2(props: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  const searchParams = await props.searchParams;
-  const sessionId =
-    typeof searchParams.sessionId === "string"
-      ? searchParams.sessionId
-      : undefined;
-  const programId = "eb15499e-b573-4027-a2dc-1335bc7613b1";
-  const [program, sessions] = await Promise.all([
-    getProgramById(programId),
-    getProgramSessionsWithEnrollment(programId, "adult"),
-  ]);
-
+export default function GetGolfReadyLevel2() {
   return (
-    <>
-      {/* Main Content Grid - Centered */}
-      <div className={programPageContent}>
-        <div className={programPageGrid}>
-          {program ? (
-            <GetGolfReadyLevel2PageClient
-              imageUrl={program.imageUrl || undefined}
-              defaultImage={defaultImage}
-              title={program.name}
-              description={program.description || ""}
-              programId={program.id}
-              programPrice={parseFloat(program.price)}
-              duration={program.duration}
-              sessions={sessions}
-              currentPage="get-golf-ready-level-2"
-              features={program.features || []}
-              details={program.details || []}
-              initialSessionId={sessionId}
-            />
-          ) : (
-            <>
-              <div className="lg:col-span-3 space-y-2">
-                <h1 className="text-2xl font-bold text-gray-800 mb-4">
-                  Get Golf Ready Level II
-                </h1>
-              </div>
-              <div className="lg:col-span-7">
-                <ProgramComingSoonCard programName="Get Golf Ready (Level II)" />
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </>
+    <LoadedProgramPage
+      programId="eb15499e-b573-4027-a2dc-1335bc7613b1"
+      variant="adult"
+      missingTitle="Get Golf Ready Level II"
+      missingName="Get Golf Ready (Level II)"
+    >
+      {({ program, sessions, sessionId }) => (
+        <GetGolfReadyLevel2PageClient
+          imageUrl={program.imageUrl || undefined}
+          defaultImage={defaultImage}
+          title={program.name}
+          description={program.description || ""}
+          programId={program.id}
+          programPrice={parseFloat(program.price)}
+          duration={program.duration}
+          sessions={sessions}
+          currentPage="get-golf-ready-level-2"
+          features={program.features || []}
+          details={program.details || []}
+          initialSessionId={sessionId}
+        />
+      )}
+    </LoadedProgramPage>
   );
 }

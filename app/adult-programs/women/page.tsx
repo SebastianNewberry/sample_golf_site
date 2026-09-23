@@ -1,66 +1,34 @@
-import { CheckCircle2 } from "lucide-react";
+"use client";
+
 import defaultImage from "@/public/golf_for_women.webp";
-import {
-  getProgramById,
-  getProgramSessionsWithEnrollment,
-} from "@/db/queries/programs";
-import { ProgramDetailsSection } from "@/app/components/ProgramDetailsSection";
-import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
-import type { ProgramDetail } from "@/lib/program-details";
-import {
-  programPageContent,
-  programPageGrid,
-} from "@/app/components/program-page-layout";
+import { LoadedProgramPage } from "@/app/components/LoadedProgramPage";
 import { GolfForWomenPageClient } from "./GolfForWomenPageClient";
 
-export default async function GolfForWomenProgram(props: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  const searchParams = await props.searchParams;
-  const sessionId =
-    typeof searchParams.sessionId === "string"
-      ? searchParams.sessionId
-      : undefined;
-  const programId = "9160a3a8-a652-4ddf-a13f-298336168e04";
-  const [program, sessions] = await Promise.all([
-    getProgramById(programId),
-    getProgramSessionsWithEnrollment(programId, "adult"),
-  ]);
-
+export default function GolfForWomenProgram() {
   return (
-    <>
-      {/* Main Content Grid - Centered */}
-      <div className={programPageContent}>
-        <div className={programPageGrid}>
-          {program ? (
-            <GolfForWomenPageClient
-              imageUrl={program.imageUrl || undefined}
-              defaultImage={defaultImage}
-              title={program.name}
-              description={program.description || ""}
-              programId={program.id}
-              programPrice={parseFloat(program.price)}
-              duration={program.duration}
-              sessions={sessions}
-              currentPage="women"
-              features={program.features || []}
-              details={program.details || []}
-              initialSessionId={sessionId}
-            />
-          ) : (
-            <>
-              <div className="lg:col-span-3 space-y-2">
-                <h1 className="text-2xl font-bold text-gray-800 mb-4">
-                  Golf For Women
-                </h1>
-              </div>
-              <div className="lg:col-span-7">
-                <ProgramComingSoonCard programName="Golf For Women" />
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </>
+    <LoadedProgramPage
+      programId="9160a3a8-a652-4ddf-a13f-298336168e04"
+      variant="adult"
+      tallImage
+      missingTitle="Golf For Women"
+      missingName="Golf For Women"
+    >
+      {({ program, sessions, sessionId }) => (
+        <GolfForWomenPageClient
+          imageUrl={program.imageUrl || undefined}
+          defaultImage={defaultImage}
+          title={program.name}
+          description={program.description || ""}
+          programId={program.id}
+          programPrice={parseFloat(program.price)}
+          duration={program.duration}
+          sessions={sessions}
+          currentPage="women"
+          features={program.features || []}
+          details={program.details || []}
+          initialSessionId={sessionId}
+        />
+      )}
+    </LoadedProgramPage>
   );
 }

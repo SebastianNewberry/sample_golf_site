@@ -4,6 +4,7 @@ import { Montserrat, Playfair_Display } from "next/font/google";
 import Navigation from "./components/Navigation";
 import { CartProvider } from "./components/cart/CartContext";
 import { ProgramVisibilityProvider } from "./components/ProgramVisibilityContext";
+import { ProgramCatalogProvider } from "./components/ProgramCatalogContext";
 import Footer from "./components/Footer";
 import logo from "@/public/logo.webp";
 import { getProgramVisibility } from "@/db/queries/programs";
@@ -51,9 +52,11 @@ export default async function RootLayout({
       <body className="antialiased flex flex-col min-h-screen font-sans">
         <CartProvider>
           <ProgramVisibilityProvider programs={programs}>
-            <Navigation />
-            <div className="flex-grow">{children}</div>
-            <Footer />
+            <ProgramCatalogProvider>
+              <Navigation />
+              <div className="flex-grow">{children}</div>
+              <Footer />
+            </ProgramCatalogProvider>
           </ProgramVisibilityProvider>
         </CartProvider>
       </body>

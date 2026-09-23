@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Gift,
   CreditCard,
   Check,
   ArrowLeft,
@@ -21,6 +20,7 @@ import {
   Lock,
   Mail,
 } from "lucide-react";
+import Image from "next/image";
 import { purchaseGiftCard } from "@/app/actions/gift-cards";
 import { formatPrice } from "@/lib/utils";
 import { SafeHTML } from "@/app/components/SafeHTML";
@@ -666,31 +666,39 @@ export default function GiftCardPurchaseClient() {
 
   return (
     <div className="min-h-screen bg-[#f9fafc]">
-      {/* Hero */}
-      <div className="relative bg-[#0a1a10] text-white py-24 sm:py-32 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--golf-green-dark))] to-[#0a1a10] opacity-90" />
-        <div className="absolute inset-0 bg-[url('/hero-pattern.svg')] opacity-[0.08]" />
+      {/* Visual Image Banner */}
+      <div className="relative w-full h-[280px] sm:h-[380px] md:h-[480px] lg:h-[560px] max-h-[656px] bg-neutral-900 overflow-hidden flex items-center justify-center">
+        <div className="relative h-full w-auto max-w-full overflow-hidden flex items-center justify-center">
+          <Image
+            src="/golf_gift.jpg"
+            alt="Toski Golf Academy - The Gift of Golf"
+            width={986}
+            height={656}
+            priority
+            className="h-full w-auto max-w-full object-contain mx-auto"
+          />
+          {/* Edge gradients to blend smoothly into the background */}
+          <div className="hidden sm:block absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-neutral-900 to-transparent pointer-events-none" />
+          <div className="hidden sm:block absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-neutral-900 to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-neutral-900/40 to-transparent pointer-events-none" />
+          <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-neutral-900/40 to-transparent pointer-events-none" />
+        </div>
+      </div>
 
-        {/* Glow Effects */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-[hsl(var(--golf-green))] rounded-full blur-[120px] opacity-20 pointer-events-none" />
-
-        <div className="relative max-w-3xl mx-auto px-4 text-center z-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-white/10 backdrop-blur-md mb-8 border border-white/20 shadow-2xl">
-            <Gift className="w-10 h-10 text-white" />
-          </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 tracking-tight drop-shadow-md">
+      {/* Main Content */}
+      <div className="relative z-10 mx-auto max-w-2xl px-4 py-8 sm:py-12 pb-24">
+        {/* Title and Intro Text */}
+        <div className="mb-8 text-center">
+          <h1 className="mb-3 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
             Gift Cards
           </h1>
-          <p className="text-lg sm:text-xl text-white/90 max-w-xl mx-auto font-light tracking-wide leading-relaxed">
+          <p className="mx-auto max-w-xl text-base text-gray-600 sm:text-lg leading-relaxed">
             The perfect gift for golfers of all skill levels. Redeemable for any
             program or private lesson at Toski Golf Academy.
           </p>
         </div>
-      </div>
 
-      {/* Content */}
-      <div className="max-w-2xl mx-auto px-4 -mt-16 sm:-mt-20 pb-24 relative z-10">
-        <Card className="shadow-2xl border-0 overflow-hidden ring-1 ring-black/5 rounded-2xl bg-white/95 backdrop-blur-md">
+        <Card className="mx-auto max-w-2xl shadow-xl border border-gray-100 overflow-hidden ring-1 ring-black/5 rounded-2xl bg-white">
           {/* Step Indicator */}
           {step < 3 && (
             <div className="bg-gray-50 px-6 py-4 border-b">

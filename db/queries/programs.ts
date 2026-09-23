@@ -10,7 +10,8 @@ import {
   juniorProgramRegistration,
   seriesSlotEnrollment,
 } from "@/db/schema";
-import { eq, or, like, and, gt, count, not, sql } from "drizzle-orm";
+import { eq, or, like, and, gt, count, not, sql, inArray } from "drizzle-orm";
+import type { ProgramCatalogRecord } from "@/lib/program-catalog-data";
 
 export const getProgramVisibility = cache(async () => {
   return db
@@ -147,6 +148,141 @@ export async function getProgramSessionsWithEnrollment(
   );
 
   return sessionsWithEnrollment;
+}
+
+function parsePricingOptions(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== "string") return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function enrollmentCountFrom(value: unknown): number {
+  const countValue = typeof value === "number" || typeof value === "string" ? Number(value) : 0;
+  return Number.isFinite(countValue) ? countValue : 0;
+}
+
+/**
+ * Everything a program page needs except private-instruction open times.
+ * Those stay on the private pages, which load instructor availability themselves.
+ */
+export async function getProgramPageCatalog(): Promise<ProgramCatalogRecord[]> {
+  const [programs, sessions, adultEnrollment, juniorEnrollment] = await Promise.all([
+    db.select().from(program),
+    db.select().from(programSession),
+    db
+      .select({
+        sessionId: adultRegistration.programSessionId,
+        enrollmentCount: count(),
+      })
+      .from(adultRegistration)
+      .where(eq(adultRegistration.paymentStatus, "paid"))
+      .groupBy(adultRegistration.programSessionId),
+    db
+      .select({
+        sessionId: juniorProgramRegistration.programSessionId,
+        enrollmentCount: count(),
+      })
+      .from(juniorProgramRegistration)
+      .where(eq(juniorProgramRegistration.paymentStatus, "paid"))
+      .groupBy(juniorProgramRegistration.programSessionId),
+  ]);
+
+  const adultEnrollmentBySession = new Map<string, number>();
+  for (const row of adultEnrollment) {
+    if (!row.sessionId) continue;
+    adultEnrollmentBySession.set(row.sessionId, enrollmentCountFrom(row.enrollmentCount));
+  }
+  const juniorEnrollmentBySession = new Map<string, number>();
+  for (const row of juniorEnrollment) {
+    if (!row.sessionId) continue;
+    juniorEnrollmentBySession.set(
+      row.sessionId,
+      enrollmentCountFrom(row.enrollmentCount),
+    );
+  }
+  const programTypeById = new Map(programs.map((item) => [item.id, item.type]));
+
+  const seriesProgramIds = new Set(
+    programs.filter((item) => item.schedulingType === "series").map((item) => item.id),
+  );
+  const seriesSessionIds = sessions
+    .filter((session) => seriesProgramIds.has(session.programId))
+    .map((session) => session.id);
+
+  const slotRows = seriesSessionIds.length
+    ? await db
+        .select({
+          programSessionId: seriesSlotEnrollment.programSessionId,
+          slotDate: seriesSlotEnrollment.slotDate,
+          slotStartTime: seriesSlotEnrollment.slotStartTime,
+          slotEndTime: seriesSlotEnrollment.slotEndTime,
+          enrolledCount: count(seriesSlotEnrollment.id),
+        })
+        .from(seriesSlotEnrollment)
+        .where(
+          and(
+            inArray(seriesSlotEnrollment.programSessionId, seriesSessionIds),
+            eq(seriesSlotEnrollment.status, "confirmed"),
+          ),
+        )
+        .groupBy(
+          seriesSlotEnrollment.programSessionId,
+          seriesSlotEnrollment.slotDate,
+          seriesSlotEnrollment.slotStartTime,
+          seriesSlotEnrollment.slotEndTime,
+        )
+    : [];
+
+  const slotsBySession = new Map<string, ProgramCatalogRecord["slotEnrollment"][string]>();
+  for (const row of slotRows) {
+    const slots = slotsBySession.get(row.programSessionId) ?? [];
+    slots.push({
+      slotDate: row.slotDate,
+      slotStartTime: row.slotStartTime,
+      slotEndTime: row.slotEndTime,
+      enrolledCount: enrollmentCountFrom(row.enrolledCount),
+    });
+    slotsBySession.set(row.programSessionId, slots);
+  }
+
+  const sessionsByProgram = new Map<string, ProgramCatalogRecord["sessions"]>();
+  for (const session of sessions) {
+    const enrollmentCount =
+      (programTypeById.get(session.programId) === "junior"
+        ? juniorEnrollmentBySession
+        : adultEnrollmentBySession
+      ).get(session.id) ?? 0;
+    const programSessions = sessionsByProgram.get(session.programId) ?? [];
+    programSessions.push({
+      ...session,
+      enrollmentCount,
+      spotsRemaining: session.capacity - enrollmentCount,
+      isBooked: enrollmentCount >= session.capacity,
+    });
+    sessionsByProgram.set(session.programId, programSessions);
+  }
+
+  return programs.map((item) => {
+    const programSessions = sessionsByProgram.get(item.id) ?? [];
+    const slotEnrollment: ProgramCatalogRecord["slotEnrollment"] = {};
+    if (item.schedulingType === "series") {
+      for (const session of programSessions) {
+        slotEnrollment[session.id] = slotsBySession.get(session.id) ?? [];
+      }
+    }
+
+    return {
+      program: item,
+      sessions: programSessions,
+      slotEnrollment,
+      pricingOptions: parsePricingOptions(item.pricingOptions),
+    };
+  });
 }
 
 // Create a new program

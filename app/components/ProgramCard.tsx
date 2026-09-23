@@ -4,7 +4,6 @@ import Image from "next/image";
 import { ReactNode } from "react";
 import { ProgramPurchaseSection } from "@/app/components/ProgramPurchaseSection";
 import { ProgramPageTitle } from "@/app/components/ProgramPageTitle";
-import { ContentFadeIn } from "@/app/components/ContentFadeIn";
 import { SafeHTML } from "@/app/components/SafeHTML";
 import {
   programCardImageContainer,
@@ -81,7 +80,6 @@ export function ProgramCard({
           fallback={title}
           className="text-lg font-bold text-gray-900 mb-2"
         />
-        <ContentFadeIn>
           <div className="text-gray-700 text-sm leading-relaxed mb-6 [&_p]:mb-3 [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-2 [&_h2]:mt-4 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mb-2 [&_h3]:mt-3 [&_ul]:list-disc [&_ul]:ml-5 [&_ol]:list-decimal [&_ol]:ml-5 [&_li]:mb-1 font-sans">
             <SafeHTML html={description} />
           </div>
@@ -101,7 +99,6 @@ export function ProgramCard({
 
           {/* Extra content after purchase section */}
           {extraContent}
-        </ContentFadeIn>
       </div>
     </div>
   );

@@ -1,11 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Check, Loader2 } from "lucide-react";
 import { useCart } from "@/app/components/cart/CartContext";
-import { motion, AnimatePresence } from "motion/react";
 import { checkSessionAvailability } from "@/app/actions/cart";
+import { cn } from "@/lib/utils";
+import {
+  CartButtonLabel,
+  type CartButtonStatus,
+} from "@/app/components/CartButtonLabel";
 
 interface AddToCartButtonProps {
   programId: string;
@@ -32,15 +35,30 @@ export function AddToCartButton({
   disabled = false,
   quantity = 1,
 }: AddToCartButtonProps) {
-  const { addItem, isAddingToCart, items } = useCart();
-  const [showSuccess, setShowSuccess] = useState(false);
+  const { addItem, items } = useCart();
+  const [status, setStatus] = useState<CartButtonStatus>("idle");
   const [error, setError] = useState<string | null>(null);
+  const successTimer = useRef<number | null>(null);
+  const errorTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (successTimer.current) window.clearTimeout(successTimer.current);
+      if (errorTimer.current) window.clearTimeout(errorTimer.current);
+    };
+  }, []);
+
+  const showError = (message: string) => {
+    setError(message);
+    if (errorTimer.current) window.clearTimeout(errorTimer.current);
+    errorTimer.current = window.setTimeout(() => setError(null), 3000);
+  };
 
   const handleAddToCart = async () => {
-    if (disabled) return;
+    if (disabled || status !== "idle") return;
     setError(null);
+    setStatus("adding");
 
-    // If adding a specific session, check capacity
     const addQuantity = Math.max(1, Math.floor(quantity));
 
     if (programSessionId) {
@@ -51,24 +69,21 @@ export function AddToCartButton({
       const availability = await checkSessionAvailability(programSessionId);
 
       if (!availability.success) {
-        setError("Failed to check availability");
+        setStatus("idle");
+        showError("Failed to check availability");
         return;
       }
 
       const { available, remaining } = availability;
       const maxCanAdd = (remaining ?? 0) - inCartQuantity;
 
-      if (
-        !available ||
-        maxCanAdd <= 0 ||
-        addQuantity > maxCanAdd
-      ) {
-        setError(
+      if (!available || maxCanAdd <= 0 || addQuantity > maxCanAdd) {
+        setStatus("idle");
+        showError(
           maxCanAdd <= 0
             ? "No more spots available"
             : `Only ${maxCanAdd} ${maxCanAdd === 1 ? "spot is" : "spots are"} available`,
         );
-        setTimeout(() => setError(null), 3000);
         return;
       }
     }
@@ -82,11 +97,12 @@ export function AddToCartButton({
     });
 
     if (result.success) {
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 1000);
+      setStatus("success");
+      if (successTimer.current) window.clearTimeout(successTimer.current);
+      successTimer.current = window.setTimeout(() => setStatus("idle"), 1000);
     } else {
-      setError(result.error || "Failed to add");
-      setTimeout(() => setError(null), 3000);
+      setStatus("idle");
+      showError(result.error || "Failed to add");
     }
   };
 
@@ -94,51 +110,17 @@ export function AddToCartButton({
     <div className="flex flex-col w-full">
       <Button
         onClick={handleAddToCart}
-        disabled={isAddingToCart || disabled}
-        className={`${
-          variant === "default"
-            ? "bg-orange-500 enabled:hover:bg-orange-600"
-            : ""
-        } ${className}`}
+        disabled={disabled}
+        aria-busy={status === "adding"}
+        className={cn(
+          variant === "default" && "bg-orange-500 enabled:hover:bg-orange-600",
+          status !== "idle" && "cursor-default",
+          className,
+        )}
         variant={variant}
         size={size}
       >
-        <AnimatePresence mode="wait">
-          {isAddingToCart ? (
-            <motion.span
-              key="loading"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center"
-            >
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Adding...
-            </motion.span>
-          ) : showSuccess ? (
-            <motion.span
-              key="success"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.8 }}
-              className="flex items-center"
-            >
-              <Check className="mr-2 h-4 w-4" />
-              Added!
-            </motion.span>
-          ) : (
-            <motion.span
-              key="default"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center"
-            >
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              {children || "Add to Cart"}
-            </motion.span>
-          )}
-        </AnimatePresence>
+        <CartButtonLabel status={status} idleLabel={children || "Add to Cart"} />
       </Button>
       {error && (
         <p className="text-red-500 text-xs mt-1 text-center font-medium animate-in fade-in slide-in-from-top-1">

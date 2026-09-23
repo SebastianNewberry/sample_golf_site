@@ -84,22 +84,26 @@ export function ProgramPurchaseSection({
 
   // Fetch availability when selected session changes
   useEffect(() => {
-    if (selectedSession && selectedSession.trim() !== "") {
-      const fetchAvailability = async () => {
-        setIsCheckingAvailability(true);
-        const result = await checkSessionAvailability(selectedSession);
-        if (result.success) {
-          setAvailability({
-            available: result.available!,
-            remaining: result.remaining!,
-          });
-        }
-        setIsCheckingAvailability(false);
-      };
-      fetchAvailability();
-    } else {
-      setAvailability(null);
-    }
+    setAvailability(null);
+    if (!selectedSession || selectedSession.trim() === "") return;
+
+    let cancelled = false;
+    const fetchAvailability = async () => {
+      setIsCheckingAvailability(true);
+      const result = await checkSessionAvailability(selectedSession);
+      if (cancelled) return;
+      if (result.success) {
+        setAvailability({
+          available: result.available!,
+          remaining: result.remaining!,
+        });
+      }
+      setIsCheckingAvailability(false);
+    };
+    fetchAvailability();
+    return () => {
+      cancelled = true;
+    };
   }, [selectedSession]);
 
   const hasSessions = sessions.length > 0;
@@ -121,18 +125,16 @@ export function ProgramPurchaseSection({
     ? isSessionUnavailable(selectedSessionMeta)
     : false;
 
-  const isFull =
-    maxQuantity <= 0 && isSessionSelected && !isCheckingAvailability;
+  const isFull = Boolean(isSessionSelected && availability && maxQuantity <= 0);
   const isDisabled =
     !isProgramActive ||
     !hasSessions ||
     !isSessionSelected ||
     isFull ||
-    isCheckingAvailability ||
     selectedSessionUnavailable ||
     allSessionsUnavailable;
 
-  const isQuantityDisabled = isDisabled || maxQuantity <= 0;
+  const isQuantityDisabled = isDisabled || isCheckingAvailability || maxQuantity <= 0;
   const purchaseBlockReason = getPurchaseBlockReason({
     isProgramActive,
     noSessions: allSessionsUnavailable,
@@ -254,73 +256,43 @@ export function ProgramPurchaseSection({
       )}
 
       <div className="space-y-3">
-        {purchaseBlockReason ? (
-          <DisabledActionTooltip reason={purchaseBlockReason}>
-            <BuyNowButton
-              programId={programId}
-              programSessionId={selectedSession || undefined}
-              registrationType={registrationType}
-              price={programPrice}
-              quantity={quantity}
-              className="w-full py-3.5 font-bold text-base rounded-xl shadow-md transition-all bg-gray-200 text-gray-400 pointer-events-none"
-              size="lg"
-              disabled
-            >
-              BUY NOW
-            </BuyNowButton>
-          </DisabledActionTooltip>
-        ) : (
+        <DisabledActionTooltip reason={purchaseBlockReason}>
           <BuyNowButton
             programId={programId}
             programSessionId={selectedSession || undefined}
             registrationType={registrationType}
             price={programPrice}
             quantity={quantity}
-            className={`w-full py-3.5 font-bold text-base rounded-xl shadow-md enabled:hover:shadow-lg transition-all ${
+            className={`w-full py-3.5 font-bold text-base rounded-xl shadow-md enabled:hover:shadow-lg transition-colors ${
               !isDisabled
                 ? "bg-orange-500 enabled:hover:bg-orange-600 text-white"
                 : "bg-gray-200 text-gray-400"
-            }`}
+            } ${purchaseBlockReason ? "pointer-events-none" : ""}`}
             size="lg"
             disabled={isDisabled}
           >
             BUY NOW
           </BuyNowButton>
-        )}
+        </DisabledActionTooltip>
 
-        {purchaseBlockReason ? (
-          <DisabledActionTooltip reason={purchaseBlockReason}>
-            <AddToCartButton
-              programId={programId}
-              programSessionId={selectedSession || undefined}
-              registrationType={registrationType}
-              price={programPrice}
-              quantity={quantity}
-              className="w-full py-3.5 font-bold text-base border-2 rounded-xl transition-all border-gray-200 text-gray-400 bg-gray-50 pointer-events-none"
-              size="lg"
-              disabled
-            >
-              ADD TO CART
-            </AddToCartButton>
-          </DisabledActionTooltip>
-        ) : (
+        <DisabledActionTooltip reason={purchaseBlockReason}>
           <AddToCartButton
             programId={programId}
             programSessionId={selectedSession || undefined}
             registrationType={registrationType}
             price={programPrice}
             quantity={quantity}
-            className={`w-full py-3.5 font-bold text-base border-2 rounded-xl transition-all ${
+            className={`w-full py-3.5 font-bold text-base border-2 rounded-xl transition-colors ${
               !isDisabled
                 ? "bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 border-green-600"
                 : "border-gray-200 text-gray-400 bg-gray-50"
-            }`}
+            } ${purchaseBlockReason ? "pointer-events-none" : ""}`}
             size="lg"
             disabled={isDisabled}
           >
             ADD TO CART
           </AddToCartButton>
-        )}
+        </DisabledActionTooltip>
       </div>
 
       {/* Call Option */}

@@ -1,104 +1,49 @@
-import {
-  getProgramById,
-  getProgramSessionsWithEnrollment,
-  getSeriesSlotEnrollment,
-} from "@/db/queries/programs";
-import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
-import {
-  programPageContent,
-  programPageGrid,
-} from "@/app/components/program-page-layout";
-import { DevelopmentalSeriesClient } from "./DevelopmentalSeriesClient";
+"use client";
+
+import { LoadedProgramPage } from "@/app/components/LoadedProgramPage";
 import { DevelopmentalSeriesPageWrapper } from "@/app/components/DevelopmentalSeriesPageWrapper";
+import { DevelopmentalSeriesClient } from "./DevelopmentalSeriesClient";
 
-export default async function JuniorDevelopmentalSeries(props: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  const searchParams = await props.searchParams;
-  const sessionId =
-    typeof searchParams.sessionId === "string"
-      ? searchParams.sessionId
-      : undefined;
-  const programId = "cc6a73ca-95fb-4acb-be01-6cee4ce44475";
-  const [program, sessions] = await Promise.all([
-    getProgramById(programId),
-    getProgramSessionsWithEnrollment(programId, "junior"),
-  ]);
-
-  // For series programs, fetch per-slot enrollment for all active sessions
-  let slotEnrollmentData: Record<
-    string,
-    {
-      slotDate: string;
-      slotStartTime: string;
-      slotEndTime: string;
-      enrolledCount: number;
-    }[]
-  > = {};
-
-  if (program?.schedulingType === "series") {
-    for (const session of sessions) {
-      const enrollment = await getSeriesSlotEnrollment(session.id);
-      slotEnrollmentData[session.id] = enrollment;
-    }
-  }
-
-  // Parse pricingOptions from DB
-  let pricingOptions: any[] = [];
-  if (program?.pricingOptions) {
-    try {
-      pricingOptions =
-        typeof program.pricingOptions === "string"
-          ? JSON.parse(program.pricingOptions)
-          : program.pricingOptions;
-    } catch (e) {
-      console.error("Failed to parse pricingOptions", e);
-    }
-  }
-
+export default function JuniorDevelopmentalSeries() {
   return (
-    <>
-      {/* Main Content Grid - Centered */}
-      <div className={programPageContent}>
-        <div className={programPageGrid}>
-          {program ? (
-            <>
-              {program.schedulingType === "series" ? (
-                <DevelopmentalSeriesClient
-                  program={{
-                    id: program.id,
-                    name: program.name,
-                    description: program.description,
-                    price: program.price,
-                    duration: program.duration,
-                    schedulingType: program.schedulingType,
-                    seriesCapacityPerSlot: program.seriesCapacityPerSlot,
-                    features: program.features,
-                    details: program.details,
-                    pricingOptions: pricingOptions,
-                    imageUrl: program.imageUrl,
-                  }}
-                  sessions={sessions}
-                  slotEnrollmentData={slotEnrollmentData}
-                />
-              ) : (
-                <DevelopmentalSeriesPageWrapper
-                  programId={program.id}
-                  programName={program.name}
-                  programPrice={parseFloat(program.price)}
-                  duration={program.duration}
-                  sessions={sessions}
-                  features={program.features || []}
-                  details={program.details || []}
-                  initialSessionId={sessionId}
-                />
-              )}
-            </>
-          ) : (
-            <ProgramComingSoonCard programName="Junior Developmental Series" />
-          )}
-        </div>
-      </div>
-    </>
+    <LoadedProgramPage
+      programId="cc6a73ca-95fb-4acb-be01-6cee4ce44475"
+      variant="junior"
+      missingTitle="Junior Developmental Series"
+      missingName="Junior Developmental Series"
+    >
+      {({ program, sessions, sessionId, slotEnrollment, pricingOptions }) =>
+        program.schedulingType === "series" ? (
+          <DevelopmentalSeriesClient
+            program={{
+              id: program.id,
+              name: program.name,
+              description: program.description,
+              price: program.price,
+              duration: program.duration,
+              schedulingType: program.schedulingType,
+              seriesCapacityPerSlot: program.seriesCapacityPerSlot,
+              features: program.features,
+              details: program.details,
+              pricingOptions,
+              imageUrl: program.imageUrl,
+            }}
+            sessions={sessions}
+            slotEnrollmentData={slotEnrollment}
+          />
+        ) : (
+          <DevelopmentalSeriesPageWrapper
+            programId={program.id}
+            programName={program.name}
+            programPrice={parseFloat(program.price)}
+            duration={program.duration}
+            sessions={sessions}
+            features={program.features || []}
+            details={program.details || []}
+            initialSessionId={sessionId}
+          />
+        )
+      }
+    </LoadedProgramPage>
   );
 }

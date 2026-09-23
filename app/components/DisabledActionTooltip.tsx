@@ -12,18 +12,22 @@ export function DisabledActionTooltip({
   reason,
   children,
 }: {
-  reason: string;
+  reason: string | null;
   children: ReactNode;
 }) {
   return (
     <TooltipProvider delayDuration={0}>
-      <Tooltip disableHoverableContent>
+      <Tooltip disableHoverableContent open={reason ? undefined : false}>
         <TooltipTrigger asChild>
-          <div className="w-full cursor-not-allowed">{children}</div>
+          <div className={reason ? "w-full cursor-not-allowed" : "w-full"}>
+            {children}
+          </div>
         </TooltipTrigger>
-        <TooltipContent side="bottom" className="pointer-events-none">
-          <p>{reason}</p>
-        </TooltipContent>
+        {reason && (
+          <TooltipContent side="bottom" className="pointer-events-none">
+            <p>{reason}</p>
+          </TooltipContent>
+        )}
       </Tooltip>
     </TooltipProvider>
   );

@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { z } from "zod";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -53,6 +54,19 @@ export function formatPhoneNumberInput(
 
   return formatPhoneNumberFromDigits(newDigits);
 }
+
+export function countPhoneDigits(value: string): number {
+  return value.replace(/\D/g, "").length;
+}
+
+/**
+ * US numbers are 10 digits. Area code and exchange cannot start with 0 or 1.
+ * Formatting characters are ignored, so a partial mask like `(248) 563-` fails.
+ */
+export const usPhoneNumberSchema = z.string().refine(
+  (value) => /^[2-9]\d{2}[2-9]\d{6}$/.test(value.replace(/\D/g, "")),
+  { message: "Enter a valid phone number" },
+);
 
 /**
  * Formats a number or string into a standard price format "1,000.00"

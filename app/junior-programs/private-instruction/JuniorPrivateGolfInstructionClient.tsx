@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useWarmProgramCatalog } from "@/app/components/ProgramCatalogContext";
 import {
   CheckCircle2,
   Phone,
@@ -18,8 +19,12 @@ import {
 import { useRouter } from "next/navigation";
 import { useCart } from "@/app/components/cart/CartContext";
 import { addToCart } from "@/app/actions/cart";
-import { Loader2, Check, ShoppingCart, CreditCard } from "lucide-react";
+import { Loader2, CreditCard } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import {
+  CartButtonLabel,
+  type CartButtonStatus,
+} from "@/app/components/CartButtonLabel";
 import defaultImage from "@/public/junior_private_instruction.webp";
 import { ProgramFeaturesAndDetails } from "@/app/components/ProgramFeaturesAndDetails";
 import { SessionCalendar } from "@/app/components/SessionCalendar";
@@ -33,7 +38,6 @@ import {
 } from "@/components/ui/tooltip";
 import { format, isSameDay } from "date-fns";
 import { ProgramPageTitle } from "@/app/components/ProgramPageTitle";
-import { ContentFadeIn } from "@/app/components/ContentFadeIn";
 import { ProgramSidebarHeader } from "@/app/components/ProgramSidebarHeader";
 import { ProgramSidebarNav } from "@/app/components/ProgramSidebarNav";
 import { useProgramSidebarNav } from "@/lib/use-program-sidebar-nav";
@@ -45,12 +49,15 @@ import { getPurchaseBlockReason } from "@/lib/purchase-availability";
 interface JuniorPrivateGolfInstructionClientProps {
   program: any;
   initialAvailableSlots: any[];
+  slotsLoading?: boolean;
 }
 
 export function JuniorPrivateGolfInstructionClient({
   program,
   initialAvailableSlots,
+  slotsLoading = false,
 }: JuniorPrivateGolfInstructionClientProps) {
+  useWarmProgramCatalog();
   const router = useRouter();
   const { addItem, isAddingToCart, refreshCart } = useCart();
 
@@ -139,6 +146,8 @@ export function JuniorPrivateGolfInstructionClient({
       });
   }, [initialAvailableSlots]);
 
+  const noOpenTimes = !slotsLoading && availableSlots.length === 0;
+
   // Parse DB Pricing Options
   const pricingOptions = useMemo(() => {
     if (!program?.pricingOptions) return [];
@@ -208,7 +217,7 @@ export function JuniorPrivateGolfInstructionClient({
 
   // Cart Actions
   const handleAddToCart = async () => {
-    if (selectedSlots.length === 0 || !selectedDuration) return;
+    if (isAddingToCart || selectedSlots.length === 0 || !selectedDuration) return;
 
     // Double check: ensure none of the selected slots are already in cart
     const isConflict = selectedSlots.some((slot) =>
@@ -271,7 +280,7 @@ export function JuniorPrivateGolfInstructionClient({
   };
 
   const handleBuyNow = async () => {
-    if (selectedSlots.length === 0 || !selectedDuration) return;
+    if (isAddingToCart || selectedSlots.length === 0 || !selectedDuration) return;
 
     // Double check conflict
     const isConflict = selectedSlots.some((slot) =>
@@ -337,10 +346,17 @@ export function JuniorPrivateGolfInstructionClient({
 
   const purchaseBlockReason = getPurchaseBlockReason({
     isProgramActive,
-    noSessions: availableSlots.length === 0,
+    noSessions: noOpenTimes,
     needsSelection: selectedSlots.length < maxSlots || !selectedDuration,
     selectionLabel: "Please select a package above first",
   });
+  const addToCartStatus: CartButtonStatus = isAddingToCart
+    ? "adding"
+    : showSuccess
+      ? "success"
+      : "idle";
+  // Selected slots are cleared after a successful add; keep the success state visible until it times out.
+  const cartBlockReason = addToCartStatus === "idle" ? purchaseBlockReason : null;
 
   return (
     <>
@@ -435,7 +451,6 @@ export function JuniorPrivateGolfInstructionClient({
                     className="text-lg font-bold text-gray-900 mb-2"
                   />
 
-                  <ContentFadeIn>
                   <div className="space-y-4 mb-8">
                     <p className="text-sm text-gray-600 leading-relaxed">
                       Our junior private golf lesson offers individual
@@ -471,7 +486,7 @@ export function JuniorPrivateGolfInstructionClient({
                             .filter((p: any) => !p.isOnCourse)
                             .map((pkg: any) => {
                               const isUnavailable =
-                                !isProgramActive || availableSlots.length === 0;
+                                !isProgramActive || noOpenTimes;
                               const content = (
                                 <div
                                   key={pkg.id}
@@ -554,7 +569,7 @@ export function JuniorPrivateGolfInstructionClient({
                             .filter((p: any) => p.isOnCourse)
                             .map((pkg: any) => {
                               const isUnavailable =
-                                !isProgramActive || availableSlots.length === 0;
+                                !isProgramActive || noOpenTimes;
                               const content = (
                                 <div
                                   key={pkg.id}
@@ -669,7 +684,7 @@ export function JuniorPrivateGolfInstructionClient({
                               reason={
                                 getPurchaseBlockReason({
                                   isProgramActive,
-                                  noSessions: availableSlots.length === 0,
+                                  noSessions: noOpenTimes,
                                   needsSelection: !selectedDuration,
                                   selectionLabel:
                                     "Please select a package above first",
@@ -708,21 +723,15 @@ export function JuniorPrivateGolfInstructionClient({
                         </h3>
 
                         <div className="space-y-3">
-                          {purchaseBlockReason ? (
-                            <DisabledActionTooltip reason={purchaseBlockReason}>
-                              <button
-                                disabled
-                                className="w-full py-3 font-bold text-sm bg-gray-200 text-gray-400 pointer-events-none rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
-                              >
-                                <CreditCard className="w-5 h-5" />
-                                BUY NOW
-                              </button>
-                            </DisabledActionTooltip>
-                          ) : (
+                          <DisabledActionTooltip reason={cartBlockReason}>
                             <button
-                              disabled={isBuyNowLoading || isAddingToCart}
+                              disabled={Boolean(purchaseBlockReason) || isBuyNowLoading}
                               onClick={handleBuyNow}
-                              className="w-full py-3 font-bold text-sm bg-orange-500 enabled:hover:bg-orange-600 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white rounded-xl shadow-md enabled:hover:shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+                              className={`w-full py-3 font-bold text-sm rounded-xl shadow-md transition-colors flex items-center justify-center gap-2 ${
+                                purchaseBlockReason || isBuyNowLoading
+                                  ? "bg-gray-200 text-gray-400"
+                                  : "bg-orange-500 hover:bg-orange-600 hover:shadow-lg text-white cursor-pointer"
+                              } ${cartBlockReason ? "pointer-events-none" : ""}`}
                             >
                               {isBuyNowLoading ? (
                                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -731,61 +740,32 @@ export function JuniorPrivateGolfInstructionClient({
                               )}
                               {isBuyNowLoading
                                 ? "PROCESSING..."
-                                : `BUY NOW ${selectedPrice > 0 ? `- $${selectedPrice}` : ""}`}
+                                : `BUY NOW ${!purchaseBlockReason && selectedPrice > 0 ? `- $${selectedPrice}` : ""}`}
                             </button>
-                          )}
+                          </DisabledActionTooltip>
 
-                          {purchaseBlockReason ? (
-                            <DisabledActionTooltip reason={purchaseBlockReason}>
-                              <button
-                                disabled
-                                className="w-full py-3 font-bold text-sm border-2 rounded-xl transition-all flex items-center justify-center gap-2 bg-gray-50 border-gray-100 text-gray-300 pointer-events-none"
-                              >
-                                <ShoppingCart className="w-5 h-5" /> ADD
-                                TO CART
-                              </button>
-                            </DisabledActionTooltip>
-                          ) : (
+                          <DisabledActionTooltip reason={cartBlockReason}>
                             <button
-                              disabled={isBuyNowLoading || isAddingToCart}
+                              disabled={Boolean(cartBlockReason) || isBuyNowLoading}
                               onClick={handleAddToCart}
-                              className="w-full py-3 font-bold text-sm border-2 rounded-xl transition-all flex items-center justify-center gap-2 bg-green-50 text-green-700 enabled:hover:bg-green-200 enabled:hover:border-green-700 border-green-600 disabled:bg-gray-50 disabled:border-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed cursor-pointer"
+                              aria-busy={isAddingToCart}
+                              className={`w-full py-3 font-bold text-sm border-2 rounded-xl transition-colors flex items-center justify-center ${
+                                cartBlockReason || isBuyNowLoading
+                                  ? "bg-gray-50 border-gray-100 text-gray-300"
+                                  : addToCartStatus === "idle"
+                                    ? "bg-green-50 text-green-700 border-green-600 hover:bg-green-200 hover:border-green-700 cursor-pointer"
+                                    : "bg-green-50 text-green-700 border-green-600"
+                              } ${cartBlockReason ? "pointer-events-none" : ""}`}
                             >
-                              <AnimatePresence mode="wait">
-                                {isAddingToCart ? (
-                                  <motion.span
-                                    key="load"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className="flex items-center gap-2"
-                                  >
-                                    <Loader2 className="w-5 h-5 animate-spin" />{" "}
-                                    ADDING...
-                                  </motion.span>
-                                ) : showSuccess ? (
-                                  <motion.span
-                                    key="success"
-                                    initial={{ scale: 0.8 }}
-                                    animate={{ scale: 1 }}
-                                    className="flex items-center gap-2 text-green-600"
-                                  >
-                                    <Check className="w-5 h-5" /> ADDED!
-                                  </motion.span>
-                                ) : (
-                                  <motion.span
-                                    key="default"
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    className="flex items-center gap-2"
-                                  >
-                                    <ShoppingCart className="w-5 h-5" /> ADD TO
-                                    CART
-                                  </motion.span>
-                                )}
-                              </AnimatePresence>
+                              <CartButtonLabel
+                                status={addToCartStatus}
+                                idleLabel="ADD TO CART"
+                                addingLabel="ADDING..."
+                                successLabel="ADDED!"
+                                iconClassName="w-5 h-5"
+                              />
                             </button>
-                          )}
+                          </DisabledActionTooltip>
                         </div>
                       </div>
                     </div>
@@ -804,7 +784,6 @@ export function JuniorPrivateGolfInstructionClient({
                       </a>
                     </div>
                   </div>
-                  </ContentFadeIn>
                 </div>
               </div>
             </div>

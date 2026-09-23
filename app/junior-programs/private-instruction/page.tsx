@@ -1,58 +1,39 @@
-import {
-  getInstructorAvailability,
-  getProgramById,
-  getProgramSessions,
-} from "@/db/queries/programs";
+"use client";
+
+import { useEffect, useRef } from "react";
 import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
-import { programPageContent } from "@/app/components/program-page-layout";
-import { JuniorPrivateGolfInstructionClient } from "./JuniorPrivateGolfInstructionClient";
+import { PrivateInstructionSkeleton } from "@/app/components/PrivateInstructionSkeleton";
+import { useProgramCatalog } from "@/app/components/ProgramCatalogContext";
+import { usePrivateInstructionSlots } from "@/app/components/usePrivateInstructionSlots";
 import {
-  filterAvailableSlots,
-  extractBookedSessions,
-  toESTTimeString,
-} from "@/lib/availability";
-import { getActiveBookingsByType } from "@/db/queries/bookings";
+  programPageContent,
+  programPageReveal,
+} from "@/app/components/program-page-layout";
+import { JuniorPrivateGolfInstructionClient } from "./JuniorPrivateGolfInstructionClient";
 
-export default async function JuniorPrivateGolfInstruction() {
-  const programId = "754bf4be-0ef6-4123-b5ff-b107e03c2f10";
+const PROGRAM_ID = "754bf4be-0ef6-4123-b5ff-b107e03c2f10";
 
-  // Fetch program, bookings, and availability in parallel to avoid sequential delay
-  const [program, realBookings, availabilityData] = await Promise.all([
-    getProgramById(programId),
-    getActiveBookingsByType("junior"),
-    getInstructorAvailability("junior"),
-  ]);
+export default function JuniorPrivateGolfInstruction() {
+  const { status, getProgram, ensureLoaded } = useProgramCatalog();
+  const { slots, loading } = usePrivateInstructionSlots("junior");
+  const revealOnReady = useRef(status !== "ready");
 
-  // Fetch sessions only if program exists
-  const sessions = program ? await getProgramSessions(program.id) : [];
+  useEffect(() => {
+    ensureLoaded();
+  }, [ensureLoaded]);
 
-  // Parse existing sessions into BookedSession format
-  const programSessionBookings = extractBookedSessions(sessions);
+  if (status !== "ready") {
+    return <PrivateInstructionSkeleton layout="junior" />;
+  }
 
-  // Map real bookings to BookedSession format (normalizing UTC to EST)
-  const mappedRealBookings = realBookings.map((b) => ({
-    date: b.startTime, // UTC Date object
-    startTime: toESTTimeString(b.startTime),
-    endTime: toESTTimeString(b.endTime),
-  }));
+  const record = getProgram(PROGRAM_ID);
+  const contentClassName = revealOnReady.current
+    ? programPageReveal
+    : programPageContent;
 
-  const bookedSessions = [...programSessionBookings, ...mappedRealBookings];
-
-  // Flatten all schedules from all matching rows (likely just one)
-  const rawSlots: any[] = availabilityData.flatMap((entry) => {
-    const schedule = entry.schedule;
-    // Check if valid array
-    if (Array.isArray(schedule)) {
-      return schedule;
-    }
-    return [];
-  });
-
-  const availableSlots = filterAvailableSlots(rawSlots, bookedSessions);
-
-  if (!program) {
+  if (!record) {
     return (
-      <div className={programPageContent}>
+      <div className={contentClassName}>
         <div className="grid lg:grid-cols-13 gap-6">
           <div className="lg:col-span-3 space-y-2">
             <h1 className="text-2xl font-bold text-gray-800 mb-4">
@@ -69,8 +50,9 @@ export default async function JuniorPrivateGolfInstruction() {
 
   return (
     <JuniorPrivateGolfInstructionClient
-      program={program}
-      initialAvailableSlots={availableSlots}
+      program={record.program}
+      initialAvailableSlots={slots}
+      slotsLoading={loading}
     />
   );
 }

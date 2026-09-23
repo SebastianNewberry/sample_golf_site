@@ -1,64 +1,39 @@
-import {
-  getInstructorAvailability,
-  getProgramById,
-  getProgramSessions,
-} from "@/db/queries/programs";
-import {
-  ProgramDetailsSection,
-  DEFAULT_ADULT_PROGRAM_DETAILS,
-} from "@/app/components/ProgramDetailsSection";
+"use client";
+
+import { useEffect, useRef } from "react";
 import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
-import type { ProgramDetail } from "@/lib/program-details";
-import type { ProgramSession } from "@/db/schema";
-import { programPageContent } from "@/app/components/program-page-layout";
-import { AdultPrivateGolfInstructionClient } from "./AdultPrivateGolfInstructionClient";
+import { PrivateInstructionSkeleton } from "@/app/components/PrivateInstructionSkeleton";
+import { useProgramCatalog } from "@/app/components/ProgramCatalogContext";
+import { usePrivateInstructionSlots } from "@/app/components/usePrivateInstructionSlots";
 import {
-  filterAvailableSlots,
-  extractBookedSessions,
-  toESTTimeString,
-} from "@/lib/availability";
-import { getActiveBookingsByType } from "@/db/queries/bookings";
-import { addDays } from "date-fns";
+  programPageContent,
+  programPageReveal,
+} from "@/app/components/program-page-layout";
+import { AdultPrivateGolfInstructionClient } from "./AdultPrivateGolfInstructionClient";
 
-export default async function AdultPrivateGolfInstruction() {
-  const programId = "f89b62ee-ffda-421d-a525-8bd2a580f24e";
+const PROGRAM_ID = "f89b62ee-ffda-421d-a525-8bd2a580f24e";
 
-  // Fetch program, bookings, and availability in parallel to avoid sequential delay
-  const [program, realBookings, availabilityData] = await Promise.all([
-    getProgramById(programId),
-    getActiveBookingsByType("adult"),
-    getInstructorAvailability("adult"),
-  ]);
+export default function AdultPrivateGolfInstruction() {
+  const { status, getProgram, ensureLoaded } = useProgramCatalog();
+  const { slots, loading } = usePrivateInstructionSlots("adult");
+  const revealOnReady = useRef(status !== "ready");
 
-  // Fetch sessions only if program exists
-  const sessions = program ? await getProgramSessions(program.id) : [];
+  useEffect(() => {
+    ensureLoaded();
+  }, [ensureLoaded]);
 
-  // Parse existing sessions into BookedSession format (from program_session table - likely empty for private)
-  const programSessionBookings = extractBookedSessions(sessions);
+  if (status !== "ready") {
+    return <PrivateInstructionSkeleton layout="adult" />;
+  }
 
-  // Map real bookings to BookedSession format (normalizing UTC to EST)
-  const mappedRealBookings = realBookings.map((b) => ({
-    date: b.startTime, // UTC Date object
-    startTime: toESTTimeString(b.startTime),
-    endTime: toESTTimeString(b.endTime),
-  }));
+  const record = getProgram(PROGRAM_ID);
+  const contentClassName = revealOnReady.current
+    ? programPageReveal
+    : programPageContent;
 
-  const bookedSessions = [...programSessionBookings, ...mappedRealBookings];
-
-  // Flatten all schedules
-  const rawSlots: any[] = availabilityData.flatMap((entry) => {
-    const schedule = entry.schedule;
-    if (Array.isArray(schedule)) {
-      return schedule;
-    }
-    return [];
-  });
-
-  const availableSlots = filterAvailableSlots(rawSlots, bookedSessions);
-
-  if (!program) {
+  if (!record) {
     return (
-      <div className={programPageContent}>
+      <div className={contentClassName}>
         <div className="grid lg:grid-cols-13 gap-6">
           <div className="lg:col-span-3 space-y-2">
             <h1 className="text-2xl font-bold text-gray-800 mb-4">
@@ -75,8 +50,9 @@ export default async function AdultPrivateGolfInstruction() {
 
   return (
     <AdultPrivateGolfInstructionClient
-      program={program}
-      initialAvailableSlots={availableSlots}
+      program={record.program}
+      initialAvailableSlots={slots}
+      slotsLoading={loading}
     />
   );
 }

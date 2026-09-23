@@ -1,65 +1,33 @@
-import { CheckCircle2, Phone } from "lucide-react";
+"use client";
+
 import defaultImage from "@/public/adult_short_game.webp";
-import {
-  getProgramById,
-  getProgramSessionsWithEnrollment,
-} from "@/db/queries/programs";
-import { ProgramDetailsSection } from "@/app/components/ProgramDetailsSection";
-import ProgramComingSoonCard from "@/app/components/ProgramComingSoonCard";
-import {
-  programPageContent,
-  programPageGrid,
-} from "@/app/components/program-page-layout";
+import { LoadedProgramPage } from "@/app/components/LoadedProgramPage";
 import { ShortGameSeriesPageClient } from "./ShortGameSeriesPageClient";
 
-export default async function AdultShortGameSeries(props: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  const searchParams = await props.searchParams;
-  const sessionId =
-    typeof searchParams.sessionId === "string"
-      ? searchParams.sessionId
-      : undefined;
-  const programId = "9bc2b2b7-2774-4971-b469-4ce2a8d3a707";
-  const [program, sessions] = await Promise.all([
-    getProgramById(programId),
-    getProgramSessionsWithEnrollment(programId, "adult"),
-  ]);
-
+export default function AdultShortGameSeries() {
   return (
-    <>
-      {/* Main Content Grid - Centered */}
-      <div className={programPageContent}>
-        <div className={programPageGrid}>
-          {program ? (
-            <ShortGameSeriesPageClient
-              imageUrl={program.imageUrl || undefined}
-              defaultImage={defaultImage}
-              title={program.name}
-              description={program.description || ""}
-              programId={program.id}
-              programPrice={parseFloat(program.price)}
-              duration={program.duration}
-              sessions={sessions}
-              currentPage="short-game"
-              features={program.features || []}
-              details={program.details || []}
-              initialSessionId={sessionId}
-            />
-          ) : (
-            <>
-              <div className="lg:col-span-3 space-y-2">
-                <h1 className="text-2xl font-bold text-gray-800 mb-4">
-                  Adult Short Game Series
-                </h1>
-              </div>
-              <div className="lg:col-span-7">
-                <ProgramComingSoonCard programName="Adult Short Game Series" />
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </>
+    <LoadedProgramPage
+      programId="9bc2b2b7-2774-4971-b469-4ce2a8d3a707"
+      variant="adult"
+      missingTitle="Adult Short Game Series"
+      missingName="Adult Short Game Series"
+    >
+      {({ program, sessions, sessionId }) => (
+        <ShortGameSeriesPageClient
+          imageUrl={program.imageUrl || undefined}
+          defaultImage={defaultImage}
+          title={program.name}
+          description={program.description || ""}
+          programId={program.id}
+          programPrice={parseFloat(program.price)}
+          duration={program.duration}
+          sessions={sessions}
+          currentPage="short-game"
+          features={program.features || []}
+          details={program.details || []}
+          initialSessionId={sessionId}
+        />
+      )}
+    </LoadedProgramPage>
   );
 }

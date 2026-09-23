@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { submitContactForm } from "@/app/actions/contact-form";
-import { formatPhoneNumberInput } from "@/lib/utils";
+import { formatPhoneNumberInput, usPhoneNumberSchema } from "@/lib/utils";
 import {
   Form,
   FormControl,
@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 const contactFormSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
-  phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
+  phoneNumber: usPhoneNumberSchema,
   email: z.email("Invalid email address"),
   subject: z.string().min(1, "Subject is required"),
   message: z.string().min(1, "Message is required"),
@@ -70,13 +70,6 @@ export function ContactForm() {
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      {submitSuccess && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-800 rounded-md">
-          <p className="font-medium">Thank you for contacting us!</p>
-          <p className="text-sm mt-1">We will get back to you shortly.</p>
-        </div>
-      )}
-
       {submitError && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-800 rounded-md">
           <p className="font-medium">Error</p>
@@ -201,6 +194,13 @@ export function ContactForm() {
           >
             {isSubmitting ? "Submitting..." : "SUBMIT"}
           </Button>
+
+          {submitSuccess && (
+            <div className="p-4 bg-green-50 border border-green-200 text-green-800 rounded-md">
+              <p className="font-medium">Thank you for contacting us!</p>
+              <p className="text-sm mt-1">We will get back to you shortly.</p>
+            </div>
+          )}
         </form>
       </Form>
     </div>

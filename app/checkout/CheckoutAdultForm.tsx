@@ -18,14 +18,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
-import { formatPhoneNumber, formatPhoneNumberInput } from "@/lib/utils";
+import { formatPhoneNumber, formatPhoneNumberInput, usPhoneNumberSchema } from "@/lib/utils";
 
 // Zod schema for adult checkout form
 const adultCheckoutSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Invalid email address"),
-  phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
+  phoneNumber: usPhoneNumberSchema,
   additionalComments: z.string().optional(),
 });
 

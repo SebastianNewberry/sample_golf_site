@@ -26,7 +26,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
-import { formatPhoneNumber, formatPhoneNumberInput } from "@/lib/utils";
+import { formatPhoneNumber, formatPhoneNumberInput, usPhoneNumberSchema } from "@/lib/utils";
 
 // Zod schema for junior checkout form
 const juniorCheckoutSchema = z.object({
@@ -34,9 +34,7 @@ const juniorCheckoutSchema = z.object({
   primaryContactFirstName: z.string().min(1, "First name is required"),
   primaryContactLastName: z.string().min(1, "Last name is required"),
   primaryContactEmail: z.email("Invalid email address"),
-  primaryContactPhone: z
-    .string()
-    .min(10, "Phone number must be at least 10 digits"),
+  primaryContactPhone: usPhoneNumberSchema,
   phoneType: z.enum(["mobile", "home", "work"]),
   preferredContactMethod: z.enum(["text", "email"]),
 

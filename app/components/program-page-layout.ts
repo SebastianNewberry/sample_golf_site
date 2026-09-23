@@ -17,6 +17,9 @@ export const programSectionContainer = "w-full min-w-0 max-w-[1800px]";
 export const programPageContent =
   "w-full min-w-0 md:mx-auto md:w-4/5 lg:w-full lg:max-w-[1400px] lg:mx-auto";
 
+/** Real program page only. Fades in once as the skeleton snapshot fades out. */
+export const programPageReveal = `${programPageContent} program-page-enter`;
+
 export const programPageGrid =
   "grid w-full min-w-0 grid-cols-1 gap-6 lg:grid-cols-13";
 
